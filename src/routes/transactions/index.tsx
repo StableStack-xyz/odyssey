@@ -138,6 +138,28 @@ function TransactionsPage() {
       },
     },
     {
+      key: 'transaction_type',
+      header: 'Type',
+      render: (row) => {
+        const typeLower = (row.transaction_type || '').toLowerCase()
+        let badgeClasses = 'bg-vellum text-ink'
+        if (typeLower.includes('deposit') || typeLower.includes('credit')) {
+          badgeClasses = 'bg-green-100/60 text-green-800 border border-green-200/40'
+        } else if (typeLower.includes('payout') || typeLower.includes('withdrawal')) {
+          badgeClasses = 'bg-red-50 text-red-700 border border-red-100/40'
+        } else if (typeLower.includes('transfer')) {
+          badgeClasses = 'bg-purple-50 text-purple-700 border border-purple-100/40'
+        } else if (typeLower.includes('swap')) {
+          badgeClasses = 'bg-blue-50 text-blue-700 border border-blue-100/40'
+        }
+        return (
+          <span className={`px-2.5 py-1 text-[11px] font-normal tracking-wider rounded-full uppercase ${badgeClasses}`}>
+            {row.transaction_type || '—'}
+          </span>
+        )
+      },
+    },
+    {
       key: 'status',
       header: 'Status',
       render: (row) => <StatusBadge status={row.status} />,
