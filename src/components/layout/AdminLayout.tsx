@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,17 @@ export function AdminLayout({ children, title = 'Dashboard' }: AdminLayoutProps)
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const handleToggleCollapse = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    localStorage.setItem('sidebar-collapsed', String(collapsed));
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -36,8 +47,8 @@ export function AdminLayout({ children, title = 'Dashboard' }: AdminLayoutProps)
 
   return (
     <div className="flex min-h-screen bg-paper">
-      <Sidebar />
-      <div className="flex-1 ml-64">
+      <Sidebar isCollapsed={isCollapsed} onToggleCollapse={handleToggleCollapse} />
+      <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-[72px]' : 'ml-64'}`}>
         <Header title={title} />
         <main className="p-8">
           {children}

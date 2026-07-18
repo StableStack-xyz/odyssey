@@ -10,11 +10,12 @@ import {
   Globe,
   FileText,
   Webhook,
-  MessageSquare,
   Activity,
   Settings,
   LogOut,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Building2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,7 +36,12 @@ const menuItems = [
   { icon: Activity, label: 'Activity', path: '/activity' },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggleCollapse: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -48,12 +54,30 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-paper border-r border-graphite-hairline flex flex-col z-50">
+    <aside className={`fixed left-0 top-0 h-full bg-paper border-r border-graphite-hairline flex flex-col z-50 transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
+      {/* Toggle Button */}
+      <button
+        onClick={() => onToggleCollapse(!isCollapsed)}
+        className="absolute -right-3 top-20 bg-paper border border-graphite-hairline hover:bg-vellum text-slate hover:text-ink w-6 h-6 rounded-full flex items-center justify-center shadow-sm z-50 transition-colors cursor-pointer"
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+      </button>
+
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-graphite-hairline">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.svg?v=2" alt="StableStack" className="h-10 dark:hidden" />
-          <img src="/logo-dark.svg?v=2" alt="StableStack" className="h-10 hidden dark:block" />
+      <div className={`h-16 flex items-center border-b border-graphite-hairline transition-all duration-300 ${isCollapsed ? 'justify-center px-2' : 'px-6'}`}>
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          {!isCollapsed ? (
+            <>
+              <img src="/logo.svg?v=2" alt="StableStack" className="h-10 dark:hidden" />
+              <img src="/logo-dark.svg?v=2" alt="StableStack" className="h-10 hidden dark:block" />
+            </>
+          ) : (
+            <>
+              <img src="/favicon.svg" alt="StableStack" className="h-8 dark:hidden" />
+              <img src="/favicon-dark.svg" alt="StableStack" className="h-8 hidden dark:block" />
+            </>
+          )}
         </Link>
       </div>
 
@@ -67,14 +91,17 @@ export function Sidebar() {
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-normal transition-colors ${
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center rounded-lg text-sm font-normal transition-all ${
+                    isCollapsed ? 'justify-center p-2.5 mx-auto w-10 h-10' : 'gap-3 px-3 py-2.5'
+                  } ${
                     active
                       ? 'bg-vellum text-ink'
                       : 'text-slate hover:bg-vellum hover:text-ink'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               </li>
             );
@@ -83,31 +110,40 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-graphite-hairline p-4">
-        <div className="relative">
+      <div className={`border-t border-graphite-hairline ${isCollapsed ? 'p-2 flex justify-center' : 'p-4'}`}>
+        <div className="relative w-full flex justify-center">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-vellum transition-colors"
+            title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+            className={`flex items-center rounded-lg hover:bg-vellum transition-all ${
+              isCollapsed ? 'p-1.5 justify-center' : 'w-full gap-3 p-2'
+            }`}
           >
-            <div className="w-8 h-8 bg-vellum rounded-full flex items-center justify-center">
-              <span className="text-ink text-sm">
+            <div className="w-8 h-8 bg-vellum rounded-full flex items-center justify-center shrink-0">
+              <span className="text-ink text-sm font-medium">
                 {user?.firstName?.[0]}
                 {user?.lastName?.[0]}
               </span>
             </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm text-ink">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-slate truncate">
-                {user?.email}
-              </p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-ash" />
+            {!isCollapsed && (
+              <>
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm text-ink font-medium truncate">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-slate truncate">
+                    {user?.email}
+                  </p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-ash shrink-0" />
+              </>
+            )}
           </button>
 
           {showUserMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-paper border border-graphite-hairline rounded-lg shadow-lg py-1">
+            <div className={`absolute bottom-full mb-2 bg-paper border border-graphite-hairline rounded-lg shadow-lg py-1 z-50 ${
+              isCollapsed ? 'left-0 w-48' : 'left-0 right-0'
+            }`}>
               <Link
                 to="/profile"
                 onClick={() => setShowUserMenu(false)}
