@@ -5,6 +5,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
 import { Settings, Plus, Pencil, Trash2, Save, Info } from 'lucide-react'
@@ -49,6 +50,7 @@ function FeesPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'fiat' | 'stablecoin'>('fiat')
   const [search, setSearch] = useState('')
+  const [feeTypeFilter, setFeeTypeFilter] = useState('all')
 
   // Modal and state management for Fiat Fees CRUD
   const [showAddFiat, setShowAddFiat] = useState(false)
@@ -270,13 +272,9 @@ function FeesPage() {
 
   // Filter fiat fees client side
   const filteredFiatFees = (fiatFeesData || []).filter((fee) => {
-    if (!search) return true
-    const term = search.toLowerCase()
-    return (
-      fee.from_currency?.toLowerCase().includes(term) ||
-      fee.to_currency?.toLowerCase().includes(term) ||
-      fee.market_pair?.toLowerCase().includes(term)
-    )
+    if (search && !fee.from_currency?.toLowerCase().includes(search.toLowerCase()) && !fee.to_currency?.toLowerCase().includes(search.toLowerCase()) && !fee.market_pair?.toLowerCase().includes(search.toLowerCase())) return false
+    if (feeTypeFilter !== 'all' && fee.fee_type?.toLowerCase() !== feeTypeFilter) return false
+    return true
   })
 
   // Columns for Fiat Fees Table
@@ -414,12 +412,30 @@ function FeesPage() {
         {activeTab === 'fiat' ? (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <SearchInput
-                value={search}
-                onChange={(v) => setSearch(v)}
-                placeholder="Search fiat pairs..."
-                className="w-full sm:w-80"
-              />
+              <div className="flex items-center gap-4 flex-wrap">
+                <SearchInput
+                  value={search}
+                  onChange={(v) => setSearch(v)}
+                  placeholder="Search fiat pairs..."
+                  className="w-full sm:w-80"
+                />
+                <FilterDropdown
+                  fields={[
+                    {
+                      key: 'feeType',
+                      label: 'Fee Type',
+                      type: 'select',
+                      value: feeTypeFilter,
+                      onChange: setFeeTypeFilter,
+                      options: [
+                        { label: 'All Types', value: 'all' },
+                        { label: 'Percentage', value: 'percentage' },
+                        { label: 'Flat', value: 'flat' },
+                      ],
+                    },
+                  ]}
+                />
+              </div>
               <button
                 onClick={() => { resetFiatForm(); setShowAddFiat(true) }}
                 className="px-4 py-2 text-xs font-normal text-ink bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"

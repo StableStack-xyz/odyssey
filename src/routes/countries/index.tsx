@@ -5,6 +5,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
 import { Globe, Plus, Pencil, Trash2, DollarSign } from 'lucide-react'
@@ -38,6 +39,7 @@ function CountriesPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [countryCurrencyFilter, setCountryCurrencyFilter] = useState('all')
   const limit = 20
 
   // Modal and state management for Countries CRUD
@@ -269,12 +271,31 @@ function CountriesPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <SearchInput
             value={search}
             onChange={(v) => { setSearch(v); setPage(1) }}
             placeholder="Search countries..."
             className="w-full sm:w-80"
+          />
+          <FilterDropdown
+            fields={[
+              {
+                key: 'currency',
+                label: 'Currency Region',
+                type: 'select',
+                value: countryCurrencyFilter,
+                onChange: (v) => { setCountryCurrencyFilter(v); setPage(1) },
+                options: [
+                  { label: 'All Regions', value: 'all' },
+                  { label: 'NGN (Nigeria)', value: 'NGN' },
+                  { label: 'ZAR (South Africa)', value: 'ZAR' },
+                  { label: 'USD (US Dollar)', value: 'USD' },
+                  { label: 'KES (Kenya)', value: 'KES' },
+                  { label: 'GHS (Ghana)', value: 'GHS' },
+                ],
+              },
+            ]}
           />
         </div>
 
