@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@netlify/vite-plugin-tanstack-start": "latest",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/react-devtools": "latest",
