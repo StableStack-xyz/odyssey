@@ -68,7 +68,7 @@ function Dashboard() {
   const navigate = useNavigate()
 
   // Dynamic filter states
-  const [period, setPeriod] = useState<'today' | 'yesterday' | 'this_week' | 'this_month'>('today')
+  const [period, setPeriod] = useState<'today' | 'yesterday' | 'last7days' | 'last30days' | 'last90days' | 'thisyear'>('today')
   const [selectedAsset, setSelectedAsset] = useState<string>('ALL')
 
   // 1. Fetch revenue stats with active period filter
@@ -264,8 +264,10 @@ function Dashboard() {
               >
                 <option value="today">Today</option>
                 <option value="yesterday">Yesterday</option>
-                <option value="this_week">This Week</option>
-                <option value="this_month">This Month</option>
+                <option value="last7days">Last 7 Days</option>
+                <option value="last30days">Last 30 Days</option>
+                <option value="last90days">Last 90 Days</option>
+                <option value="thisyear">This Year</option>
               </select>
             </div>
 
