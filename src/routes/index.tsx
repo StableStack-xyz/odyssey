@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../components/layout/AdminLayout'
 import { StatsCard } from '../components/ui/StatsCard'
 import { StatusBadge } from '../components/ui/StatusBadge'
@@ -75,6 +75,7 @@ function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'overview' | 'revenue' | 'flow'>('overview')
@@ -342,7 +343,7 @@ function Dashboard() {
               }}
               className="btn-secondary !py-1.5 !px-3 !h-9 text-xs flex items-center gap-2 cursor-pointer border border-graphite-hairline bg-vellum rounded-full text-slate hover:text-ink transition-colors"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </button>
 

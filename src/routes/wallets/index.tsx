@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
@@ -59,6 +59,7 @@ interface Wallet {
 function WalletsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [currencyFilter, setCurrencyFilter] = useState('All')
@@ -217,7 +218,7 @@ function WalletsPage() {
             onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-wallets'] })}
             className="btn-secondary flex items-center gap-2 cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>

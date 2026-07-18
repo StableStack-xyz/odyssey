@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
@@ -44,6 +44,7 @@ interface Country {
 
 function CountriesPage() {
   const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [countryCurrencyFilter, setCountryCurrencyFilter] = useState('all')
@@ -274,7 +275,7 @@ function CountriesPage() {
               onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-countries'] })}
               className="px-4 py-2 text-xs font-normal text-slate bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </button>
             <button

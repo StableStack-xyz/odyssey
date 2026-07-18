@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
@@ -55,6 +55,7 @@ interface StablecoinFeeData {
 
 function FeesPage() {
   const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
   const [activeTab, setActiveTab] = useState<'fiat' | 'stablecoin'>('fiat')
   const [search, setSearch] = useState('')
   const [feeTypeFilter, setFeeTypeFilter] = useState('all')
@@ -395,7 +396,7 @@ function FeesPage() {
             onClick={() => queryClient.invalidateQueries()}
             className="btn-secondary flex items-center gap-2 cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
