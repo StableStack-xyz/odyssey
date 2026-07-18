@@ -30,6 +30,7 @@ import { Route as WalletsWalletIdRouteImport } from './routes/wallets/$walletId'
 import { Route as UsersAddRouteImport } from './routes/users/add'
 import { Route as UsersUserIdRouteImport } from './routes/users/$userId'
 import { Route as TransactionsTransactionIdRouteImport } from './routes/transactions/$transactionId'
+import { Route as PayoutsPayoutIdRouteImport } from './routes/payouts/$payoutId'
 import { Route as AssetsAssetIdRouteImport } from './routes/assets/$assetId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -138,6 +139,11 @@ const TransactionsTransactionIdRoute =
     path: '/transactions/$transactionId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const PayoutsPayoutIdRoute = PayoutsPayoutIdRouteImport.update({
+  id: '/payouts/$payoutId',
+  path: '/payouts/$payoutId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssetsAssetIdRoute = AssetsAssetIdRouteImport.update({
   id: '/assets/$assetId',
   path: '/assets/$assetId',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/assets/$assetId': typeof AssetsAssetIdRoute
+  '/payouts/$payoutId': typeof PayoutsPayoutIdRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/users/add': typeof UsersAddRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/assets/$assetId': typeof AssetsAssetIdRoute
+  '/payouts/$payoutId': typeof PayoutsPayoutIdRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/users/add': typeof UsersAddRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/assets/$assetId': typeof AssetsAssetIdRoute
+  '/payouts/$payoutId': typeof PayoutsPayoutIdRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/users/$userId': typeof UsersUserIdRoute
   '/users/add': typeof UsersAddRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/assets/$assetId'
+    | '/payouts/$payoutId'
     | '/transactions/$transactionId'
     | '/users/$userId'
     | '/users/add'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/assets/$assetId'
+    | '/payouts/$payoutId'
     | '/transactions/$transactionId'
     | '/users/$userId'
     | '/users/add'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reset-password'
     | '/assets/$assetId'
+    | '/payouts/$payoutId'
     | '/transactions/$transactionId'
     | '/users/$userId'
     | '/users/add'
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   AssetsAssetIdRoute: typeof AssetsAssetIdRoute
+  PayoutsPayoutIdRoute: typeof PayoutsPayoutIdRoute
   TransactionsTransactionIdRoute: typeof TransactionsTransactionIdRoute
   UsersUserIdRoute: typeof UsersUserIdRoute
   UsersAddRoute: typeof UsersAddRoute
@@ -466,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsTransactionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payouts/$payoutId': {
+      id: '/payouts/$payoutId'
+      path: '/payouts/$payoutId'
+      fullPath: '/payouts/$payoutId'
+      preLoaderRoute: typeof PayoutsPayoutIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assets/$assetId': {
       id: '/assets/$assetId'
       path: '/assets/$assetId'
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   AssetsAssetIdRoute: AssetsAssetIdRoute,
+  PayoutsPayoutIdRoute: PayoutsPayoutIdRoute,
   TransactionsTransactionIdRoute: TransactionsTransactionIdRoute,
   UsersUserIdRoute: UsersUserIdRoute,
   UsersAddRoute: UsersAddRoute,

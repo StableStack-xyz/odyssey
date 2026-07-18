@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
@@ -6,7 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { CreditCard } from 'lucide-react'
+import { CreditCard, Eye } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
@@ -49,20 +49,31 @@ interface PayoutMethod {
 }
 
 function PayoutsPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [userIdFilter, setUserIdFilter] = useState('')
+  const [accountNumberFilter, setAccountNumberFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-payouts', page, search, userIdFilter, typeFilter],
+    queryKey: ['admin-payouts', page, search, userIdFilter, accountNumberFilter, typeFilter],
     queryFn: async () => {
+      const params: any = { page, limit }
+      if (search) params.search = search
+      if (userIdFilter || accountNumberFilter) {
+        const response = await walletApi.get('/api/admin/payout-methods/search', {
+          params: {
+            user_id: userIdFilter || undefined,
+            account_number: accountNumberFilter || undefined,
+          },
+        })
+        return { data: response.data.data, pagination: { total: response.data.data?.length || 0 } }
+      }
       const response = await walletApi.get('/api/admin/payout-methods', {
         params: {
-          page,
-          limit,
-          search: search || undefined,
+          ...params,
           user_id: userIdFilter || undefined,
           type: typeFilter !== 'all' ? typeFilter : undefined,
         },
@@ -140,6 +151,21 @@ function PayoutsPage() {
         </span>
       ),
     },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate({ to: '/payouts/$payoutId', params: { payoutId: row.id } })
+          }}
+          className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink transition-colors cursor-pointer"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+      ),
+    },
   ]
 
   return (
@@ -165,6 +191,14 @@ function PayoutsPage() {
           />
           <FilterDropdown
             fields={[
+              {
+                key: 'accountNumber',
+                label: 'Account Number',
+                type: 'text',
+                value: accountNumberFilter,
+                onChange: (v) => { setAccountNumberFilter(v); setPage(1) },
+                placeholder: 'Search by account...',
+              },
               {
                 key: 'userId',
                 label: 'User ID',
@@ -201,6 +235,7 @@ function PayoutsPage() {
           total={total}
           limit={limit}
           onPageChange={setPage}
+          onRowClick={(row) => navigate({ to: '/payouts/$payoutId', params: { payoutId: row.id } })}
           rowKey={(row) => row.id}
         />
       </div>
