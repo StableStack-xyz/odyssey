@@ -38,10 +38,11 @@ function AddUserPage() {
 
   const addUserMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const isAddAdmin = data.role === 'admin';
-      const endpoint = isAddAdmin 
-        ? '/api/users/auth/admin/signup' 
-        : '/api/users/auth/add-user';
+      const endpoint = data.role === 'admin'
+        ? '/api/users/auth/admin/signup'
+        : data.role === 'merchant'
+          ? '/api/users/auth/merchant/signup'
+          : '/api/users/auth/signup';
 
       const response = await authApi.post(endpoint, data)
       return response.data
