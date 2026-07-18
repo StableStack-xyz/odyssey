@@ -1,0 +1,280 @@
+/* Micro-interaction animations and transitions */
+
+/* Button press feedback */
+.btn-press {
+  transition: transform 160ms ease-out;
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-hover:hover {
+    transform: scale(1.02);
+  }
+}
+
+/* Input focus transition */
+.input-focus {
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.input-focus:focus {
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+/* Table row hover */
+.table-row-hover {
+  transition: background-color 100ms ease-out;
+}
+.table-row-hover:hover {
+  background-color: rgba(99, 102, 241, 0.04);
+}
+.table-row-hover:active {
+  background-color: rgba(99, 102, 241, 0.08);
+}
+
+/* Link underline animation */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background-color: currentColor;
+  transition: width 200ms ease-out;
+}
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* Modal entrance */
+.modal-overlay {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+.modal-overlay.open {
+  opacity: 1;
+}
+.modal-content {
+  opacity: 0;
+  transform: scale(0.95) translateY(8px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.modal-overlay.open .modal-content {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
+  transform-origin: top;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.dropdown-menu.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* List stagger animation */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fade-in 300ms ease-out forwards;
+}
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 50ms; }
+.stagger-item:nth-child(3) { animation-delay: 100ms; }
+.stagger-item:nth-child(4) { animation-delay: 150ms; }
+.stagger-item:nth-child(5) { animation-delay: 200ms; }
+.stagger-item:nth-child(6) { animation-delay: 250ms; }
+.stagger-item:nth-child(7) { animation-delay: 300ms; }
+.stagger-item:nth-child(8) { animation-delay: 350ms; }
+.stagger-item:nth-child(9) { animation-delay: 400ms; }
+.stagger-item:nth-child(10) { animation-delay: 450ms; }
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, #2a2a3a 25%, #3a3a4a 50%, #2a2a3a 75%);
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Toggle switch */
+.toggle-track {
+  transition: background-color 200ms ease-out;
+}
+.toggle-thumb {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.toggle-thumb.active {
+  transform: translateX(16px);
+}
+
+/* Status badge */
+.status-badge {
+  transition: background-color 200ms ease-out, color 200ms ease-out, transform 160ms ease-out;
+}
+.status-badge:active {
+  transform: scale(0.95);
+}
+
+/* Sidebar item */
+.sidebar-item {
+  transition: background-color 150ms ease-out, color 150ms ease-out, transform 160ms ease-out;
+}
+.sidebar-item:active {
+  transform: scale(0.98);
+}
+
+/* Toast entrance */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.toast-in {
+  animation: toast-in 200ms ease-out;
+}
+
+/* Fade in for page transitions */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: page-fade-in 300ms ease-out;
+}
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.slide-in-right {
+  animation: slide-in-right 250ms ease-out;
+}
+
+/* Slide in from left */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.slide-in-left {
+  animation: slide-in-left 250ms ease-out;
+}
+
+/* Scale in */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.scale-in {
+  animation: scale-in 200ms ease-out;
+}
+
+/* Pulse animation for notifications */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Spin for loading */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-press:active,
+  .card-hover:hover,
+  .sidebar-item:active {
+    transform: none;
+  }
+}

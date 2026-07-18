@@ -1,0 +1,335 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* StableStack — Plum Ink & Warm Sandstone Wealth Journal */
+  
+  /* Light Mode Palette */
+  --color-ink: #2c1047;                  /* Deep plum-indigo wordmark color */
+  --color-paper: #fefcf9;                /* Warm ivory paper canvas */
+  --color-vellum: #e6e2df;               /* Sandstone cream from logo-dark */
+  --color-graphite-hairline: #e3deda;    /* Warm stone borders */
+  --color-slate: #73647a;                /* Muted plum-gray text */
+  --color-pewter: #594761;               /* Helper text */
+  --color-ash: #9c8ea6;                  /* Tertiary text/placeholders */
+  --color-cream-notice: #ffe9bf;         /* Warm cream banner */
+  --color-accent-rose: #d65a84;          /* Logo gradient rose accent */
+  --color-accent-purple: #3e1e68;        /* Logo gradient purple */
+
+  /* Typography */
+  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Type Scale */
+  --text-caption: 12px;
+  --leading-caption: 1.5;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.43;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --text-subheading: 18px;
+  --leading-subheading: 1.38;
+  --text-heading-sm: 36px;
+  --leading-heading-sm: 1.25;
+  --text-heading: 48px;
+  --leading-heading: 1.11;
+  --text-heading-lg: 60px;
+  --leading-heading-lg: 1.1;
+  --text-display: 72px;
+  --leading-display: 1;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-3xl-2: 28px;
+  --radius-full: 9999px;
+
+  /* Named Radii */
+  --radius-cards: 20px;
+  --radius-icons: 9999px;
+  --radius-buttons: 9999px;
+  --radius-list-items: 28px;
+  --radius-large-cards: 24px;
+  --radius-small-cards: 8px;
+
+  /* Shadows (Ultra soft, 4-layer) */
+  --shadow-xl: rgba(44, 16, 71, 0.01) 0px 128px 51px 0px, rgba(44, 16, 71, 0.02) 0px 72px 43px 0px, rgba(44, 16, 71, 0.03) 0px 32px 32px 0px, rgba(44, 16, 71, 0.04) 0px 8px 18px 0px;
+  --shadow-xl-2: rgba(44, 16, 71, 0.01) 0px 168px 67px 0px, rgba(44, 16, 71, 0.05) 0px 94px 57px 0px, rgba(44, 16, 71, 0.09) 0px 42px 42px 0px, rgba(44, 16, 71, 0.1) 0px 10px 23px 0px;
+  --shadow-xl-3: rgba(44, 16, 71, 0.01) 0px 132px 53px 0px, rgba(44, 16, 71, 0.05) 0px 74px 44px 0px, rgba(44, 16, 71, 0.09) 0px 33px 33px 0px, rgba(44, 16, 71, 0.1) 0px 8px 18px 0px;
+
+  /* Easing */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Force Tailwind v4 to compile dark: variants using class selection (.dark) */
+@variant dark (.dark &);
+
+/* Dark Mode Palette (Inverted Plum & Sandstone) */
+.dark {
+  --color-ink: #f7f5f2;                  /* Warm ivory sandstone text */
+  --color-paper: #1c0a2e;                /* Deeper brand plum canvas */
+  --color-vellum: #2c1047;               /* Deep plum container backgrounds */
+  --color-graphite-hairline: #3b1d5c;    /* Deep violet-plum borders */
+  --color-slate: #aa9bbd;                /* Soft lavender muted text */
+  --color-pewter: #bcaecf;               /* Soft lavender helper text */
+  --color-ash: #78648c;                  /* Dark lavender placeholder/disabled */
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 200ms ease-out, color 200ms ease-out;
+}
+
+/* Headings — single weight 400, dramatic size jumps */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Standard Links — Clean text links with no underlines */
+a {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+/* Editorial Links — Underlined and animated ONLY when explicitly requested */
+.editorial-link {
+  color: var(--color-ink);
+  text-decoration: none;
+  position: relative;
+}
+
+.editorial-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background-color: currentColor;
+  transition: width 200ms ease-out;
+}
+
+.editorial-link:hover::after {
+  width: 100%;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-vellum);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-pewter);
+}
+
+/* Buttons — pill shape, solid plum ink fill */
+.btn-primary {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: var(--text-body-sm);
+  font-weight: 400;
+  border-radius: var(--radius-buttons);
+  padding: 8px 16px;
+  border: none;
+  box-shadow: none;
+  transition: transform 160ms ease-out, opacity 160ms ease-out;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Ghost text link */
+.ghost-link {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-body-sm);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 160ms ease-out;
+}
+
+.ghost-link:hover {
+  opacity: 0.7;
+}
+
+/* Cards — 20px radius, hairline border, faint shadow */
+.card {
+  background-color: var(--color-paper);
+  border-radius: var(--radius-cards);
+  border: 1px solid var(--color-graphite-hairline);
+  box-shadow: var(--shadow-xl-3);
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out, border-color 200ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* Status badge — achromatic with brand tint */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-buttons);
+  font-size: var(--text-caption);
+  font-weight: 400;
+  background-color: var(--color-vellum);
+  color: var(--color-slate);
+  transition: background-color 200ms ease-out;
+}
+
+.status-badge[data-status="completed"],
+.status-badge[data-status="active"],
+.status-badge[data-status="verified"],
+.status-badge[data-status="connected"],
+.status-badge[data-status="approved"] {
+  background-color: rgba(22, 101, 52, 0.1);
+  color: #166534;
+}
+
+.dark .status-badge[data-status="completed"],
+.dark .status-badge[data-status="active"],
+.dark .status-badge[data-status="verified"],
+.dark .status-badge[data-status="connected"],
+.dark .status-badge[data-status="approved"] {
+  background-color: rgba(22, 101, 52, 0.25);
+  color: #4ade80;
+}
+
+.status-badge[data-status="pending"],
+.status-badge[data-status="processing"],
+.status-badge[data-status="notsubmitted"] {
+  background-color: rgba(146, 64, 14, 0.1);
+  color: #92400e;
+}
+
+.dark .status-badge[data-status="pending"],
+.dark .status-badge[data-status="processing"],
+.dark .status-badge[data-status="notsubmitted"] {
+  background-color: rgba(146, 64, 14, 0.25);
+  color: #fbbf24;
+}
+
+.status-badge[data-status="failed"],
+.status-badge[data-status="blocked"],
+.status-badge[data-status="disconnected"],
+.status-badge[data-status="rejected"] {
+  background-color: rgba(153, 27, 27, 0.1);
+  color: #991b1b;
+}
+
+.dark .status-badge[data-status="failed"],
+.dark .status-badge[data-status="blocked"],
+.dark .status-badge[data-status="disconnected"],
+.dark .status-badge[data-status="rejected"] {
+  background-color: rgba(153, 27, 27, 0.25);
+  color: #f87171;
+}
+
+/* Data table — hairline borders */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 400;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-graphite-hairline);
+  text-align: left;
+}
+
+.data-table td {
+  font-size: var(--text-body-sm);
+  color: var(--color-ink);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-graphite-hairline);
+}
+
+.data-table tbody tr {
+  transition: background-color 100ms ease-out;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--color-vellum);
+}
+
+/* Inputs — hairline border */
+.input {
+  width: 100%;
+  font-size: var(--text-body-sm);
+  padding: 8px 12px;
+  background-color: var(--color-vellum);
+  border: 1px solid var(--color-graphite-hairline);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink);
+  transition: border-color 150ms ease-out, background-color 200ms ease-out;
+}
+
+.input:focus {
+  border-color: var(--color-ink);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-ash);
+}
