@@ -61,10 +61,11 @@ function WalletsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [currencyFilter, setCurrencyFilter] = useState('All')
+  const [userIdFilter, setUserIdFilter] = useState('')
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-wallets', page, search, currencyFilter],
+    queryKey: ['admin-wallets', page, search, currencyFilter, userIdFilter],
     queryFn: async () => {
       const response = await walletApi.get('/api/admin/wallets', {
         params: {
@@ -72,6 +73,7 @@ function WalletsPage() {
           limit,
           search: search || undefined,
           currency: currencyFilter !== 'All' ? currencyFilter : undefined,
+          user_id: userIdFilter || undefined,
         },
       })
       return response.data.data
@@ -224,6 +226,14 @@ function WalletsPage() {
           />
           <FilterDropdown
             fields={[
+              {
+                key: 'userId',
+                label: 'User ID',
+                type: 'text',
+                value: userIdFilter,
+                onChange: (v) => { setUserIdFilter(v); setPage(1) },
+                placeholder: 'Filter by user ID...',
+              },
               {
                 key: 'currency',
                 label: 'Currency',

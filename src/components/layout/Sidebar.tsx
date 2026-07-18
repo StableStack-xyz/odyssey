@@ -26,7 +26,7 @@ const menuItems = [
   { icon: Users, label: 'Users', path: '/users' },
   { icon: Wallet, label: 'Wallets', path: '/wallets' },
   { icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' },
-  { icon: CreditCard, label: 'Payouts', path: '/payouts' },
+  { icon: CreditCard, label: 'Beneficiaries', path: '/payouts' },
   { icon: Building2, label: 'OTC', path: '/otc' },
   { icon: Coins, label: 'Assets', path: '/assets' },
   { icon: Settings, label: 'Fees', path: '/fees' },

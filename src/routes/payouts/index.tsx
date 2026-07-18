@@ -5,6 +5,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { CreditCard } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
@@ -21,8 +22,8 @@ export const Route = createFileRoute('/payouts/')({
   },
   head: () => ({
     meta: [
-      { title: `Payouts - ${APP_NAME}` },
-      { name: 'description', content: 'Manage payout methods' },
+      { title: `Beneficiaries - ${APP_NAME}` },
+      { name: 'description', content: 'Manage beneficiary payout methods' },
     ],
   }),
   component: PayoutsPage,
@@ -50,13 +51,21 @@ interface PayoutMethod {
 function PayoutsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [userIdFilter, setUserIdFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-payouts', page, search],
+    queryKey: ['admin-payouts', page, search, userIdFilter, typeFilter],
     queryFn: async () => {
       const response = await walletApi.get('/api/admin/payout-methods', {
-        params: { page, limit, search: search || undefined },
+        params: {
+          page,
+          limit,
+          search: search || undefined,
+          user_id: userIdFilter || undefined,
+          type: typeFilter !== 'all' ? typeFilter : undefined,
+        },
       })
       return response.data.data
     },
@@ -134,25 +143,50 @@ function PayoutsPage() {
   ]
 
   return (
-    <AdminLayout title="Payout Methods">
+    <AdminLayout title="Beneficiaries">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
-              Payout Methods
+              Beneficiaries
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Manage user payout methods (bank accounts, wallets)
+              Manage beneficiary payout methods
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <SearchInput
             value={search}
             onChange={(v) => { setSearch(v); setPage(1) }}
-            placeholder="Search payout methods..."
-            className="w-80"
+            placeholder="Search beneficiaries..."
+            className="w-80 max-sm:w-full"
+          />
+          <FilterDropdown
+            fields={[
+              {
+                key: 'userId',
+                label: 'User ID',
+                type: 'text',
+                value: userIdFilter,
+                onChange: (v) => { setUserIdFilter(v); setPage(1) },
+                placeholder: 'Filter by user ID...',
+              },
+              {
+                key: 'type',
+                label: 'Type',
+                type: 'select',
+                value: typeFilter,
+                onChange: (v) => { setTypeFilter(v); setPage(1) },
+                options: [
+                  { label: 'All Types', value: 'all' },
+                  { label: 'Bank', value: 'bank' },
+                  { label: 'Wallet', value: 'wallet' },
+                  { label: 'Mobile Money', value: 'mobile_money' },
+                ],
+              },
+            ]}
           />
         </div>
 
