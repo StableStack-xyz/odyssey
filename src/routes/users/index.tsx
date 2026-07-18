@@ -7,7 +7,7 @@ import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { Users as UsersIcon, UserPlus, Eye } from 'lucide-react'
-import { authApi } from '../../lib/api'
+import { baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 
 export const Route = createFileRoute('/users/')({
@@ -46,35 +46,26 @@ function UsersPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-users', page, search],
     queryFn: async () => {
-      const response = await authApi.get('/api/users/onboard/documents', {
-        params: { page, limit, search: search || undefined },
+      const response = await baseApi.get('/api/users/filter', {
+        params: {
+          page,
+          limit,
+          searchQuery: search || undefined,
+          complianceStatus: 'all',
+          country: 'all',
+        },
       })
       return response.data.data
     },
   })
 
-  const documents = data?.documents || []
-  const usersMap = new Map<string, User>()
-  documents.forEach((doc: any) => {
-    if (!usersMap.has(doc.user_id)) {
-      usersMap.set(doc.user_id, {
-        id: doc.user_id,
-        email: doc.email,
-        first_name: doc.first_name,
-        last_name: doc.last_name,
-        businessName: doc.businessName,
-        role: doc.role,
-        is_admin: false,
-        is_blocked: false,
-        isAccountVerified: false,
-        complianceStatus: doc.approval_status || 'NotSubmitted',
-        created_at: doc.created_at,
-      })
-    }
+  const rawUsers = data?.users || []
+  const users = rawUsers.filter((user: any) => {
+    if (roleFilter === 'All') return true
+    return user.role?.toLowerCase() === roleFilter.toLowerCase()
   })
-  const users = Array.from(usersMap.values())
-  const total = data?.pagination?.total || users.length
-  const totalPages = Math.ceil(total / limit) || 1
+  const total = data?.totalUsers || users.length
+  const totalPages = data ? Math.ceil(data.totalUsers / limit) : 1
 
   const roleOptions = ['All', 'Individual', 'Merchant', 'Admin']
 
