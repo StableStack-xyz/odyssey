@@ -4,7 +4,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { ArrowLeft, Mail, Phone, MapPin, Building, Shield, ShieldCheck, ShieldX, Wallet, ArrowRight, Activity, Copy, FileText, CheckCircle2, Check, X } from 'lucide-react'
-import { authApi, walletApi } from '../../lib/api'
+import { authApi, walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
@@ -65,16 +65,26 @@ function UserDetailPage() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [showRejectConfirm, setShowApproveReject] = useState(false)
 
-  // Fetch user documents (has user info)
+  // Fetch user details by ID
   const { data: userData, isLoading: loadingUser } = useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      const response = await authApi.get('/api/users/onboard/documents', {
-        params: { page: 1, limit: 100 },
-      })
-      const docs = response.data.data.documents || []
-      const userDoc = docs.find((d: any) => d.user_id === userId)
-      return userDoc
+      const response = await baseApi.get(`/api/users/${userId}`)
+      const profile = response.data.data.user_profile
+      return {
+        id: profile.id,
+        email: profile.email,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        businessName: profile.business_name,
+        role: profile.role,
+        phone: profile.phone,
+        country: profile.addresses?.country || null,
+        is_blocked: profile.is_blocked,
+        isAccountVerified: profile.is_account_verified,
+        approval_status: profile.compliance_status || 'NotSubmitted',
+        created_at: profile.created_at,
+      }
     },
   })
 
