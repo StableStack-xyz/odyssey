@@ -1,4 +1,4 @@
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const url = new URL(event.rawUrl);
 
   // This now gives you /api/auth/users/auth/signin
