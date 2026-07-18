@@ -27,7 +27,7 @@ export const handler = async (event) => {
     };
   }
 
-  const targetUrl = `${baseUrl}/api${apiPath}${queryString}`;
+  const targetUrl = `${baseUrl}${apiPath}${queryString}`;
 
   try {
     const incomingContentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
