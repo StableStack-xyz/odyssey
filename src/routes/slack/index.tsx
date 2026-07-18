@@ -16,6 +16,12 @@ export const Route = createFileRoute('/slack/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Slack - StableStack Admin' },
+      { name: 'description', content: 'Slack integration settings' },
+    ],
+  }),
   component: SlackPage,
 })
 

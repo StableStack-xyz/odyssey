@@ -19,6 +19,12 @@ export const Route = createFileRoute('/reports/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Reports - StableStack Admin' },
+      { name: 'description', content: 'View platform reports' },
+    ],
+  }),
   component: ReportsPage,
 })
 

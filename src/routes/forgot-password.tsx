@@ -6,6 +6,11 @@ import { authApi } from '../lib/api'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/forgot-password')({
+  head: () => ({
+    meta: [
+      { title: 'Forgot Password - StableStack Admin' },
+    ],
+  }),
   component: ForgotPasswordPage,
 })
 

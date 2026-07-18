@@ -20,6 +20,12 @@ export const Route = createFileRoute('/transactions/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Transactions - StableStack Admin' },
+      { name: 'description', content: 'Monitor platform transactions' },
+    ],
+  }),
   component: TransactionsPage,
 })
 

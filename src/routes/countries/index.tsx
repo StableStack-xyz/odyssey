@@ -22,6 +22,12 @@ export const Route = createFileRoute('/countries/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Countries - StableStack Admin' },
+      { name: 'description', content: 'Configure supported countries' },
+    ],
+  }),
   component: CountriesPage,
 })
 

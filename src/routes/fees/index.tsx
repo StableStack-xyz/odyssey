@@ -21,6 +21,12 @@ export const Route = createFileRoute('/fees/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Fees - StableStack Admin' },
+      { name: 'description', content: 'Manage fee configurations' },
+    ],
+  }),
   component: FeesPage,
 })
 

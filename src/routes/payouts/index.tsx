@@ -18,6 +18,12 @@ export const Route = createFileRoute('/payouts/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Payouts - StableStack Admin' },
+      { name: 'description', content: 'Manage payout methods' },
+    ],
+  }),
   component: PayoutsPage,
 })
 

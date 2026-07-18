@@ -20,6 +20,12 @@ export const Route = createFileRoute('/activity/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Activity Logs - StableStack Admin' },
+      { name: 'description', content: 'System audit trail' },
+    ],
+  }),
   component: ActivityPage,
 })
 

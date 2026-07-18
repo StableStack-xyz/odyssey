@@ -20,6 +20,11 @@ export const Route = createFileRoute('/assets/$assetId')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Asset Details - StableStack Admin' },
+    ],
+  }),
   component: AssetDetailPage,
 })
 

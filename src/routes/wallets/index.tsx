@@ -21,6 +21,12 @@ export const Route = createFileRoute('/wallets/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Wallets - StableStack Admin' },
+      { name: 'description', content: 'Manage user wallets' },
+    ],
+  }),
   component: WalletsPage,
 })
 

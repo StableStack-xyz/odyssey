@@ -17,6 +17,11 @@ export const Route = createFileRoute('/transactions/$transactionId')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Transaction Details - StableStack Admin' },
+    ],
+  }),
   component: TransactionDetailPage,
 })
 

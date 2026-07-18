@@ -20,6 +20,12 @@ export const Route = createFileRoute('/users/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Users - StableStack Admin' },
+      { name: 'description', content: 'Manage platform users' },
+    ],
+  }),
   component: UsersPage,
 })
 

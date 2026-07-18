@@ -22,6 +22,12 @@ export const Route = createFileRoute('/webhooks/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'Webhooks - StableStack Admin' },
+      { name: 'description', content: 'Manage webhook events' },
+    ],
+  }),
   component: WebhooksPage,
 })
 

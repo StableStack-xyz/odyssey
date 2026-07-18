@@ -22,6 +22,12 @@ export const Route = createFileRoute('/otc/')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'OTC - StableStack Admin' },
+      { name: 'description', content: 'OTC transaction management' },
+    ],
+  }),
   component: OTCPage,
 })
 

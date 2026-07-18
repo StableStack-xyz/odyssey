@@ -16,6 +16,12 @@ export const Route = createFileRoute('/profile')({
       }
     }
   },
+  head: () => ({
+    meta: [
+      { title: 'My Profile - StableStack Admin' },
+      { name: 'description', content: 'Administrator profile' },
+    ],
+  }),
   component: ProfilePage,
 })
 
