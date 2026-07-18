@@ -6,6 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ArrowLeftRight, ArrowRight, Download } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
@@ -43,8 +44,6 @@ interface Transaction {
   receiver_user?: { first_name: string | null; last_name: string | null; businessName: string | null; role: string | null }
   receiver_wallet_details?: { currency?: string; bank_name?: string; account_number?: string }
 }
-
-const statusOptions = ['All', 'Pending', 'Completed', 'Failed', 'Processing', 'Cancelled']
 
 function TransactionsPage() {
   const navigate = useNavigate()
@@ -182,26 +181,27 @@ function TransactionsPage() {
               setPage(1)
             }}
             placeholder="Search by reference..."
-            className="w-80"
+            className="w-80 max-sm:w-full"
           />
-          <div className="flex items-center gap-2 flex-wrap">
-            {statusOptions.map((status) => (
-              <button
-                key={status}
-                onClick={() => {
-                  setStatusFilter(status)
-                  setPage(1)
-                }}
-                className={`px-3 py-1.5 text-xs font-normal rounded-full transition-colors ${
-                  statusFilter === status
-                    ? 'bg-ink text-paper'
-                    : 'bg-vellum text-slate hover:bg-slate/10'
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
+          <FilterDropdown
+            fields={[
+              {
+                key: 'status',
+                label: 'Status',
+                type: 'select',
+                value: statusFilter,
+                onChange: (v) => { setStatusFilter(v); setPage(1) },
+                options: [
+                  { label: 'All Statuses', value: 'All' },
+                  { label: 'Pending', value: 'Pending' },
+                  { label: 'Completed', value: 'Completed' },
+                  { label: 'Failed', value: 'Failed' },
+                  { label: 'Processing', value: 'Processing' },
+                  { label: 'Cancelled', value: 'Cancelled' },
+                ],
+              },
+            ]}
+          />
         </div>
 
         <DataTable

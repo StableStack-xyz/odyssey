@@ -6,6 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { Wallet as WalletIcon, Eye, Copy } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
@@ -47,8 +48,6 @@ interface Wallet {
     businessName?: string
   }
 }
-
-const currencyOptions = ['All', 'USDT', 'USDC', 'ZAR']
 
 function WalletsPage() {
   const navigate = useNavigate()
@@ -214,26 +213,25 @@ function WalletsPage() {
               setPage(1)
             }}
             placeholder="Search wallets..."
-            className="w-80"
+            className="w-80 max-sm:w-full"
           />
-          <div className="flex items-center gap-2 flex-wrap">
-            {currencyOptions.map((currency) => (
-              <button
-                key={currency}
-                onClick={() => {
-                  setCurrencyFilter(currency)
-                  setPage(1)
-                }}
-                className={`px-3 py-1.5 text-xs font-normal rounded-full transition-colors cursor-pointer ${
-                  currencyFilter === currency
-                    ? 'bg-ink text-paper'
-                    : 'bg-vellum text-slate hover:bg-slate/10'
-                }`}
-              >
-                {currency}
-              </button>
-            ))}
-          </div>
+          <FilterDropdown
+            fields={[
+              {
+                key: 'currency',
+                label: 'Currency',
+                type: 'select',
+                value: currencyFilter,
+                onChange: (v) => { setCurrencyFilter(v); setPage(1) },
+                options: [
+                  { label: 'All Currencies', value: 'All' },
+                  { label: 'USDT', value: 'USDT' },
+                  { label: 'USDC', value: 'USDC' },
+                  { label: 'ZAR', value: 'ZAR' },
+                ],
+              },
+            ]}
+          />
         </div>
 
         <DataTable
