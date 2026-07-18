@@ -4,12 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
-import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
-import { CreditCard, Plus, Eye, Trash2 } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
-import { toast } from 'sonner'
 
 export const Route = createFileRoute('/payouts/')({
   beforeLoad: () => {
@@ -33,7 +31,6 @@ interface PayoutMethod {
   wallet_address?: string
   network?: string
   currency: string
-  is_active: boolean
   created_at: string
   user?: {
     email: string
@@ -116,13 +113,6 @@ function PayoutsPage() {
           </p>
           <p className="text-xs text-gray-500">{row.user?.email || row.user_id?.slice(0, 8) + '...'}</p>
         </div>
-      ),
-    },
-    {
-      key: 'is_active',
-      header: 'Status',
-      render: (row) => (
-        <StatusBadge status={row.is_active ? 'Active' : 'Inactive'} />
       ),
     },
     {
