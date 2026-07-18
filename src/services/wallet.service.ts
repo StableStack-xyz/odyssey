@@ -110,11 +110,11 @@ export const userService = {
     return response.data.data;
   },
 
-  blockUser: async (userId: string): Promise<void> => {
+  blockUser: async (_userId: string): Promise<void> => {
     // Block user endpoint
   },
 
-  unblockUser: async (userId: string): Promise<void> => {
+  unblockUser: async (_userId: string): Promise<void> => {
     // Unblock user endpoint
   },
 };

@@ -6,7 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
-import { ArrowLeftRight, ArrowRight, ArrowDownLeft, ArrowUpRight, Download } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Download } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 

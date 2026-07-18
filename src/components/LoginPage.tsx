@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, type ComponentProps } from 'react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useSearch } from '@tanstack/react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-function ReCAPTCHAWrapper(props: ComponentProps<'div'> & { sitekey: string; onChange: (token: string | null) => void; onExpired?: () => void; onErrored?: () => void }) {
+function ReCAPTCHAWrapper(props: Omit<ComponentProps<'div'>, 'onChange'> & { sitekey: string; onChange: (token: string | null) => void; onExpired?: () => void; onErrored?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,7 +50,6 @@ export function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const { login } = useAuth();
-  const navigate = useNavigate();
   const search = useSearch({ strict: false });
 
   const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SECRET_KEY;
@@ -176,7 +175,7 @@ export function LoginPage() {
               <div className="py-2">
                 <ReCAPTCHAWrapper
                   sitekey={recaptchaSiteKey}
-                  onChange={(token) => setCaptchaToken(token)}
+                  onChange={(token: string | null) => setCaptchaToken(token)}
                   onExpired={() => setCaptchaToken(null)}
                   onErrored={() => setCaptchaToken(null)}
                 />

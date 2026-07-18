@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { MessageSquare, Send, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react'
@@ -20,7 +20,6 @@ export const Route = createFileRoute('/slack/')({
 })
 
 function SlackPage() {
-  const queryClient = useQueryClient()
   const [message, setMessage] = useState('')
   const [channel, setChannel] = useState('')
 

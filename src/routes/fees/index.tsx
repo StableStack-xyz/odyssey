@@ -4,13 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
-import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
-import { Settings, Plus, Pencil, Trash2, Shield, Activity, HelpCircle, Save, Info } from 'lucide-react'
+import { Settings, Plus, Pencil, Trash2, Save, Info } from 'lucide-react'
 import { walletApi } from '../../lib/api'
-import { format } from 'date-fns'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/fees/')({
@@ -87,7 +85,7 @@ function FeesPage() {
   })
 
   // 2. Fetch Stablecoin Fee Settings
-  const { data: stablecoinFeeData, isLoading: loadingStablecoin } = useQuery({
+  const { isLoading: loadingStablecoin } = useQuery({
     queryKey: ['stablecoin-fee'],
     queryFn: async () => {
       const response = await walletApi.get('/api/fees', {

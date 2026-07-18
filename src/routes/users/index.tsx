@@ -6,6 +6,7 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
+import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { Users as UsersIcon, UserPlus, Eye } from 'lucide-react'
 import { baseApi } from '../../lib/api'
 import { format } from 'date-fns'
@@ -41,18 +42,20 @@ function UsersPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [roleFilter, setRoleFilter] = useState('All')
+  const [complianceFilter, setComplianceFilter] = useState('all')
+  const [countryFilter, setCountryFilter] = useState('')
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-users', page, search],
+    queryKey: ['admin-users', page, search, complianceFilter, countryFilter],
     queryFn: async () => {
       const response = await baseApi.get('/api/users/filter', {
         params: {
           page,
           limit,
           searchQuery: search || undefined,
-          complianceStatus: 'all',
-          country: 'all',
+          complianceStatus: complianceFilter,
+          country: countryFilter || undefined,
         },
       })
       return response.data.data
@@ -183,9 +186,9 @@ function UsersPage() {
               setPage(1)
             }}
             placeholder="Search users..."
-            className="w-80"
+            className="w-80 max-sm:w-full"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {roleOptions.map((role) => (
               <button
                 key={role}
@@ -203,6 +206,32 @@ function UsersPage() {
               </button>
             ))}
           </div>
+          <FilterDropdown
+            fields={[
+              {
+                key: 'compliance',
+                label: 'Compliance Status',
+                type: 'select',
+                value: complianceFilter,
+                onChange: (v) => { setComplianceFilter(v); setPage(1) },
+                options: [
+                  { label: 'All Compliance', value: 'all' },
+                  { label: 'Pending', value: 'Pending' },
+                  { label: 'Approved', value: 'Approved' },
+                  { label: 'Rejected', value: 'Rejected' },
+                  { label: 'Not Submitted', value: 'NotSubmitted' },
+                ],
+              },
+              {
+                key: 'country',
+                label: 'Country',
+                type: 'text',
+                value: countryFilter,
+                onChange: (v) => { setCountryFilter(v); setPage(1) },
+                placeholder: 'Filter by country...',
+              },
+            ]}
+          />
         </div>
 
         <DataTable

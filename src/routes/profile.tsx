@@ -1,10 +1,10 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { AdminLayout } from '../components/layout/AdminLayout'
 import { useAuth } from '../contexts/AuthContext'
 import { authApi } from '../lib/api'
 import { toast } from 'sonner'
-import { User, Mail, Shield, ShieldCheck, Key, Lock, LogOut } from 'lucide-react'
+import { User, Mail, Shield, ShieldCheck, Key } from 'lucide-react'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/profile')({
