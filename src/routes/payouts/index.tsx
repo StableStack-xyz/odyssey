@@ -33,13 +33,37 @@ interface PayoutMethod {
   id: string
   user_id: string
   type: string
-  bank_name?: string
-  account_number?: string
-  account_name?: string
-  wallet_address?: string
-  network?: string
   currency: string
+  label: string | null
+  account_name: string | null
+  account_number: string | null
+  bank_name: string | null
+  bank_code: string | null
+  wallet_address: string | null
+  network: string | null
+  country: string | null
+  provider: string | null
   created_at: string
+  updated_at: string | null
+  sort_code: string | null
+  swift_code: string | null
+  routing_number: string | null
+  iban: string | null
+  bank_type: string | null
+  bank_address: { street_line1?: string; street_line2?: string; city?: string; state?: string; postal_code?: string } | null
+  is_third_party: boolean | null
+  is_api_generated: boolean | null
+  walapay_account_id: string | null
+  account_type: string | null
+  account_holder: {
+    type: string
+    business_name?: string
+    first_name: string
+    last_name: string
+    email?: string
+    phone?: string
+    address?: { street_line1?: string; city?: string; state?: string; postal_code?: string }
+  } | null
   user?: {
     email: string
     first_name: string
@@ -100,6 +124,13 @@ function PayoutsPage() {
       ),
     },
     {
+      key: 'label',
+      header: 'Label',
+      render: (row) => (
+        <span className="text-sm text-ink max-w-[180px] truncate block">{row.label || '—'}</span>
+      ),
+    },
+    {
       key: 'bank_name',
       header: 'Details',
       render: (row) => (
@@ -128,6 +159,13 @@ function PayoutsPage() {
       header: 'Currency',
       render: (row) => (
         <span className="text-sm uppercase font-medium">{row.currency}</span>
+      ),
+    },
+    {
+      key: 'country',
+      header: 'Country',
+      render: (row) => (
+        <span className="text-sm">{row.country || '—'}</span>
       ),
     },
     {
@@ -215,9 +253,8 @@ function PayoutsPage() {
                 onChange: (v) => { setTypeFilter(v); setPage(1) },
                 options: [
                   { label: 'All Types', value: 'all' },
-                  { label: 'Bank', value: 'bank' },
-                  { label: 'Wallet', value: 'wallet' },
-                  { label: 'Mobile Money', value: 'mobile_money' },
+                  { label: 'Bank', value: 'BANK' },
+                  { label: 'Wallet', value: 'WALLET' },
                 ],
               },
             ]}
