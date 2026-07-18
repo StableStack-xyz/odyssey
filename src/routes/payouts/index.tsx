@@ -1,12 +1,12 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { CreditCard, Eye } from 'lucide-react'
+import { CreditCard, Eye, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
@@ -74,6 +74,7 @@ interface PayoutMethod {
 
 function PayoutsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [userIdFilter, setUserIdFilter] = useState('')
@@ -218,6 +219,13 @@ function PayoutsPage() {
               Manage beneficiary payout methods
             </p>
           </div>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
+            className="btn-secondary flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">

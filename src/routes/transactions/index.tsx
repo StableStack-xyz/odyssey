@@ -1,13 +1,13 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { ArrowLeftRight, ArrowRight, Download } from 'lucide-react'
+import { ArrowLeftRight, ArrowRight, Download, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
@@ -54,6 +54,7 @@ interface Transaction {
 
 function TransactionsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('All')
@@ -196,10 +197,19 @@ function TransactionsPage() {
               Monitor and manage all platform transactions
             </p>
           </div>
-          <button className="btn-primary flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-transactions'] })}
+              className="btn-secondary flex items-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button className="btn-primary flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">

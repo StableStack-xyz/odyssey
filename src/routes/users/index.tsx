@@ -1,13 +1,13 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { Users as UsersIcon, UserPlus, Eye } from 'lucide-react'
+import { Users as UsersIcon, UserPlus, Eye, RefreshCw } from 'lucide-react'
 import { baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
@@ -46,6 +46,7 @@ interface User {
 
 function UsersPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [roleFilter, setRoleFilter] = useState('All')
@@ -176,13 +177,22 @@ function UsersPage() {
               Manage platform users and their compliance status
             </p>
           </div>
-          <button
-            onClick={() => navigate({ to: '/users/add' })}
-            className="btn-primary flex items-center gap-2 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add User
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-users'] })}
+              className="btn-secondary flex items-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate({ to: '/users/add' })}
+              className="btn-primary flex items-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add User
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">

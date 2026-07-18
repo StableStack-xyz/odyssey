@@ -8,7 +8,7 @@ import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
-import { Globe, Plus, Pencil, Trash2, DollarSign } from 'lucide-react'
+import { Globe, Plus, Pencil, Trash2, DollarSign, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -269,13 +269,22 @@ function CountriesPage() {
               Configure supported countries and active regional withdrawal thresholds
             </p>
           </div>
-          <button
-            onClick={() => { resetCountryForm(); setShowAddCountry(true) }}
-            className="px-4 py-2 text-xs font-normal text-ink bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            Add Country
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-countries'] })}
+              className="px-4 py-2 text-xs font-normal text-slate bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={() => { resetCountryForm(); setShowAddCountry(true) }}
+              className="px-4 py-2 text-xs font-normal text-ink bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Add Country
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">

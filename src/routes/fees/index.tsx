@@ -8,7 +8,7 @@ import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
-import { Settings, Plus, Pencil, Trash2, Save, Info } from 'lucide-react'
+import { Settings, Plus, Pencil, Trash2, Save, Info, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { toast } from 'sonner'
 import { APP_NAME } from '../../lib/constants'
@@ -382,13 +382,22 @@ function FeesPage() {
   return (
     <AdminLayout title="Fees">
       <div className="space-y-6">
-        <div>
-          <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
-            Fees Configuration
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Configure deposit, conversion, and global transfer fee settings
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+              Fees Configuration
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Configure deposit, conversion, and global transfer fee settings
+            </p>
+          </div>
+          <button
+            onClick={() => queryClient.invalidateQueries()}
+            className="btn-secondary flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
 
         {/* Tab System */}
