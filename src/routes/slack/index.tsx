@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { MessageSquare, Send, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/slack/')({
   beforeLoad: () => {
@@ -18,7 +19,7 @@ export const Route = createFileRoute('/slack/')({
   },
   head: () => ({
     meta: [
-      { title: 'Slack - StableStack Admin' },
+      { title: `Slack - ${APP_NAME}` },
       { name: 'description', content: 'Slack integration settings' },
     ],
   }),

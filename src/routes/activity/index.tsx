@@ -10,6 +10,7 @@ import { Activity, User, Eye, Copy, Terminal, Monitor, Compass } from 'lucide-re
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/activity/')({
   beforeLoad: () => {
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/activity/')({
   },
   head: () => ({
     meta: [
-      { title: 'Activity Logs - StableStack Admin' },
+      { title: `Activity Logs - ${APP_NAME}` },
       { name: 'description', content: 'System audit trail' },
     ],
   }),

@@ -7,6 +7,7 @@ import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/wallets/$walletId')({
   beforeLoad: () => {
@@ -19,7 +20,7 @@ export const Route = createFileRoute('/wallets/$walletId')({
   },
   head: () => ({
     meta: [
-      { title: 'Wallet Details - StableStack Admin' },
+      { title: `Wallet Details - ${APP_NAME}` },
     ],
   }),
   component: WalletDetailPage,

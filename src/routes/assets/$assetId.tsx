@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/assets/$assetId')({
   beforeLoad: () => {
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/assets/$assetId')({
   },
   head: () => ({
     meta: [
-      { title: 'Asset Details - StableStack Admin' },
+      { title: `Asset Details - ${APP_NAME}` },
     ],
   }),
   component: AssetDetailPage,

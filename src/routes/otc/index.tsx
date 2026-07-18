@@ -12,6 +12,7 @@ import { Building2, Plus, Pencil, Trash2, ArrowRight, DollarSign, Calendar, User
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/otc/')({
   beforeLoad: () => {
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/otc/')({
   },
   head: () => ({
     meta: [
-      { title: 'OTC - StableStack Admin' },
+      { title: `OTC - ${APP_NAME}` },
       { name: 'description', content: 'OTC transaction management' },
     ],
   }),

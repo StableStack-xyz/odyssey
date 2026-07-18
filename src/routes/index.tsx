@@ -19,6 +19,7 @@ import {
   Coins,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { APP_NAME } from '../lib/constants'
 import {
   AreaChart,
   Area,
@@ -46,7 +47,7 @@ export const Route = createFileRoute('/')({
   },
   head: () => ({
     meta: [
-      { title: 'Dashboard - StableStack Admin' },
+      { title: `Dashboard - ${APP_NAME}` },
       { name: 'description', content: 'Platform overview and key metrics' },
     ],
   }),

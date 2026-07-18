@@ -6,6 +6,7 @@ import { authApi } from '../lib/api'
 import { toast } from 'sonner'
 import { User, Mail, Shield, ShieldCheck, Key } from 'lucide-react'
 import { useState } from 'react'
+import { APP_NAME } from '../lib/constants'
 
 export const Route = createFileRoute('/profile')({
   beforeLoad: () => {
@@ -18,7 +19,7 @@ export const Route = createFileRoute('/profile')({
   },
   head: () => ({
     meta: [
-      { title: 'My Profile - StableStack Admin' },
+      { title: `My Profile - ${APP_NAME}` },
       { name: 'description', content: 'Administrator profile' },
     ],
   }),

@@ -4,11 +4,12 @@ import { useMutation } from '@tanstack/react-query'
 import { Mail, ArrowLeft, Send } from 'lucide-react'
 import { authApi } from '../lib/api'
 import { toast } from 'sonner'
+import { APP_NAME } from '../lib/constants'
 
 export const Route = createFileRoute('/forgot-password')({
   head: () => ({
     meta: [
-      { title: 'Forgot Password - StableStack Admin' },
+      { title: `Forgot Password - ${APP_NAME}` },
     ],
   }),
   component: ForgotPasswordPage,

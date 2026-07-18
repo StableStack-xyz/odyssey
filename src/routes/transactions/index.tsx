@@ -10,6 +10,7 @@ import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { ArrowLeftRight, ArrowRight, Download } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/transactions/')({
   beforeLoad: () => {
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/transactions/')({
   },
   head: () => ({
     meta: [
-      { title: 'Transactions - StableStack Admin' },
+      { title: `Transactions - ${APP_NAME}` },
       { name: 'description', content: 'Monitor platform transactions' },
     ],
   }),

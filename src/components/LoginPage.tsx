@@ -3,6 +3,7 @@ import { useSearch } from '@tanstack/react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { APP_NAME } from '../lib/constants'
 
 function ReCAPTCHAWrapper(props: Omit<ComponentProps<'div'>, 'onChange'> & { sitekey: string; onChange: (token: string | null) => void; onExpired?: () => void; onErrored?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,7 +112,7 @@ export function LoginPage() {
               <img src="/logo-dark.svg?v=2" alt="StableStack" className="h-12 hidden dark:block" />
             </div>
             <h1 className="font-display text-[36px] tracking-tight text-ink leading-tight">
-              StableStack Admin
+              {APP_NAME}
             </h1>
             <p className="text-slate text-xs tracking-wider uppercase">
               quiet wealth infrastructure

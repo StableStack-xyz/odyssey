@@ -5,6 +5,7 @@ import { AdminLayout } from '../../components/layout/AdminLayout'
 import { ArrowLeft, Mail, Lock, User, Building, Phone, MapPin, Shield, Eye, EyeOff } from 'lucide-react'
 import { authApi } from '../../lib/api'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/users/add')({
   beforeLoad: () => {
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/users/add')({
   },
   head: () => ({
     meta: [
-      { title: 'Add User - StableStack Admin' },
+      { title: `Add User - ${APP_NAME}` },
       { name: 'description', content: 'Create a new user account' },
     ],
   }),

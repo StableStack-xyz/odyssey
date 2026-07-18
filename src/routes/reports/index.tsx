@@ -9,6 +9,7 @@ import { SearchInput } from '../../components/ui/SearchInput'
 import { FileText, Download } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/reports/')({
   beforeLoad: () => {
@@ -21,7 +22,7 @@ export const Route = createFileRoute('/reports/')({
   },
   head: () => ({
     meta: [
-      { title: 'Reports - StableStack Admin' },
+      { title: `Reports - ${APP_NAME}` },
       { name: 'description', content: 'View platform reports' },
     ],
   }),

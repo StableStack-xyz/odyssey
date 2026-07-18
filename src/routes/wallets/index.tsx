@@ -11,6 +11,7 @@ import { Wallet as WalletIcon, Eye, Copy } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/wallets/')({
   beforeLoad: () => {
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/wallets/')({
   },
   head: () => ({
     meta: [
-      { title: 'Wallets - StableStack Admin' },
+      { title: `Wallets - ${APP_NAME}` },
       { name: 'description', content: 'Manage user wallets' },
     ],
   }),

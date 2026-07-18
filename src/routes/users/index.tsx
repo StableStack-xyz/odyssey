@@ -10,6 +10,7 @@ import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { Users as UsersIcon, UserPlus, Eye } from 'lucide-react'
 import { baseApi } from '../../lib/api'
 import { format } from 'date-fns'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/users/')({
   beforeLoad: () => {
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/users/')({
   },
   head: () => ({
     meta: [
-      { title: 'Users - StableStack Admin' },
+      { title: `Users - ${APP_NAME}` },
       { name: 'description', content: 'Manage platform users' },
     ],
   }),

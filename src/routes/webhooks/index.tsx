@@ -12,6 +12,7 @@ import { Webhook, Trash2, ShieldAlert, Copy, Terminal, Eye } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/webhooks/')({
   beforeLoad: () => {
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/webhooks/')({
   },
   head: () => ({
     meta: [
-      { title: 'Webhooks - StableStack Admin' },
+      { title: `Webhooks - ${APP_NAME}` },
       { name: 'description', content: 'Manage webhook events' },
     ],
   }),

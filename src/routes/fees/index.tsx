@@ -11,6 +11,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Settings, Plus, Pencil, Trash2, Save, Info } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/fees/')({
   beforeLoad: () => {
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/fees/')({
   },
   head: () => ({
     meta: [
-      { title: 'Fees - StableStack Admin' },
+      { title: `Fees - ${APP_NAME}` },
       { name: 'description', content: 'Manage fee configurations' },
     ],
   }),

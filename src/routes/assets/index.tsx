@@ -10,6 +10,7 @@ import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { Coins } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/assets/')({
   beforeLoad: () => {
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/assets/')({
   },
   head: () => ({
     meta: [
-      { title: 'Assets - StableStack Admin' },
+      { title: `Assets - ${APP_NAME}` },
       { name: 'description', content: 'Manage supported assets' },
     ],
   }),

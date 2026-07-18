@@ -4,11 +4,12 @@ import { useMutation } from '@tanstack/react-query'
 import { Key, Lock, Eye, EyeOff, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { authApi } from '../lib/api'
 import { toast } from 'sonner'
+import { APP_NAME } from '../lib/constants'
 
 export const Route = createFileRoute('/reset-password')({
   head: () => ({
     meta: [
-      { title: 'Reset Password - StableStack Admin' },
+      { title: `Reset Password - ${APP_NAME}` },
     ],
   }),
   component: ResetPasswordPage,

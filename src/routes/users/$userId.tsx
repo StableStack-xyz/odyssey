@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/users/$userId')({
   beforeLoad: () => {
@@ -21,7 +22,7 @@ export const Route = createFileRoute('/users/$userId')({
   },
   head: () => ({
     meta: [
-      { title: 'User Details - StableStack Admin' },
+      { title: `User Details - ${APP_NAME}` },
       { name: 'description', content: 'View user details' },
     ],
   }),
@@ -554,7 +555,7 @@ function UserDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <div className="grid grid-cols-2 gap-2">
                 {!profile.is_account_verified && (
                   <>
                     <button

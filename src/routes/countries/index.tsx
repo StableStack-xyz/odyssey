@@ -12,6 +12,7 @@ import { Globe, Plus, Pencil, Trash2, DollarSign } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { APP_NAME } from '../../lib/constants'
 
 export const Route = createFileRoute('/countries/')({
   beforeLoad: () => {
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/countries/')({
   },
   head: () => ({
     meta: [
-      { title: 'Countries - StableStack Admin' },
+      { title: `Countries - ${APP_NAME}` },
       { name: 'description', content: 'Configure supported countries' },
     ],
   }),
