@@ -760,7 +760,7 @@ function UserDetailPage() {
               </div>
               <div className="p-4 bg-vellum/30 border border-graphite-hairline rounded-xl space-y-1">
                 <p className="text-[10px] text-slate uppercase tracking-wider">Legal Structure / Formation</p>
-                <p className="text-sm font-medium text-ink">{merchant.legal_structure || '—'} / {merchant.formation_country || '—'}</p>
+                <p className="text-sm font-medium text-ink">{merchant.legal_structure || '—'} / {merchant.formation_country || '—'} {merchant.formation_date ? `(${format(new Date(merchant.formation_date), 'MMM d, yyyy')})` : ''}</p>
               </div>
               <div className="p-4 bg-vellum/30 border border-graphite-hairline rounded-xl space-y-1">
                 <p className="text-[10px] text-slate uppercase tracking-wider">Source of Funds</p>
@@ -817,6 +817,39 @@ function UserDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Policies */}
+            {merchant.policies && (
+              <div className="mt-6 pt-6 border-t border-graphite-hairline">
+                <p className="text-xs font-semibold text-ink mb-3">Policies</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
+                    <p className="text-[10px] text-slate uppercase">AML Policy</p>
+                    {merchant.policies.aml_policy ? (
+                      <a href={merchant.policies.aml_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+                    ) : (
+                      <p className="text-sm text-ink">—</p>
+                    )}
+                  </div>
+                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
+                    <p className="text-[10px] text-slate uppercase">KYC Policy</p>
+                    {merchant.policies.kyc_policy ? (
+                      <a href={merchant.policies.kyc_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+                    ) : (
+                      <p className="text-sm text-ink">—</p>
+                    )}
+                  </div>
+                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
+                    <p className="text-[10px] text-slate uppercase">Data Protection Policy</p>
+                    {merchant.policies.data_protection_policy ? (
+                      <a href={merchant.policies.data_protection_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+                    ) : (
+                      <p className="text-sm text-ink">—</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Financial Profile */}
             <div className="mt-6 pt-6 border-t border-graphite-hairline">
@@ -924,26 +957,104 @@ function UserDetailPage() {
                         <p className="text-sm text-ink">{owner.phone_number || '—'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate uppercase">Ownership</p>
-                        <p className="text-sm text-ink">{owner.ownership_percentage || '—'}%</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate uppercase">Nationality</p>
-                        <p className="text-sm text-ink">{owner.nationality || '—'}</p>
+                        <p className="text-[10px] text-slate uppercase">Gender</p>
+                        <p className="text-sm text-ink">{owner.gender || '—'}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate uppercase">DOB</p>
                         <p className="text-sm text-ink">{owner.dob || '—'}</p>
                       </div>
                       <div>
+                        <p className="text-[10px] text-slate uppercase">Nationality</p>
+                        <p className="text-sm text-ink">{owner.nationality || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate uppercase">Ownership</p>
+                        <p className="text-sm text-ink">{owner.ownership_percentage || '—'}%</p>
+                      </div>
+                      <div>
                         <p className="text-[10px] text-slate uppercase">ID Number</p>
                         <p className="text-sm text-ink">{owner.id_number || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate uppercase">Tax ID</p>
+                        <p className="text-sm text-ink">{owner.tax_identification_number || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate uppercase">Relationship Date</p>
+                        <p className="text-sm text-ink">{owner.relationship_establishment_date || '—'}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate uppercase">Signer / Control / Beneficial</p>
                         <p className="text-sm text-ink">{owner.is_signer ? '✓' : '✗'} / {owner.is_control_person ? '✓' : '✗'} / {owner.is_beneficial_owner ? '✓' : '✗'}</p>
                       </div>
                     </div>
+
+                    {/* Address */}
+                    {owner.address && (
+                      <div className="mt-4 pt-4 border-t border-graphite-hairline">
+                        <p className="text-[10px] text-slate uppercase mb-2">Address</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Street 1</p>
+                            <p className="text-sm text-ink">{owner.address.street1 || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Street 2</p>
+                            <p className="text-sm text-ink">{owner.address.street2 || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">City</p>
+                            <p className="text-sm text-ink">{owner.address.city || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">State</p>
+                            <p className="text-sm text-ink">{owner.address.state || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Postal Code</p>
+                            <p className="text-sm text-ink">{owner.address.postal_code || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Country</p>
+                            <p className="text-sm text-ink">{owner.address.country || '—'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ID Images */}
+                    {(owner.front_image || owner.back_image) && (
+                      <div className="mt-4 pt-4 border-t border-graphite-hairline">
+                        <p className="text-[10px] text-slate uppercase mb-2">ID Document Images</p>
+                        <div className="flex flex-wrap gap-4">
+                          {owner.front_image && (
+                            <a href={owner.front_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">Front Image</a>
+                          )}
+                          {owner.back_image && (
+                            <a href={owner.back_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">Back Image</a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Supporting Documents */}
+                    {owner.supporting_document && owner.supporting_document.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-graphite-hairline">
+                        <p className="text-[10px] text-slate uppercase mb-2">Supporting Documents ({owner.supporting_document.length})</p>
+                        <div className="space-y-2">
+                          {owner.supporting_document.map((doc: any, di: number) => (
+                            <div key={di} className="flex items-center justify-between p-2 bg-vellum/30 border border-graphite-hairline rounded-lg">
+                              <div>
+                                <span className="text-xs text-ink font-medium">{doc.doc_type}</span>
+                                {doc.sub_type && <span className="text-[10px] text-slate ml-2">({doc.sub_type})</span>}
+                              </div>
+                              <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline shrink-0">View</a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
