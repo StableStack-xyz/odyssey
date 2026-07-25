@@ -8,7 +8,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { Modal } from '../../components/ui/Modal'
-import { Webhook, Trash2, ShieldAlert, Copy, Terminal, Eye } from 'lucide-react'
+import { Webhook, Trash2, ShieldAlert, Copy, Terminal, Eye, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -84,6 +84,21 @@ function WebhooksPage() {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Failed to delete webhook log')
+    },
+  })
+
+  // 3. Replay webhook event mutation
+  const replayMutation = useMutation({
+    mutationFn: async (event: WebhookEvent) => {
+      const provider = event.provider?.toLowerCase()
+      if (!provider) throw new Error('No provider found')
+      return walletApi.post(`/webhook/${provider}`, event.metadata)
+    },
+    onSuccess: () => {
+      toast.success('Webhook replayed successfully')
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to replay webhook')
     },
   })
 
@@ -322,7 +337,15 @@ function WebhooksPage() {
             </div>
 
             {/* Buttons */}
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => replayMutation.mutate(selectedEvent!)}
+                disabled={replayMutation.isPending || !selectedEvent}
+                className="px-4 py-2 text-sm text-ink bg-vellum border border-graphite-hairline hover:bg-graphite-hairline/20 rounded-full transition-colors font-display flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${replayMutation.isPending ? 'animate-spin' : ''}`} />
+                {replayMutation.isPending ? 'Replaying...' : 'Replay'}
+              </button>
               <button
                 onClick={() => setSelectedEvent(null)}
                 className="px-4 py-2 text-sm text-ink bg-transparent border border-graphite-hairline hover:bg-vellum rounded-full transition-colors font-display cursor-pointer"
