@@ -1,12 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { Modal } from '../../components/ui/Modal'
-import { Activity, User, Eye, Copy, Terminal, Monitor, Compass } from 'lucide-react'
+import { Activity, User, Eye, Copy, Terminal, Monitor, Compass, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -45,6 +45,8 @@ interface ActivityLog {
 }
 
 function ActivityPage() {
+  const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const limit = 20
@@ -174,13 +176,22 @@ function ActivityPage() {
   return (
     <AdminLayout title="System Activity Logs">
       <div className="space-y-6">
-        <div>
-          <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
-            System Activity Logs
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Real-time audit trails of transaction events, processing events, and AML screenings executed on the platform
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+              System Activity Logs
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Real-time audit trails of transaction events, processing events, and AML screenings executed on the platform
+            </p>
+          </div>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-activity-logs'] })}
+            className="btn-secondary flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         <div className="flex items-center gap-4">

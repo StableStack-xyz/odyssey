@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
@@ -48,6 +48,7 @@ interface WebhookEvent {
 
 function WebhooksPage() {
   const queryClient = useQueryClient()
+  const isFetching = useIsFetching() > 0
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const limit = 20
@@ -209,13 +210,22 @@ function WebhooksPage() {
   return (
     <AdminLayout title="Webhooks Audit Log">
       <div className="space-y-6">
-        <div>
-          <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
-            Webhook Event Logs
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Audit logs of incoming notification payloads processed from third-party liquidity and settlement providers
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+              Webhook Event Logs
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              Audit logs of incoming notification payloads processed from third-party liquidity and settlement providers
+            </p>
+          </div>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-webhook-events'] })}
+            className="btn-secondary flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
