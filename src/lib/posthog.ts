@@ -6,60 +6,66 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.
 export const isPostHogEnabled = Boolean(POSTHOG_KEY)
 
 export function initPostHog() {
-  if (!isPostHogEnabled || typeof window === 'undefined') {
-    return
-  }
+    if (!isPostHogEnabled || typeof window === 'undefined') {
+        return
+    }
 
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    capture_pageview: false,
-    capture_pageleave: true,
-    autocapture: true,
-    persistence: 'localStorage',
-  })
+    posthog.init(POSTHOG_KEY, {
+        api_host: POSTHOG_HOST,
+        capture_pageview: false,
+        autocapture: true,
+        session_recording: {
+            maskAllInputs: false,
+            maskInputOptions: {
+                password: true,
+                email: false,
+            },
+            recordCrossOriginIframes: false,
+        },
+    })
 }
 
 export function identifyUser(
-  user: {
-    id?: string | number
-    email?: string | null
-    firstName?: string | null
-    lastName?: string | null
-    role?: string | null
-  } | null,
+    user: {
+        id?: string | number
+        email?: string | null
+        firstName?: string | null
+        lastName?: string | null
+        role?: string | null
+    } | null,
 ) {
-  if (!isPostHogEnabled || typeof window === 'undefined') {
-    return
-  }
+    if (!isPostHogEnabled || typeof window === 'undefined') {
+        return
+    }
 
-  if (!user) {
-    posthog.reset()
-    return
-  }
+    if (!user) {
+        posthog.reset()
+        return
+    }
 
-  posthog.identify(String(user.id ?? user.email ?? 'anonymous-admin'), {
-    email: user.email ?? undefined,
-    first_name: user.firstName ?? undefined,
-    last_name: user.lastName ?? undefined,
-    role: user.role ?? undefined,
-    is_admin: true,
-  })
+    posthog.identify(String(user.id ?? user.email ?? 'anonymous-admin'), {
+        email: user.email ?? undefined,
+        first_name: user.firstName ?? undefined,
+        last_name: user.lastName ?? undefined,
+        role: user.role ?? undefined,
+        is_admin: true,
+    })
 }
 
 export function trackPageView(pathname: string) {
-  if (!isPostHogEnabled || typeof window === 'undefined') {
-    return
-  }
+    if (!isPostHogEnabled || typeof window === 'undefined') {
+        return
+    }
 
-  posthog.capture('$pageview', {
-    $current_url: pathname,
-  })
+    posthog.capture('$pageview', {
+        $current_url: pathname,
+    })
 }
 
 export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  if (!isPostHogEnabled || typeof window === 'undefined') {
-    return
-  }
+    if (!isPostHogEnabled || typeof window === 'undefined') {
+        return
+    }
 
-  posthog.capture(eventName, properties)
+    posthog.capture(eventName, properties)
 }
