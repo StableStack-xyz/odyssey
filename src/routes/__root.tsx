@@ -1,14 +1,16 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute, useLocation } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
-import { AuthProvider } from '../contexts/AuthContext'
+import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import { queryClient } from '../lib/queryClient'
+import { captureEvent, initPostHog, identifyUser, isPostHogEnabled, trackPageView } from '../lib/posthog'
 
 import appCss from '../styles.css?url'
 import animationsCss from '../css/animations.css?url'
 import { APP_NAME } from '../lib/constants'
+import { useEffect } from 'react'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -61,6 +63,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="font-body antialiased">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <PostHogTracker />
             {children}
             <Toaster
               position="bottom-right"
@@ -90,4 +93,32 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   )
+}
+
+function PostHogTracker() {
+  const location = useLocation()
+  const { user, isAuthenticated, isLoading } = useAuth()
+
+  useEffect(() => {
+    initPostHog()
+  }, [])
+
+  useEffect(() => {
+    if (!isPostHogEnabled) return
+
+    if (!isLoading) {
+      identifyUser(isAuthenticated ? user : null)
+    }
+  }, [isAuthenticated, isLoading, user])
+
+  useEffect(() => {
+    if (!isPostHogEnabled) return
+    trackPageView(location.pathname)
+    captureEvent('page_view', {
+      path: location.pathname,
+      route_name: location.pathname,
+    })
+  }, [location.pathname])
+
+  return null
 }
