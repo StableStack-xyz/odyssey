@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AdminUser, AuthState } from '../types/auth';
 import { authApi } from '../lib/api';
+import { collectDeviceAndLocationData } from '../services/deviceInfo';
 
 // Actions
 type AuthAction =
@@ -114,9 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'LOGIN_START' });
 
     try {
+      const deviceInfo = await collectDeviceAndLocationData();
+
       const response = await authApi.post('/api/users/auth/admin/signin', {
         email,
         password,
+        ...deviceInfo,
       });
 
       const { data } = response.data;

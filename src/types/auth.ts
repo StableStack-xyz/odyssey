@@ -45,6 +45,18 @@ export interface LoginResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+  ip_address?: string;
+  location_data?: {
+    country: string;
+    city: string;
+    region: string;
+  };
+  device_data?: {
+    os?: unknown;
+    client?: unknown;
+    device?: unknown;
+    userAgent: string;
+  };
 }
 
 // Token validation response
