@@ -30,7 +30,7 @@ export function NotFoundPage() {
 
           <Link
             to="/"
-            className="inline-flex h-11 items-center justify-center px-8 bg-transparent text-ink border border-ink rounded-full text-sm font-display hover:bg-ink hover:text-paper active:scale-[0.98] transition-all cursor-pointer"
+            className="inline-flex h-11 items-center justify-center px-8 bg-transparent text-ink border border-ink rounded-full text-sm font-display hover:opacity-80 active:scale-[0.98] transition-all cursor-pointer"
           >
             Return Home
           </Link>
