@@ -215,7 +215,7 @@ function ResetPasswordPage() {
       {/* Footer copyright */}
       <div className="py-4 text-center border-t border-graphite-hairline">
         <p className="text-[10px] uppercase tracking-widest text-ash">
-          © 2026 StableStack Inc. All rights reserved.
+          © {new Date().getFullYear()} StableStack Inc. All rights reserved.
         </p>
       </div>
     </div>
