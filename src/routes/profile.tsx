@@ -34,7 +34,7 @@ function ProfilePage() {
   const requestResetMutation = useMutation({
     mutationFn: async () => {
       if (!user?.email) throw new Error('No user email found')
-      const response = await authApi.post('/password-reset-request', { email: user.email })
+      const response = await authApi.post('/api/users/auth/password-reset-request', { email: user.email })
       return response.data
     },
     onSuccess: (data) => {

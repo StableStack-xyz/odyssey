@@ -36,7 +36,7 @@ function ResetPasswordPage() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (body: any) => {
-      const response = await authApi.put('/reset-password', body)
+      const response = await authApi.put('/api/users/auth/reset-password', body)
       return response.data
     },
     onSuccess: (data) => {

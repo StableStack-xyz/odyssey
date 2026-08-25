@@ -22,7 +22,7 @@ function ForgotPasswordPage() {
 
   const requestResetMutation = useMutation({
     mutationFn: async (emailStr: string) => {
-      const response = await authApi.post('/password-reset-request', { email: emailStr })
+      const response = await authApi.post('/api/users/auth/password-reset-request', { email: emailStr })
       return response.data
     },
     onSuccess: (data) => {
