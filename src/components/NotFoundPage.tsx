@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { APP_NAME } from '../lib/constants'
 
 export function NotFoundPage() {
   return (
@@ -31,9 +30,9 @@ export function NotFoundPage() {
 
           <Link
             to="/"
-            className="inline-flex h-11 items-center justify-center px-8 bg-ink text-paper rounded-full text-sm font-display hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+            className="inline-flex h-11 items-center justify-center px-8 bg-transparent text-ink border border-ink rounded-full text-sm font-display hover:bg-ink hover:text-paper active:scale-[0.98] transition-all cursor-pointer"
           >
-            Return to {APP_NAME}
+            Return Home
           </Link>
         </div>
       </div>
