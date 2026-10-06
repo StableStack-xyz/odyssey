@@ -82,26 +82,26 @@ function SlackPage() {
     <AdminLayout title="Slack Integration">
       <div className="space-y-6">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="font-display text-2xl font-semibold text-ink">
             Slack Integration
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-slate mt-1">
             Manage Slack notifications and test connectivity
           </p>
         </div>
 
         {/* Status Card */}
-        <div className="bg-white dark:bg-dark-container rounded-2xl p-6 border border-gray-200 dark:border-dark-border">
+        <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="font-display text-lg font-semibold text-ink">
                   Slack Status
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-slate">
                   Integration status and connectivity
                 </p>
               </div>
@@ -110,46 +110,46 @@ function SlackPage() {
           </div>
 
           {isLoading ? (
-            <div className="py-4 text-center text-gray-500 dark:text-gray-400">
+            <div className="py-4 text-center text-slate">
               <RefreshCw className="w-5 h-5 animate-spin inline-block mr-2" />
               Checking status...
             </div>
           ) : slackStatus ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div className="p-4 bg-gray-50 dark:bg-dark-input rounded-xl">
-                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Workspace</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+              <div className="p-4 bg-vellum rounded-xl">
+                <p className="text-xs text-slate uppercase tracking-wider">Workspace</p>
+                <p className="text-sm font-medium text-ink mt-1">
                   {slackStatus.workspace || '—'}
                 </p>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-dark-input rounded-xl">
-                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Channel</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+              <div className="p-4 bg-vellum rounded-xl">
+                <p className="text-xs text-slate uppercase tracking-wider">Channel</p>
+                <p className="text-sm font-medium text-ink mt-1">
                   {slackStatus.channel || '—'}
                 </p>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-dark-input rounded-xl">
-                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Check</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+              <div className="p-4 bg-vellum rounded-xl">
+                <p className="text-xs text-slate uppercase tracking-wider">Last Check</p>
+                <p className="text-sm font-medium text-ink mt-1">
                   {slackStatus.last_check ? new Date(slackStatus.last_check).toLocaleString() : '—'}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-slate">
               No Slack integration configured
             </p>
           )}
         </div>
 
         {/* Send Notification */}
-        <div className="bg-white dark:bg-dark-container rounded-2xl p-6 border border-gray-200 dark:border-dark-border">
-          <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline">
+          <h3 className="font-display text-lg font-semibold text-ink mb-4">
             Send Test Notification
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Message
               </label>
               <textarea
@@ -157,11 +157,11 @@ function SlackPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Enter notification message..."
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-dark-input border border-gray-200 dark:border-dark-border rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-accent-500 dark:focus:border-dark-primary transition-colors"
+                className="input w-full"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Channel (optional)
               </label>
               <input
@@ -169,7 +169,7 @@ function SlackPage() {
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
                 placeholder="#general"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-dark-input border border-gray-200 dark:border-dark-border rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-accent-500 dark:focus:border-dark-primary transition-colors"
+                className="input w-full"
               />
             </div>
             <div className="flex items-center gap-3">
@@ -187,16 +187,16 @@ function SlackPage() {
 
         {/* Test Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-dark-container rounded-2xl p-6 border border-gray-200 dark:border-dark-border">
+          <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="font-display text-lg font-semibold text-ink">
                   Test Transaction
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-slate">
                   Send a test transaction notification
                 </p>
               </div>
@@ -210,16 +210,16 @@ function SlackPage() {
             </button>
           </div>
 
-          <div className="bg-white dark:bg-dark-container rounded-2xl p-6 border border-gray-200 dark:border-dark-border">
+          <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="font-display text-lg font-semibold text-ink">
                   Test Error
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-slate">
                   Send a test error notification
                 </p>
               </div>
@@ -237,3 +237,4 @@ function SlackPage() {
     </AdminLayout>
   )
 }
+

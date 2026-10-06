@@ -23,6 +23,7 @@ import { Route as SlackIndexRouteImport } from './routes/slack/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as PayoutsIndexRouteImport } from './routes/payouts/index'
 import { Route as OtcIndexRouteImport } from './routes/otc/index'
+import { Route as MansaSendersIndexRouteImport } from './routes/mansa-senders/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
@@ -104,6 +105,11 @@ const OtcIndexRoute = OtcIndexRouteImport.update({
   path: '/otc/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MansaSendersIndexRoute = MansaSendersIndexRouteImport.update({
+  id: '/mansa-senders/',
+  path: '/mansa-senders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeesIndexRoute = FeesIndexRouteImport.update({
   id: '/fees/',
   path: '/fees/',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/fees/': typeof FeesIndexRoute
+  '/mansa-senders/': typeof MansaSendersIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
   '/reports/': typeof ReportsIndexRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AssetsIndexRoute
   '/countries': typeof CountriesIndexRoute
   '/fees': typeof FeesIndexRoute
+  '/mansa-senders': typeof MansaSendersIndexRoute
   '/otc': typeof OtcIndexRoute
   '/payouts': typeof PayoutsIndexRoute
   '/reports': typeof ReportsIndexRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/fees/': typeof FeesIndexRoute
+  '/mansa-senders/': typeof MansaSendersIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
   '/reports/': typeof ReportsIndexRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/assets/'
     | '/countries/'
     | '/fees/'
+    | '/mansa-senders/'
     | '/otc/'
     | '/payouts/'
     | '/reports/'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/countries'
     | '/fees'
+    | '/mansa-senders'
     | '/otc'
     | '/payouts'
     | '/reports'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/assets/'
     | '/countries/'
     | '/fees/'
+    | '/mansa-senders/'
     | '/otc/'
     | '/payouts/'
     | '/reports/'
@@ -332,6 +344,7 @@ export interface RootRouteChildren {
   AssetsIndexRoute: typeof AssetsIndexRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
   FeesIndexRoute: typeof FeesIndexRoute
+  MansaSendersIndexRoute: typeof MansaSendersIndexRoute
   OtcIndexRoute: typeof OtcIndexRoute
   PayoutsIndexRoute: typeof PayoutsIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OtcIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mansa-senders/': {
+      id: '/mansa-senders/'
+      path: '/mansa-senders'
+      fullPath: '/mansa-senders/'
+      preLoaderRoute: typeof MansaSendersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fees/': {
       id: '/fees/'
       path: '/fees'
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssetsIndexRoute: AssetsIndexRoute,
   CountriesIndexRoute: CountriesIndexRoute,
   FeesIndexRoute: FeesIndexRoute,
+  MansaSendersIndexRoute: MansaSendersIndexRoute,
   OtcIndexRoute: OtcIndexRoute,
   PayoutsIndexRoute: PayoutsIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
