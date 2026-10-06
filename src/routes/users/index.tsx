@@ -119,13 +119,13 @@ function UsersPage() {
     {
       key: 'email',
       header: 'Email',
-      render: (row) => <span className="text-sm text-gray-600 dark:text-gray-300">{row.email}</span>,
+      render: (row) => <span className="text-sm text-slate">{row.email}</span>,
     },
     {
       key: 'role',
       header: 'Role',
       render: (row) => (
-        <span className="text-sm capitalize text-gray-600 dark:text-gray-300">{row.role}</span>
+        <span className="text-sm capitalize text-slate">{row.role}</span>
       ),
     },
     {
@@ -144,7 +144,7 @@ function UsersPage() {
       key: 'created_at',
       header: 'Joined',
       render: (row) => (
-        <span className="text-sm text-gray-500 dark:text-gray-400">
+        <span className="text-sm text-slate">
           {row.created_at ? format(new Date(row.created_at), 'MMM d, yyyy') : '—'}
         </span>
       ),
@@ -158,9 +158,9 @@ function UsersPage() {
             e.stopPropagation()
             navigate({ to: `/users/$userId`, params: { userId: row.id } })
           }}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-dark-border rounded-lg transition-colors"
+          className="p-2 hover:bg-vellum rounded-lg transition-colors"
         >
-          <Eye className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+          <Eye className="w-4 h-4 text-ash hover:text-ink" />
         </button>
       ),
     },
@@ -171,10 +171,10 @@ function UsersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-2xl font-semibold text-ink">
               Users
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-slate mt-1">
               Manage platform users and their compliance status
             </p>
           </div>
@@ -257,7 +257,7 @@ function UsersPage() {
           data={users}
           isLoading={isLoading}
           emptyMessage="No users found"
-          emptyIcon={<UsersIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />}
+          emptyIcon={<UsersIcon className="w-8 h-8 text-slate" />}
           page={page}
           totalPages={totalPages}
           total={total}

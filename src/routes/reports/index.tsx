@@ -69,12 +69,12 @@ function ReportsPage() {
       header: 'Report',
       render: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-accent-100 dark:bg-dark-primary/20 rounded-lg flex items-center justify-center">
-            <FileText className="w-4 h-4 text-accent-600 dark:text-dark-primary" />
+          <div className="w-8 h-8 bg-vellum rounded-lg flex items-center justify-center">
+            <FileText className="w-4 h-4 text-ink" />
           </div>
           <div>
             <p className="text-sm font-medium">{row.title}</p>
-            <p className="text-xs text-gray-500">{row.description || ''}</p>
+            <p className="text-xs text-slate">{row.description || ''}</p>
           </div>
         </div>
       ),
@@ -94,7 +94,7 @@ function ReportsPage() {
           <p className="text-sm font-medium">
             {row.user?.first_name} {row.user?.last_name}
           </p>
-          <p className="text-xs text-gray-500">{row.user?.email}</p>
+          <p className="text-xs text-slate">{row.user?.email}</p>
         </div>
       ),
     },
@@ -107,7 +107,7 @@ function ReportsPage() {
       key: 'created_at',
       header: 'Created',
       render: (row) => (
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-slate">
           {row.created_at ? format(new Date(row.created_at), 'MMM d, yyyy') : '—'}
         </span>
       ),
@@ -121,9 +121,9 @@ function ReportsPage() {
             href={row.file_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-border rounded-lg transition-colors inline-block"
+            className="p-2 hover:bg-vellum rounded-lg transition-colors inline-block"
           >
-            <Download className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+            <Download className="w-4 h-4 text-ash hover:text-ink" />
           </a>
         ) : null
       ),
@@ -135,10 +135,10 @@ function ReportsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-2xl font-semibold text-ink">
               Reports
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-slate mt-1">
               View and manage generated reports
             </p>
           </div>
@@ -158,7 +158,7 @@ function ReportsPage() {
           data={reports}
           isLoading={isLoading}
           emptyMessage="No reports found"
-          emptyIcon={<FileText className="w-8 h-8 text-gray-300 dark:text-gray-600" />}
+          emptyIcon={<FileText className="w-8 h-8 text-ash" />}
           page={page}
           totalPages={totalPages}
           total={total}

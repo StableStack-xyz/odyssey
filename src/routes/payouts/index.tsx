@@ -118,8 +118,8 @@ function PayoutsPage() {
       header: 'Type',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent-100 dark:bg-dark-primary/20 rounded-lg flex items-center justify-center">
-            <CreditCard className="w-4 h-4 text-accent-600 dark:text-dark-primary" />
+          <div className="w-8 h-8 bg-vellum rounded-lg flex items-center justify-center">
+            <CreditCard className="w-4 h-4 text-ink" />
           </div>
           <span className="text-sm font-medium capitalize">{row.type}</span>
         </div>
@@ -141,17 +141,17 @@ function PayoutsPage() {
             <p className="text-sm font-medium">{row.bank_name}</p>
           )}
           {row.account_number && (
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-slate font-mono">
               ****{row.account_number.slice(-4)}
             </p>
           )}
           {row.wallet_address && (
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-slate font-mono">
               {row.wallet_address.slice(0, 10)}...{row.wallet_address.slice(-6)}
             </p>
           )}
           {row.account_name && (
-            <p className="text-xs text-gray-400">{row.account_name}</p>
+            <p className="text-xs text-ash">{row.account_name}</p>
           )}
         </div>
       ),
@@ -178,7 +178,7 @@ function PayoutsPage() {
           <p className="text-sm font-medium">
             {row.user?.businessName || `${row.user?.first_name || ''} ${row.user?.last_name || ''}`.trim() || 'Unknown'}
           </p>
-          <p className="text-xs text-gray-500">{row.user?.email || row.user_id?.slice(0, 8) + '...'}</p>
+          <p className="text-xs text-slate">{row.user?.email || row.user_id?.slice(0, 8) + '...'}</p>
         </div>
       ),
     },
@@ -186,7 +186,7 @@ function PayoutsPage() {
       key: 'created_at',
       header: 'Created',
       render: (row) => (
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-slate">
           {row.created_at ? format(new Date(row.created_at), 'MMM d, yyyy') : '—'}
         </span>
       ),
@@ -213,10 +213,10 @@ function PayoutsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-2xl font-semibold text-ink">
               Beneficiaries
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-slate mt-1">
               Manage beneficiary payout methods
             </p>
           </div>
@@ -275,7 +275,7 @@ function PayoutsPage() {
           data={payouts}
           isLoading={isLoading}
           emptyMessage="No payout methods found"
-          emptyIcon={<CreditCard className="w-8 h-8 text-gray-300 dark:text-gray-600" />}
+          emptyIcon={<CreditCard className="w-8 h-8 text-ash" />}
           page={page}
           totalPages={totalPages}
           total={total}

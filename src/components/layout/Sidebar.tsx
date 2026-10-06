@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  Landmark,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState } from 'react';
@@ -27,6 +28,7 @@ const menuItems = [
   { icon: Users, label: 'Users', path: '/users' },
   { icon: Wallet, label: 'Wallets', path: '/wallets' },
   { icon: Gauge, label: 'Wallet Capacity', path: '/wallet-capacity' },
+  { icon: Landmark, label: 'Mansa Senders', path: '/mansa-senders' },
   { icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' },
   { icon: CreditCard, label: 'Beneficiaries', path: '/payouts' },
   { icon: Building2, label: 'OTC', path: '/otc' },

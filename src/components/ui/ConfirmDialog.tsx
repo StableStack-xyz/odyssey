@@ -38,7 +38,7 @@ export function ConfirmDialog({
           <div className={`p-2 rounded-full ${variant === 'danger' ? 'bg-red-100 dark:bg-red-900/30' : variant === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
             <AlertTriangle className={`w-5 h-5 ${variant === 'danger' ? 'text-red-500' : variant === 'warning' ? 'text-yellow-500' : 'text-blue-500'}`} />
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-300">{message}</div>
+          <div className="text-sm text-slate">{message}</div>
         </div>
         <div className="flex justify-end gap-3">
           <button
