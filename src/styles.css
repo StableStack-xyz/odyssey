@@ -176,6 +176,7 @@ a {
   border: none;
   box-shadow: none;
   transition: transform 160ms ease-out, opacity 160ms ease-out;
+  white-space: nowrap;
 }
 
 .btn-primary:active {
@@ -183,6 +184,28 @@ a {
 }
 
 .btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--color-vellum);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-body-sm);
+  font-weight: 400;
+  border-radius: var(--radius-buttons);
+  padding: 8px 16px;
+  border: 1px solid var(--color-graphite-hairline);
+  box-shadow: none;
+  transition: transform 160ms ease-out, opacity 160ms ease-out;
+  white-space: nowrap;
+}
+
+.btn-secondary:active {
+  transform: scale(0.97);
+}
+
+.btn-secondary:hover {
   opacity: 0.9;
 }
 
