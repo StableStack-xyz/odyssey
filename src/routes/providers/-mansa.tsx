@@ -104,7 +104,7 @@ export function MansaProvider() {
               Sender profiles required for USD payouts. Merchants can send USD only once their sender is approved.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <select
               className="input"
               value={status}
@@ -119,8 +119,8 @@ export function MansaProvider() {
                 </option>
               ))}
             </select>
-            <button onClick={() => setRegistering(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Register sender
+            <button onClick={() => setRegistering(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap">
+              <Plus className="w-4 h-4 shrink-0" /> Register sender
             </button>
           </div>
         </div>
