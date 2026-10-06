@@ -1,65 +1,10 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { FileCheck2, Plus, RefreshCw, Landmark } from 'lucide-react'
-import { AdminLayout } from '../../components/layout/AdminLayout'
-import { DataTable } from '../../components/ui/DataTable'
-import type { Column } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
-import { APP_NAME } from '../../lib/constants'
-
-export const Route = createFileRoute('/mansa-senders/')({
-  beforeLoad: () => {
-    if (typeof window !== 'undefined') {
-      const token = sessionStorage.getItem('admin_token')
-      if (!token) {
-        throw redirect({ to: '/login' })
-      }
-    }
-  },
-  head: () => ({
-    meta: [
-      { title: `Mansa Senders - ${APP_NAME}` },
-      { name: 'description', content: 'Manage Mansa USD payout sender profiles' },
-    ],
-  }),
-  component: MansaSendersPage,
-})
-
-interface Sender {
-  id: string
-  user_id: string
-  sender_profile_id: string
-  status: string
-  status_reason: string | null
-  merchant_name: string | null
-  merchant_email: string | null
-  updated_at: string
-}
-
-interface MerchantOption {
-  user_id: string
-  merchant_name: string | null
-  email: string
-}
-
-interface Pagination {
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
-
-const STATUS_FILTERS = ['', 'pending', 'approved', 'rejected']
-
-const statusStyle = (status: string) =>
-  status === 'approved'
-    ? 'bg-green-100 text-green-700'
-    : status === 'rejected'
-      ? 'bg-red-100 text-red-700'
-      : 'bg-amber-100 text-amber-700'
+import type { MerchantOption, Pagination, Sender } from './-mansa-types'
+import { errorMessage } from './-mansa-types'
 
 function useDebounced<T>(value: T, delay = 300) {
   const [debounced, setDebounced] = useState(value)
@@ -70,142 +15,7 @@ function useDebounced<T>(value: T, delay = 300) {
   return debounced
 }
 
-const errorMessage = (error: any) => error?.response?.data?.message || 'Request failed'
-
-function MansaSendersPage() {
-  const queryClient = useQueryClient()
-  const [status, setStatus] = useState('')
-  const [page, setPage] = useState(1)
-  const limit = 20
-  const [registering, setRegistering] = useState(false)
-  const [kycFor, setKycFor] = useState<Sender | null>(null)
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-mansa-senders', status, page],
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const response = await walletApi.get('/api/admin/mansa/senders', {
-        params: { status: status || undefined, page, limit },
-      })
-      return response.data as { data: Sender[]; pagination: Pagination }
-    },
-  })
-
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-mansa-senders'] })
-
-  const sync = useMutation({
-    mutationFn: (userId: string) => walletApi.post(`/api/admin/mansa/senders/${userId}/sync`),
-    onSuccess: () => {
-      toast.success('Status synced')
-      refresh()
-    },
-    onError: (e) => toast.error(errorMessage(e)),
-  })
-
-  const columns: Column<Sender>[] = [
-    {
-      key: 'merchant',
-      header: 'Merchant',
-      render: (row) => (
-        <div>
-          <p className="text-sm font-medium text-ink">{row.merchant_name || 'Unnamed merchant'}</p>
-          <p className="text-xs text-slate">{row.merchant_email || row.user_id}</p>
-        </div>
-      ),
-    },
-    {
-      key: 'sender_profile_id',
-      header: 'Mansa sender ID',
-      render: (row) => <span className="text-xs font-mono text-slate">{row.sender_profile_id}</span>,
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <div>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle(row.status)}`}>
-            {row.status}
-          </span>
-          {row.status_reason && <p className="text-xs text-slate mt-1">{row.status_reason}</p>}
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      header: '',
-      render: (row) => (
-        <div className="flex gap-1 justify-end">
-          <button
-            onClick={() => setKycFor(row)}
-            className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink cursor-pointer"
-            aria-label="Submit KYC"
-            title="Submit KYC"
-          >
-            <FileCheck2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => sync.mutate(row.user_id)}
-            disabled={sync.isPending}
-            className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink cursor-pointer"
-            aria-label="Sync status"
-            title="Sync status from Mansa"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-      ),
-    },
-  ]
-
-  return (
-    <AdminLayout title="Mansa Senders">
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-display text-2xl font-semibold text-ink">Mansa Senders</h2>
-            <p className="text-slate mt-1">
-              Sender profiles required for USD payouts. Merchants can send USD only once their sender is approved.
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <select className="input" value={status} onChange={(e) => {
-                setStatus(e.target.value)
-                setPage(1)
-              }}>
-              {STATUS_FILTERS.map((s) => (
-                <option key={s} value={s}>
-                  {s || 'All statuses'}
-                </option>
-              ))}
-            </select>
-            <button onClick={() => setRegistering(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Register sender
-            </button>
-          </div>
-        </div>
-
-        <DataTable
-          columns={columns}
-          data={data?.data || []}
-          isLoading={isLoading}
-          emptyMessage="No Mansa senders yet"
-          emptyIcon={<Landmark className="w-8 h-8 text-slate" />}
-          page={page}
-          totalPages={data?.pagination?.totalPages || 1}
-          total={data?.pagination?.total || 0}
-          limit={limit}
-          onPageChange={setPage}
-          rowKey={(row) => row.id}
-        />
-      </div>
-
-      {registering && <RegisterModal onClose={() => setRegistering(false)} onDone={refresh} />}
-      {kycFor && <KycModal sender={kycFor} onClose={() => setKycFor(null)} onDone={refresh} />}
-    </AdminLayout>
-  )
-}
-
-function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+export function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounced(search)
   const [pickerPage, setPickerPage] = useState(1)
@@ -331,7 +141,7 @@ function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
   )
 }
 
-function KycModal({ sender, onClose, onDone }: { sender: Sender; onClose: () => void; onDone: () => void }) {
+export function KycModal({ sender, onClose, onDone }: { sender: Sender; onClose: () => void; onDone: () => void }) {
   const [profileType, setProfileType] = useState('enterprise')
   const [payload, setPayload] = useState('{\n  \n}')
 
