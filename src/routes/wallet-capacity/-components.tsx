@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '../../components/ui/Modal'
@@ -205,13 +205,28 @@ function ConfigForm({
 
 export function MerchantPicker({ onPick, onClose }: { onPick: (id: string) => void; onClose: () => void }) {
   const [search, setSearch] = useState('')
-  const { data: merchants = [], isLoading } = useQuery({
-    queryKey: ['admin-capacity-merchants', search],
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(1)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(id)
+  }, [search])
+
+  const { data: result, isLoading } = useQuery({
+    queryKey: ['admin-capacity-merchants', debouncedSearch, page],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
-      const response = await walletApi.get('/api/admin/wallet-capacity/merchants', { params: { search } })
-      return response.data.data as MerchantOption[]
+      const response = await walletApi.get('/api/admin/wallet-capacity/merchants', {
+        params: { search: debouncedSearch, page, limit: 10 },
+      })
+      return response.data as { data: MerchantOption[]; pagination: { totalPages: number } }
     },
   })
+  const merchants = result?.data || []
+  const totalPages = result?.pagination?.totalPages || 1
 
   return (
     <Modal isOpen onClose={onClose} title="Add merchant" size="lg">
@@ -243,6 +258,17 @@ export function MerchantPicker({ onPick, onClose }: { onPick: (id: string) => vo
             ))}
           </ul>
         )}
+        <div className="flex items-center justify-between text-xs text-slate">
+          <button type="button" className="btn-secondary cursor-pointer" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </button>
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <button type="button" className="btn-secondary cursor-pointer" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            Next
+          </button>
+        </div>
       </div>
     </Modal>
   )

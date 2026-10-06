@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { FileCheck2, Plus, RefreshCw, Landmark } from 'lucide-react'
 import { AdminLayout } from '../../components/layout/AdminLayout'
@@ -45,6 +45,13 @@ interface MerchantOption {
   email: string
 }
 
+interface Pagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 const STATUS_FILTERS = ['', 'pending', 'approved', 'rejected']
 
 const statusStyle = (status: string) =>
@@ -54,21 +61,33 @@ const statusStyle = (status: string) =>
       ? 'bg-red-100 text-red-700'
       : 'bg-amber-100 text-amber-700'
 
+function useDebounced<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(id)
+  }, [value, delay])
+  return debounced
+}
+
 const errorMessage = (error: any) => error?.response?.data?.message || 'Request failed'
 
 function MansaSendersPage() {
   const queryClient = useQueryClient()
   const [status, setStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const limit = 20
   const [registering, setRegistering] = useState(false)
   const [kycFor, setKycFor] = useState<Sender | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-mansa-senders', status],
+    queryKey: ['admin-mansa-senders', status, page],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const response = await walletApi.get('/api/admin/mansa/senders', {
-        params: { status: status || undefined, limit: 200 },
+        params: { status: status || undefined, page, limit },
       })
-      return response.data.data as Sender[]
+      return response.data as { data: Sender[]; pagination: Pagination }
     },
   })
 
@@ -149,7 +168,10 @@ function MansaSendersPage() {
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
-            <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <select className="input" value={status} onChange={(e) => {
+                setStatus(e.target.value)
+                setPage(1)
+              }}>
               {STATUS_FILTERS.map((s) => (
                 <option key={s} value={s}>
                   {s || 'All statuses'}
@@ -164,10 +186,15 @@ function MansaSendersPage() {
 
         <DataTable
           columns={columns}
-          data={data || []}
+          data={data?.data || []}
           isLoading={isLoading}
           emptyMessage="No Mansa senders yet"
           emptyIcon={<Landmark className="w-8 h-8 text-slate" />}
+          page={page}
+          totalPages={data?.pagination?.totalPages || 1}
+          total={data?.pagination?.total || 0}
+          limit={limit}
+          onPageChange={setPage}
           rowKey={(row) => row.id}
         />
       </div>
@@ -180,19 +207,26 @@ function MansaSendersPage() {
 
 function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search)
+  const [pickerPage, setPickerPage] = useState(1)
   const [merchant, setMerchant] = useState<MerchantOption | null>(null)
   const [mode, setMode] = useState<'create' | 'link'>('create')
   const [linkId, setLinkId] = useState('')
   const [form, setForm] = useState({ profile_type: 'enterprise', legal_name: '', country_code: '' })
 
-  const { data: merchants = [] } = useQuery({
-    queryKey: ['admin-mansa-merchants', search],
+  const { data: result } = useQuery({
+    queryKey: ['admin-mansa-merchants', debouncedSearch, pickerPage],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
-      const response = await walletApi.get('/api/admin/mansa/merchants', { params: { search } })
-      return response.data.data as MerchantOption[]
+      const response = await walletApi.get('/api/admin/mansa/merchants', {
+        params: { search: debouncedSearch, page: pickerPage, limit: 10 },
+      })
+      return response.data as { data: MerchantOption[]; pagination: Pagination }
     },
     enabled: !merchant,
   })
+  const merchants = result?.data || []
+  const totalPages = result?.pagination?.totalPages || 1
 
   const register = useMutation({
     mutationFn: () =>
@@ -232,7 +266,10 @@ function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
               className="input w-full"
               placeholder="Search merchant by business name or email"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPickerPage(1)
+              }}
               autoFocus
             />
             <ul className="divide-y divide-graphite-hairline max-h-56 overflow-y-auto">
@@ -245,6 +282,17 @@ function RegisterModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
                 </li>
               ))}
             </ul>
+            <div className="flex items-center justify-between text-xs text-slate">
+              <button type="button" className="btn-secondary cursor-pointer" disabled={pickerPage <= 1} onClick={() => setPickerPage((p) => p - 1)}>
+                Previous
+              </button>
+              <span>
+                Page {pickerPage} of {totalPages}
+              </span>
+              <button type="button" className="btn-secondary cursor-pointer" disabled={pickerPage >= totalPages} onClick={() => setPickerPage((p) => p + 1)}>
+                Next
+              </button>
+            </div>
           </div>
         )}
 
