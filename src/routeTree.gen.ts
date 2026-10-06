@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WebhooksIndexRouteImport } from './routes/webhooks/index'
 import { Route as WalletsIndexRouteImport } from './routes/wallets/index'
+import { Route as WalletCapacityIndexRouteImport } from './routes/wallet-capacity/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as TransactionsIndexRouteImport } from './routes/transactions/index'
 import { Route as SlackIndexRouteImport } from './routes/slack/index'
@@ -66,6 +67,11 @@ const WebhooksIndexRoute = WebhooksIndexRouteImport.update({
 const WalletsIndexRoute = WalletsIndexRouteImport.update({
   id: '/wallets/',
   path: '/wallets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletCapacityIndexRoute = WalletCapacityIndexRouteImport.update({
+  id: '/wallet-capacity/',
+  path: '/wallet-capacity/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersIndexRoute = UsersIndexRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/slack/': typeof SlackIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/wallet-capacity/': typeof WalletCapacityIndexRoute
   '/wallets/': typeof WalletsIndexRoute
   '/webhooks/': typeof WebhooksIndexRoute
 }
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/slack': typeof SlackIndexRoute
   '/transactions': typeof TransactionsIndexRoute
   '/users': typeof UsersIndexRoute
+  '/wallet-capacity': typeof WalletCapacityIndexRoute
   '/wallets': typeof WalletsIndexRoute
   '/webhooks': typeof WebhooksIndexRoute
 }
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/slack/': typeof SlackIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/wallet-capacity/': typeof WalletCapacityIndexRoute
   '/wallets/': typeof WalletsIndexRoute
   '/webhooks/': typeof WebhooksIndexRoute
 }
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/slack/'
     | '/transactions/'
     | '/users/'
+    | '/wallet-capacity/'
     | '/wallets/'
     | '/webhooks/'
   fileRoutesByTo: FileRoutesByTo
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/slack'
     | '/transactions'
     | '/users'
+    | '/wallet-capacity'
     | '/wallets'
     | '/webhooks'
   id:
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/slack/'
     | '/transactions/'
     | '/users/'
+    | '/wallet-capacity/'
     | '/wallets/'
     | '/webhooks/'
   fileRoutesById: FileRoutesById
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   SlackIndexRoute: typeof SlackIndexRoute
   TransactionsIndexRoute: typeof TransactionsIndexRoute
   UsersIndexRoute: typeof UsersIndexRoute
+  WalletCapacityIndexRoute: typeof WalletCapacityIndexRoute
   WalletsIndexRoute: typeof WalletsIndexRoute
   WebhooksIndexRoute: typeof WebhooksIndexRoute
 }
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/wallets'
       fullPath: '/wallets/'
       preLoaderRoute: typeof WalletsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet-capacity/': {
+      id: '/wallet-capacity/'
+      path: '/wallet-capacity'
+      fullPath: '/wallet-capacity/'
+      preLoaderRoute: typeof WalletCapacityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users/': {
@@ -518,18 +538,10 @@ const rootRouteChildren: RootRouteChildren = {
   SlackIndexRoute: SlackIndexRoute,
   TransactionsIndexRoute: TransactionsIndexRoute,
   UsersIndexRoute: UsersIndexRoute,
+  WalletCapacityIndexRoute: WalletCapacityIndexRoute,
   WalletsIndexRoute: WalletsIndexRoute,
   WebhooksIndexRoute: WebhooksIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
