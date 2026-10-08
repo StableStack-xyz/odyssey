@@ -17,6 +17,7 @@ import {
   mapUserDataToKyb,
 } from "./-mansa-kyb-types";
 import {
+  CollectedDocumentsImporter,
   CountrySelect,
   Field,
   FileUploader,
@@ -347,6 +348,12 @@ export function EnterpriseKybForm({
         <h4 className="text-base font-semibold text-ink border-b border-graphite-hairline pb-2">
           3. Company Verification Documents
         </h4>
+        <CollectedDocumentsImporter
+          userId={userId}
+          userData={userData}
+          files={files}
+          onFileImported={(f) => setFiles((list) => [...list, f])}
+        />
         <FileUploader
           userId={userId}
           onUploaded={(f) => setFiles((list) => [...list, f])}

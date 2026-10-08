@@ -8,6 +8,14 @@ export interface KycFile {
   name: string;
 }
 
+export interface ProfileDocument {
+  id: string;
+  name: string;
+  url: string;
+  suggestedFileType: string;
+  source: string;
+}
+
 export interface IsoCountry {
   code: string;
   name: string;
@@ -389,4 +397,92 @@ export function mapUserDataToKyb(userData: any) {
   }
 
   return { companyFields, stakeholders };
+}
+
+export function extractProfileDocuments(userData: any): ProfileDocument[] {
+  if (!userData) return [];
+  const docs: ProfileDocument[] = [];
+  const merchant = userData.merchant_details || userData.merchant || {};
+  const userDocs = userData.userDocuments || userData.documents || [];
+  const rawOwners = merchant.business_owners || merchant.owners || [];
+
+  const inferType = (name: string, typeKey?: string): string => {
+    const s = `${name} ${typeKey || ""}`.toLowerCase();
+    if (s.includes("cac") || s.includes("certificate") || s.includes("incorporation") || s.includes("registration")) return "1";
+    if (s.includes("articles") || s.includes("memart") || s.includes("association")) return "2";
+    if (s.includes("director") || s.includes("shareholder") || s.includes("board")) return "3";
+    if (s.includes("utility") || s.includes("address") || s.includes("bank") || s.includes("statement")) return "5";
+    if (s.includes("passport") || s.includes("id") || s.includes("license") || s.includes("identity")) return "8";
+    return "99";
+  };
+
+  if (Array.isArray(userDocs)) {
+    userDocs.forEach((doc: any, i: number) => {
+      const url = doc.doc_image || doc.url || doc.file_url || doc.image;
+      if (url && typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"))) {
+        const name = doc.doc_name || doc.name || doc.title || `Document ${i + 1}`;
+        docs.push({
+          id: `doc-${i}-${doc.id || name}`,
+          name,
+          url,
+          suggestedFileType: inferType(name, doc.doc_type || doc.type),
+          source: "User Document",
+        });
+      }
+    });
+  }
+
+  const merchantDocFields = [
+    { key: "cac_document", name: "CAC / Certificate of Incorporation", defaultType: "1" },
+    { key: "cac_url", name: "CAC Certificate", defaultType: "1" },
+    { key: "memart_url", name: "Memorandum & Articles of Association", defaultType: "2" },
+    { key: "proof_of_address_url", name: "Proof of Operating Address", defaultType: "5" },
+    { key: "utility_bill_url", name: "Utility Bill", defaultType: "5" },
+    { key: "tax_certificate_url", name: "Tax Certificate", defaultType: "6" },
+  ];
+
+  merchantDocFields.forEach((field) => {
+    const url = merchant[field.key] || userData[field.key];
+    if (url && typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"))) {
+      if (!docs.some((d) => d.url === url)) {
+        docs.push({
+          id: `field-${field.key}`,
+          name: field.name,
+          url,
+          suggestedFileType: field.defaultType,
+          source: "Merchant Profile",
+        });
+      }
+    }
+  });
+
+  if (Array.isArray(rawOwners)) {
+    rawOwners.forEach((owner: any, i: number) => {
+      const ownerName = [owner.firstName, owner.lastName].filter(Boolean).join(" ") || owner.full_name || `Owner ${i + 1}`;
+      if (owner.front_image && typeof owner.front_image === "string" && owner.front_image.startsWith("http")) {
+        if (!docs.some((d) => d.url === owner.front_image)) {
+          docs.push({
+            id: `owner-front-${i}`,
+            name: `${ownerName} ID Front`,
+            url: owner.front_image,
+            suggestedFileType: "8",
+            source: "Stakeholder ID",
+          });
+        }
+      }
+      if (owner.back_image && typeof owner.back_image === "string" && owner.back_image.startsWith("http")) {
+        if (!docs.some((d) => d.url === owner.back_image)) {
+          docs.push({
+            id: `owner-back-${i}`,
+            name: `${ownerName} ID Back`,
+            url: owner.back_image,
+            suggestedFileType: "8",
+            source: "Stakeholder ID",
+          });
+        }
+      }
+    });
+  }
+
+  return docs;
 }
