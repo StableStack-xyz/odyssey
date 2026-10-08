@@ -440,7 +440,7 @@ export function CollectedDocumentsImporter({
   };
 
   return (
-    <div className="border border-brand/20 bg-brand/5 dark:bg-brand/10 rounded-xl p-4 space-y-3 my-4">
+    <div className="border border-brand/30 bg-brand/5 dark:bg-brand/15 rounded-xl p-4 space-y-3 my-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
@@ -482,13 +482,13 @@ export function CollectedDocumentsImporter({
               key={doc.id}
               className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-2 transition-colors ${
                 uploaded
-                  ? "border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20"
-                  : "border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800"
+                  ? "border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/30 dark:border-emerald-800/60"
+                  : "border-brand/20 bg-white dark:bg-brand/20 dark:border-brand/30 hover:border-brand/40"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-500">
+                  <div className="w-8 h-8 rounded bg-brand/10 dark:bg-brand/30 flex items-center justify-center shrink-0 text-brand">
                     <FileText className="w-4 h-4 text-brand" />
                   </div>
                   <div className="min-w-0">
@@ -517,7 +517,7 @@ export function CollectedDocumentsImporter({
                       [doc.id]: e.target.value,
                     }))
                   }
-                  className="input text-[11px] py-1 px-2 w-full truncate"
+                  className="input text-[11px] py-1 px-2 w-full truncate dark:bg-brand/20 dark:border-brand/30"
                 >
                   {KYC_FILE_TYPES.map(([val, lbl]) => (
                     <option key={val} value={val}>
