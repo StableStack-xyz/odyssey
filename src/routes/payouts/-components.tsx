@@ -185,25 +185,32 @@ function buildPayload(form: Form, editing: boolean) {
   return payload
 }
 
-function missingFields(form: Form) {
-  const missing: string[] = []
-  if (form.type === 'WALLET') {
-    if (!form.wallet_address.trim()) missing.push('wallet address')
-    if (!form.network.trim()) missing.push('network')
-    return missing
-  }
-  if (!form.account_number.trim()) missing.push('account number')
-  if (!form.bank_name.trim()) missing.push('bank name')
-  if (form.provider === 'MANSA') {
-    if (!form.swift_code.trim()) missing.push('SWIFT code')
-    if (!form.country.trim()) missing.push('bank country')
-    if (!form.street_line1.trim()) missing.push('bank street address')
-    if (!form.city.trim()) missing.push('bank city')
-    if (!form.state.trim()) missing.push('bank state')
-  }
-  if (['NGN', 'KES'].includes(form.currency) && !form.bank_code.trim()) missing.push('bank code')
-  return missing
+const FIELD_LABELS: Record<string, string> = {
+  wallet_address: 'Wallet address',
+  network: 'Network',
+  account_number: 'Account number',
+  bank_name: 'Bank name',
+  bank_code: 'Bank code',
+  swift_code: 'SWIFT / BIC',
+  country: 'Bank country',
+  street_line1: 'Bank street address',
+  city: 'Bank city',
+  state: 'Bank state / province',
 }
+
+// Single source of truth for the "*" markers and the submit check
+function requiredKeys(form: Form): string[] {
+  if (form.type === 'WALLET') return ['wallet_address', 'network']
+  const keys = ['account_number', 'bank_name']
+  if (form.provider === 'MANSA') keys.push('swift_code', 'country', 'street_line1', 'city', 'state')
+  if (['NGN', 'KES'].includes(form.currency)) keys.push('bank_code')
+  return keys
+}
+
+const missingFields = (form: Form) =>
+  requiredKeys(form)
+    .filter((key) => !form[key].trim())
+    .map((key) => FIELD_LABELS[key].toLowerCase())
 
 export function BeneficiaryFormModal({
   beneficiary,
@@ -252,15 +259,17 @@ export function BeneficiaryFormModal({
 
   // Mansa keeps its own copy of the beneficiary, so only the label can change after saving
   const locked = editing && form.provider === 'MANSA'
+  const required = new Set(requiredKeys(form))
+  const isMansa = form.provider === 'MANSA'
   const text = (key: string, label: string, placeholder = '', lockable = true) => (
-    <Field label={label}>
+    <Field label={`${label}${required.has(key) ? ' *' : ' (optional)'}`}>
       <input className="input w-full" placeholder={placeholder} value={form[key]} disabled={locked && lockable} onChange={set(key)} />
     </Field>
   )
 
   return (
-    <Modal isOpen onClose={onClose} title={editing ? 'Edit beneficiary' : 'Add beneficiary'} size="lg">
-      <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <Modal isOpen onClose={onClose} title={editing ? 'Edit beneficiary' : 'Add beneficiary'} size="full">
+      <div className="space-y-4 flex-1 overflow-y-auto pr-1 p-4">
         {editing ? null : merchant ? (
           <div className="flex items-center justify-between">
             <div>
@@ -312,7 +321,7 @@ export function BeneficiaryFormModal({
               <option value="WALLET">Wallet</option>
             </select>
           </Field>
-          {text('label', 'Label (optional)', '', false)}
+          {text('label', 'Label', '', false)}
         </div>
 
         {locked && (
@@ -321,26 +330,29 @@ export function BeneficiaryFormModal({
           </p>
         )}
 
+        <p className="text-xs text-slate">* required{isMansa ? ' - Mansa needs the bank SWIFT code and full bank address.' : ''}</p>
+
         {isBank ? (
           <>
             <div className="grid grid-cols-2 gap-3">
               {text('account_name', 'Account name', 'Defaults to the merchant name')}
               {text('account_number', 'Account number')}
               {text('bank_name', 'Bank name')}
-              {text('bank_code', 'Bank code', ['NGN', 'KES'].includes(form.currency) ? 'Required' : '')}
-              {text('swift_code', 'SWIFT / BIC', form.provider === 'MANSA' ? 'Required' : '')}
+              {text('bank_code', 'Bank code')}
+              {text('swift_code', 'SWIFT / BIC')}
               {text('routing_number', 'Routing number')}
               {text('sort_code', 'Sort code')}
               {text('iban', 'IBAN')}
-              {text('country', 'Bank country (ISO-2)', form.provider === 'MANSA' ? 'Required, e.g. US' : 'US')}
+              {!isMansa && text('country', 'Bank country (ISO-2)', 'US')}
             </div>
             {showAddress && (
               <div className="space-y-2">
-                <p className="text-xs text-slate">Bank address {form.provider === 'MANSA' && '(required for Mansa)'}</p>
+                <p className="text-xs text-slate">Bank address</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">{text('street_line1', 'Street address')}</div>
                   {text('city', 'City')}
                   {text('state', 'State / province')}
+                  {isMansa && text('country', 'Country (ISO-2)', 'US')}
                   {text('postal_code', 'Postal code')}
                 </div>
               </div>

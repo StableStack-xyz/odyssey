@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Download, ExternalLink, FileCheck, FileText, Loader2, Sparkles } from "lucide-react";
 import { walletApi } from "../../lib/api";
 import { errorMessage } from "./-mansa-types";
-import type { Fields } from "./-mansa-kyb-types";
+import type { Fields, KycFile, ProfileDocument } from "./-mansa-kyb-types";
 import {
   CERT_TYPES,
   COUNTRY_OPTIONS,
   KYC_FILE_TYPES,
   PHONE_AREA_CODES,
   ROLES,
+  extractProfileDocuments,
 } from "./-mansa-kyb-types";
 
 export function Field({
@@ -318,6 +320,218 @@ export function StakeholderCard({
             />
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+export function CollectedDocumentsImporter({
+  userId,
+  userData,
+  files,
+  onFileImported,
+}: {
+  userId: string;
+  userData: any;
+  files: KycFile[];
+  onFileImported: (file: KycFile) => void;
+}) {
+  const profileDocs = extractProfileDocuments(userData);
+  const [loadingDocId, setLoadingDocId] = useState<string | null>(null);
+  const [isImportingAll, setIsImportingAll] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<Record<string, string>>({});
+
+  if (!profileDocs.length) return null;
+
+  const getType = (doc: ProfileDocument) =>
+    selectedTypes[doc.id] || doc.suggestedFileType;
+
+  const isAlreadyUploaded = (doc: ProfileDocument) =>
+    files.some(
+      (f) =>
+        f.name.toLowerCase() === doc.name.toLowerCase() ||
+        f.file_type === getType(doc)
+    );
+
+  const importSingleDoc = async (doc: ProfileDocument, customType?: string) => {
+    const fileType = customType || getType(doc);
+    setLoadingDocId(doc.id);
+    try {
+      const res = await fetch(doc.url);
+      if (!res.ok) throw new Error("Could not fetch document image/file from URL");
+      const blob = await res.blob();
+      const mimeType = blob.type || "image/png";
+      const ext = mimeType.includes("pdf")
+        ? "pdf"
+        : mimeType.includes("jpeg") || mimeType.includes("jpg")
+        ? "jpg"
+        : "png";
+      const safeName = doc.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const fileObj = new File([blob], `${safeName}.${ext}`, { type: mimeType });
+
+      const form = new FormData();
+      form.append("file", fileObj);
+      form.append("fileType", fileType);
+
+      const response = await walletApi.post(
+        `/api/admin/mansa/senders/${userId}/files`,
+        form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const uploaded: KycFile = {
+        file_id: response.data.data.file_id as string,
+        file_type: fileType,
+        name: doc.name,
+      };
+      onFileImported(uploaded);
+      toast.success(`Imported ${doc.name} to Mansa!`);
+    } catch (e: any) {
+      toast.error(errorMessage(e));
+    } finally {
+      setLoadingDocId(null);
+    }
+  };
+
+  const importAllDocs = async () => {
+    const unimported = profileDocs.filter((d) => !isAlreadyUploaded(d));
+    if (!unimported.length) {
+      toast.info("All detected documents have already been imported!");
+      return;
+    }
+    setIsImportingAll(true);
+    let count = 0;
+    for (const doc of unimported) {
+      try {
+        await importSingleDoc(doc);
+        count++;
+      } catch (err) {
+        // continue
+      }
+    }
+    setIsImportingAll(false);
+    toast.success(`Batch imported ${count} document(s) to Mansa!`);
+  };
+
+  return (
+    <div className="border border-brand/20 bg-brand/5 dark:bg-brand/10 rounded-xl p-4 space-y-3 my-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand" />
+            Collected Profile Documents ({profileDocs.length})
+          </h4>
+          <p className="text-[11px] text-slate">
+            Documents found in merchant profile. Select target Mansa document type and click import.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isImportingAll || !!loadingDocId}
+          onClick={importAllDocs}
+          className="btn text-xs bg-brand text-white hover:bg-brand/90 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm"
+        >
+          {isImportingAll ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Importing All...
+            </>
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5" />
+              Import All Documents
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+        {profileDocs.map((doc) => {
+          const isLoading = loadingDocId === doc.id;
+          const uploaded = isAlreadyUploaded(doc);
+          const currentType = getType(doc);
+
+          return (
+            <div
+              key={doc.id}
+              className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-2 transition-colors ${
+                uploaded
+                  ? "border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20"
+                  : "border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-500">
+                    <FileText className="w-4 h-4 text-brand" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-ink truncate">{doc.name}</p>
+                    <span className="text-[10px] text-slate/70 block">{doc.source}</span>
+                  </div>
+                </div>
+                <a
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate hover:text-brand p-1 shrink-0"
+                  title="View Cloudinary document"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={currentType}
+                  disabled={uploaded || isLoading}
+                  onChange={(e) =>
+                    setSelectedTypes((prev) => ({
+                      ...prev,
+                      [doc.id]: e.target.value,
+                    }))
+                  }
+                  className="input text-[11px] py-1 px-2 w-full truncate"
+                >
+                  {KYC_FILE_TYPES.map(([val, lbl]) => (
+                    <option key={val} value={val}>
+                      {lbl}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  disabled={uploaded || isLoading || isImportingAll}
+                  onClick={() => importSingleDoc(doc)}
+                  className={`btn text-[11px] py-1 px-2.5 rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                    uploaded
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-medium"
+                      : "bg-ink text-white hover:bg-ink/90"
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : uploaded ? (
+                    <>
+                      <FileCheck className="w-3 h-3 text-emerald-600" />
+                      Imported
+                    </>
+                  ) : (
+                    "Import"
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
