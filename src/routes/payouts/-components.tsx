@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
+import { ISO_COUNTRIES } from '../providers/-mansa-kyb-types'
 
 export interface BeneficiaryRecord {
   id: string
@@ -267,6 +268,24 @@ export function BeneficiaryFormModal({
     </Field>
   )
 
+  const countrySelect = (key: string, label: string, lockable = true) => (
+    <Field label={`${label}${required.has(key) ? ' *' : ' (optional)'}`}>
+      <select
+        className="input w-full"
+        value={form[key] || ''}
+        disabled={locked && lockable}
+        onChange={set(key)}
+      >
+        <option value="">Select country...</option>
+        {ISO_COUNTRIES.map((c) => (
+          <option key={c.code} value={c.code}>
+            {c.name} ({c.code})
+          </option>
+        ))}
+      </select>
+    </Field>
+  )
+
   return (
     <Modal isOpen onClose={onClose} title={editing ? 'Edit beneficiary' : 'Add beneficiary'} size="full">
       <div className="space-y-4 flex-1 overflow-y-auto pr-1 p-4">
@@ -343,7 +362,7 @@ export function BeneficiaryFormModal({
               {text('routing_number', 'Routing number')}
               {text('sort_code', 'Sort code')}
               {text('iban', 'IBAN')}
-              {!isMansa && text('country', 'Bank country (ISO-2)', 'US')}
+              {!isMansa && countrySelect('country', 'Bank country (ISO-2)')}
             </div>
             {showAddress && (
               <div className="space-y-2">
@@ -352,7 +371,7 @@ export function BeneficiaryFormModal({
                   <div className="col-span-2">{text('street_line1', 'Street address')}</div>
                   {text('city', 'City')}
                   {text('state', 'State / province')}
-                  {isMansa && text('country', 'Country (ISO-2)', 'US')}
+                  {isMansa && countrySelect('country', 'Country (ISO-2)')}
                   {text('postal_code', 'Postal code')}
                 </div>
               </div>
