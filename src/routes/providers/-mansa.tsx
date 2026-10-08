@@ -9,24 +9,43 @@ import type { Pagination, Sender } from './-mansa-types'
 import { STATUS_FILTERS, errorMessage, statusStyle } from './-mansa-types'
 import { KycModal, RegisterModal } from './-mansa-components'
 import { MansaBeneficiaries } from './-mansa-beneficiaries'
+import { MansaFunding } from './-mansa-funding'
+import { MansaPayouts } from './-mansa-payouts'
 import { CopyId, useDebounced } from './-mansa-shared'
 
+import { ArrowUpRight, UserCheck, Users, Wallet } from 'lucide-react'
+
+const VIEWS = [
+  { id: 'senders', label: 'Senders', icon: Users },
+  { id: 'beneficiaries', label: 'Beneficiaries', icon: UserCheck },
+  { id: 'payouts', label: 'Payouts', icon: ArrowUpRight },
+  { id: 'funding', label: 'Funding', icon: Wallet },
+] as const
+
 export function MansaProvider() {
-  const [view, setView] = useState<'senders' | 'beneficiaries'>('senders')
+  const [view, setView] = useState<'senders' | 'beneficiaries' | 'payouts' | 'funding'>('senders')
   return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        {(['senders', 'beneficiaries'] as const).map((v) => (
+      <div className="flex gap-1.5 p-1 bg-vellum/40 border border-graphite-hairline rounded-xl w-fit">
+        {VIEWS.map(({ id, label, icon: Icon }) => (
           <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-3 py-1.5 text-xs rounded-full cursor-pointer capitalize ${view === v ? 'bg-ink text-paper' : 'bg-vellum text-slate hover:bg-slate/10'}`}
+            key={id}
+            onClick={() => setView(id)}
+            className={`px-3.5 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-all flex items-center gap-1.5 ${
+              view === id
+                ? 'bg-ink text-paper shadow-sm'
+                : 'text-slate hover:text-ink hover:bg-vellum/60'
+            }`}
           >
-            {v}
+            <Icon className="w-3.5 h-3.5" />
+            {label}
           </button>
         ))}
       </div>
-      {view === 'senders' ? <MansaSenders /> : <MansaBeneficiaries />}
+      {view === 'senders' && <MansaSenders />}
+      {view === 'beneficiaries' && <MansaBeneficiaries />}
+      {view === 'payouts' && <MansaPayouts />}
+      {view === 'funding' && <MansaFunding />}
     </div>
   )
 }
