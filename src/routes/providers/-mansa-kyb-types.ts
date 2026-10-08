@@ -124,6 +124,9 @@ export const KYC_FILE_TYPES = [
   ["6", "6 — Financial Statements / Audit Report"],
   ["7", "7 — Regulatory License / Permit"],
   ["8", "8 — Director / Board Resolution"],
+  ["11", "11 — ID Card (National / Resident ID)"],
+  ["13", "13 — Passport"],
+  ["14", "14 — Driver's License"],
   ["99", "99 — Other Supporting Document"],
 ];
 
@@ -410,9 +413,12 @@ export function extractProfileDocuments(userData: any): ProfileDocument[] {
     const s = `${name} ${typeKey || ""}`.toLowerCase();
     if (s.includes("cac") || s.includes("certificate") || s.includes("incorporation") || s.includes("registration")) return "1";
     if (s.includes("articles") || s.includes("memart") || s.includes("association")) return "2";
-    if (s.includes("director") || s.includes("shareholder") || s.includes("board")) return "3";
+    if (s.includes("board") || s.includes("resolution")) return "8";
+    if (s.includes("director") || s.includes("shareholder") || s.includes("member")) return "3";
     if (s.includes("utility") || s.includes("address") || s.includes("bank") || s.includes("statement")) return "5";
-    if (s.includes("passport") || s.includes("id") || s.includes("license") || s.includes("identity")) return "8";
+    if (s.includes("passport")) return "13";
+    if (s.includes("license") || s.includes("driver")) return "14";
+    if (s.includes("id") || s.includes("identity") || s.includes("front") || s.includes("back")) return "11";
     return "99";
   };
 
@@ -465,7 +471,7 @@ export function extractProfileDocuments(userData: any): ProfileDocument[] {
             id: `owner-front-${i}`,
             name: `${ownerName} ID Front`,
             url: owner.front_image,
-            suggestedFileType: "8",
+            suggestedFileType: "11",
             source: "Stakeholder ID",
           });
         }
@@ -476,7 +482,7 @@ export function extractProfileDocuments(userData: any): ProfileDocument[] {
             id: `owner-back-${i}`,
             name: `${ownerName} ID Back`,
             url: owner.back_image,
-            suggestedFileType: "8",
+            suggestedFileType: "11",
             source: "Stakeholder ID",
           });
         }
