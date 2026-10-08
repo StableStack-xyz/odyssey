@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Download, ExternalLink, FileCheck, FileText, Loader2, Sparkles } from "lucide-react";
@@ -112,6 +112,8 @@ export function FileUploader({
 }) {
   const [fileType, setFileType] = useState(defaultFileType);
   const [customType, setCustomType] = useState("");
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const effectiveType = fileType === "99" ? customType.trim() : fileType;
 
@@ -138,8 +140,17 @@ export function FileUploader({
     onSuccess: (uploaded) => {
       toast.success(`Uploaded ${uploaded.name}`);
       onUploaded(uploaded);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     },
-    onError: (e) => toast.error(errorMessage(e)),
+    onError: (e) => {
+      toast.error(errorMessage(e));
+      setSelectedFileName(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
   });
 
   return (
@@ -160,17 +171,27 @@ export function FileUploader({
         />
       )}
       <input
+        ref={fileInputRef}
         type="file"
         className="text-xs file:btn-secondary file:text-xs file:py-1 file:px-2 file:cursor-pointer"
         disabled={!effectiveType || upload.isPending}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) upload.mutate(file);
-          e.target.value = "";
+          if (file) {
+            setSelectedFileName(file.name);
+            upload.mutate(file);
+          }
         }}
       />
+      {selectedFileName && (
+        <span className="text-xs font-medium text-ink bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded flex items-center gap-1.5 truncate max-w-xs">
+          📄 {selectedFileName}
+        </span>
+      )}
       {upload.isPending && (
-        <span className="text-xs text-slate animate-pulse">Uploading...</span>
+        <span className="text-xs text-brand font-medium flex items-center gap-1.5 animate-pulse">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" /> Uploading...
+        </span>
       )}
     </div>
   );
