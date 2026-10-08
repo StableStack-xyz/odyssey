@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Users } from 'lucide-react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { RefreshCw, Users } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { walletApi } from '../../lib/api'
 import type { MansaBeneficiary, Pagination } from './-mansa-types'
-import { statusStyle } from './-mansa-types'
+import { errorMessage, statusStyle } from './-mansa-types'
 import { CopyId, useDebounced } from './-mansa-shared'
 
 export function MansaBeneficiaries() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debounced = useDebounced(search)
@@ -23,6 +25,31 @@ export function MansaBeneficiaries() {
       })
       return response.data.data as { data: MansaBeneficiary[]; pagination: Pagination }
     },
+  })
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-mansa-beneficiaries'] })
+
+  const sync = useMutation({
+    mutationFn: (id: string) => walletApi.post(`/api/admin/mansa/beneficiaries/${id}/sync`),
+    onSuccess: () => {
+      toast.success('Status synced')
+      refresh()
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+
+  const syncPending = useMutation({
+    mutationFn: async () =>
+      (await walletApi.post('/api/admin/mansa/beneficiaries/sync-pending')).data.data as {
+        checked: number
+        updated: number
+        failed: number
+      },
+    onSuccess: ({ checked, updated, failed }) => {
+      toast.success(`Checked ${checked}: ${updated} updated${failed ? `, ${failed} failed` : ''}`)
+      refresh()
+    },
+    onError: (e) => toast.error(errorMessage(e)),
   })
 
   const columns: Column<MansaBeneficiary>[] = [
@@ -70,13 +97,39 @@ export function MansaBeneficiaries() {
           <span className="text-xs text-slate">-</span>
         ),
     },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) =>
+        row.account_holder?.id ? (
+          <button
+            onClick={() => sync.mutate(row.id)}
+            disabled={sync.isPending}
+            className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink cursor-pointer"
+            aria-label="Sync status"
+            title="Sync status from Mansa"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        ) : null,
+    },
   ]
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="font-display text-xl font-semibold text-ink">Mansa beneficiaries</h3>
-        <p className="text-slate mt-1">USD beneficiaries saved for Mansa. Add new ones from Beneficiaries (provider MANSA).</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-display text-xl font-semibold text-ink">Mansa beneficiaries</h3>
+          <p className="text-slate mt-1">USD beneficiaries saved for Mansa. Add new ones from Beneficiaries (provider MANSA).</p>
+        </div>
+        <button
+          onClick={() => syncPending.mutate()}
+          disabled={syncPending.isPending}
+          className="btn-secondary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0"
+        >
+          <RefreshCw className={`w-4 h-4 shrink-0 ${syncPending.isPending ? 'animate-spin' : ''}`} />
+          Sync pending
+        </button>
       </div>
       <input
         className="input w-full max-w-md"
