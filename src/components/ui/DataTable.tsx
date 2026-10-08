@@ -100,7 +100,7 @@ export function DataTable<T>({
                   <th
                     key={column.key}
                     style={colStyle}
-                    className={`relative group px-4 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider ${
+                    className={`relative group px-4 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider border-r border-graphite-hairline last:border-r-0 ${
                       column.sortable ? 'cursor-pointer select-none hover:text-ink' : ''
                     } ${column.className || ''}`}
                     onClick={() => column.sortable && onSort?.(column.key)}
@@ -113,9 +113,11 @@ export function DataTable<T>({
                     <div
                       onMouseDown={(e) => handleMouseDown(column.key, e)}
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand/50 group-hover:bg-brand/20 active:bg-brand z-10 transition-colors"
+                      className="absolute right-0 top-0 bottom-0 w-3 -mr-1.5 cursor-col-resize flex items-center justify-center group/resizer z-10"
                       title="Drag to resize column width"
-                    />
+                    >
+                      <div className="w-[2px] h-4 bg-slate/30 group-hover/resizer:bg-brand group-hover/resizer:h-full group-hover/resizer:w-[3px] transition-all rounded-full" />
+                    </div>
                   </th>
                 );
               })}
@@ -153,7 +155,7 @@ export function DataTable<T>({
                       <td
                         key={column.key}
                         style={colStyle}
-                        className={`px-4 py-4 text-sm text-ink truncate ${column.className || ''}`}
+                        className={`px-4 py-4 text-sm text-ink truncate border-r border-graphite-hairline/40 last:border-r-0 ${column.className || ''}`}
                       >
                         {column.render
                           ? column.render(row, index)
