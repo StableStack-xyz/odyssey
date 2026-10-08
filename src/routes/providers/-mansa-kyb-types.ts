@@ -206,6 +206,11 @@ function parsePhone(rawPhone?: string | null) {
   return { areaCode: "234", number: clean };
 }
 
+export function capitalizeWords(str?: string | null): string {
+  if (!str) return "";
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function mapUserDataToKyb(userData: any) {
   if (!userData) return { companyFields: {}, stakeholders: [] };
 
@@ -247,21 +252,18 @@ export function mapUserDataToKyb(userData: any) {
     amtCountCode = "3";
   }
 
+  const rawBusinessName =
+    merchant.business_name ||
+    profile.business_name ||
+    (profile.first_name
+      ? `${profile.first_name} ${profile.last_name || ""}`.trim()
+      : "") ||
+    "";
+  const businessName = capitalizeWords(rawBusinessName);
+
   const companyFields: Record<string, string> = {
-    member_name:
-      merchant.business_name ||
-      profile.business_name ||
-      (profile.first_name
-        ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-        : "") ||
-      "",
-    name_on_cert:
-      merchant.business_name ||
-      profile.business_name ||
-      (profile.first_name
-        ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-        : "") ||
-      "",
+    member_name: businessName,
+    name_on_cert: businessName,
     reg_number:
       merchant.registration_number ||
       merchant.tax_identification_number ||
@@ -280,7 +282,7 @@ export function mapUserDataToKyb(userData: any) {
     phone_area_code: phoneParts.areaCode,
     phone_num: phoneParts.number,
     website: merchant.business_website || "",
-    domestic_entity_name: merchant.business_name || "",
+    domestic_entity_name: businessName,
     effective_date: merchant.formation_date
       ? merchant.formation_date.split("T")[0]
       : "",
