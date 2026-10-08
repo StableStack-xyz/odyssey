@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { baseApi, walletApi } from "../../lib/api";
 import { Modal } from "../../components/ui/Modal";
 import { errorMessage, type Sender } from "./-mansa-types";
@@ -286,9 +287,10 @@ export function RegisterModal({
               </p>
               <p className="text-xs text-slate">{merchant.email}</p>
               {loadingProfile && (
-                <p className="text-[11px] text-slate animate-pulse mt-0.5">
-                  Fetching profile & auto-populating fields...
-                </p>
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-ink mt-1 bg-vellum/60 px-2 py-0.5 rounded-md w-fit">
+                  <Loader2 className="w-3 h-3 animate-spin text-ink" />
+                  <span>Fetching profile data to auto-populate form...</span>
+                </div>
               )}
             </div>
             <button

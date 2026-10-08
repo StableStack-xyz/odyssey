@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw, Loader2 } from "lucide-react";
 import { baseApi, walletApi } from "../../lib/api";
 import { errorMessage } from "./-mansa-types";
 import type { Fields, KycFile } from "./-mansa-kyb-types";
@@ -168,33 +168,48 @@ export function EnterpriseKybForm({
   };
 
   return (
-    <div className="space-y-8 pb-8 max-w-7xl mx-auto">
-      {/* Auto-fill Action Banner */}
-      <div className="flex items-center justify-between bg-vellum/60 p-4 rounded-xl border border-graphite-hairline">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-accent-purple shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-ink">Merchant Profile Integration</p>
+    <div className="space-y-8 pb-8 max-w-7xl mx-auto relative">
+      {/* Auto-fill Status & Action Banner */}
+      {loadingUserData ? (
+        <div className="flex items-center gap-3 bg-vellum/80 p-4 rounded-xl border border-graphite-hairline shadow-sm animate-pulse">
+          <Loader2 className="w-5 h-5 text-ink animate-spin shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-ink">
+              Pulling merchant profile information...
+            </p>
             <p className="text-xs text-slate">
-              {loadingUserData
-                ? "Loading merchant details and owners..."
-                : "Form auto-populated from registered user profile and business owners."}
+              Fetching registered company details, addresses, contact info, and business owners to auto-populate the form.
             </p>
           </div>
+          <div className="w-24 h-1.5 bg-ink/10 rounded-full overflow-hidden shrink-0">
+            <div className="h-full bg-ink animate-pulse w-3/4 rounded-full" />
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (userData) applyAutoFill(userData);
-            else refetchUserData();
-          }}
-          disabled={loadingUserData}
-          className="btn-secondary cursor-pointer text-xs inline-flex items-center gap-1.5 shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingUserData ? "animate-spin" : ""}`} />
-          Re-fill from Profile
-        </button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between bg-vellum/60 p-4 rounded-xl border border-graphite-hairline">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-accent-purple shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-ink">Merchant Profile Integration</p>
+              <p className="text-xs text-slate">
+                Form auto-populated from registered user profile and business owners.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (userData) applyAutoFill(userData);
+              else refetchUserData();
+            }}
+            disabled={loadingUserData}
+            className="btn-secondary cursor-pointer text-xs inline-flex items-center gap-1.5 shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingUserData ? "animate-spin" : ""}`} />
+            Re-fill from Profile
+          </button>
+        </div>
+      )}
 
       {/* 1. Company General Information */}
       <section className="space-y-4 bg-vellum/30 p-5 rounded-2xl border border-graphite-hairline">
