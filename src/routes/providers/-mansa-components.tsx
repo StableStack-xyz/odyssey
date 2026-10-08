@@ -300,7 +300,7 @@ export function KycModal({
       isOpen
       onClose={onClose}
       title={`Submit KYC - ${sender.merchant_name || sender.merchant_email || "merchant"}`}
-      size="lg"
+      size="full"
     >
       <div className="space-y-4">
         <select
