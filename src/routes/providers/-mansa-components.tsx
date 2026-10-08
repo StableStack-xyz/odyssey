@@ -12,6 +12,7 @@ import {
   KYC_FILE_TYPES,
   PHONE_AREA_CODES,
   ROLES,
+  capitalizeWords,
   mapUserDataToKyb,
 } from "./-mansa-kyb-types";
 import { EnterpriseKybForm } from "./-mansa-kyb";
@@ -522,7 +523,7 @@ export function KycModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={`Submit KYC - ${sender.merchant_name || sender.merchant_email || "merchant"}`}
+      title={`Submit KYC - ${capitalizeWords(sender.merchant_name) || sender.merchant_email || "merchant"}`}
       size="full"
     >
       <div className="space-y-4">
