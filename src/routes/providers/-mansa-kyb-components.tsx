@@ -4,19 +4,28 @@ import { toast } from "sonner";
 import { walletApi } from "../../lib/api";
 import { errorMessage } from "./-mansa-types";
 import type { Fields } from "./-mansa-kyb-types";
-import { CERT_TYPES, ROLES } from "./-mansa-kyb-types";
+import {
+  CERT_TYPES,
+  COUNTRY_OPTIONS,
+  KYC_FILE_TYPES,
+  PHONE_AREA_CODES,
+  ROLES,
+} from "./-mansa-kyb-types";
 
 export function Field({
   label,
+  helper,
   children,
 }: {
   label: string;
+  helper?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block text-xs text-slate space-y-1">
-      <span>{label}</span>
+      <span className="font-medium text-ink/90">{label}</span>
       {children}
+      {helper && <span className="block text-[11px] text-slate/70">{helper}</span>}
     </label>
   );
 }
@@ -25,18 +34,22 @@ export function Select({
   value,
   onChange,
   options,
+  placeholder = "Select...",
+  className = "input w-full",
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[][];
+  placeholder?: string;
+  className?: string;
 }) {
   return (
     <select
-      className="input w-full"
+      className={className}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="">Select...</option>
+      <option value="">{placeholder}</option>
       {options.map(([v, l]) => (
         <option key={v} value={v}>
           {l}
@@ -46,9 +59,45 @@ export function Select({
   );
 }
 
+export function CountrySelect({
+  value,
+  onChange,
+  placeholder = "Select country...",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <Select
+      value={value}
+      onChange={onChange}
+      options={COUNTRY_OPTIONS}
+      placeholder={placeholder}
+    />
+  );
+}
+
+export function PhoneAreaSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Select
+      value={value}
+      onChange={onChange}
+      options={PHONE_AREA_CODES}
+      placeholder="Dial code..."
+    />
+  );
+}
+
 export function FileUploader({
   userId,
-  defaultFileType = "",
+  defaultFileType = "1",
   onUploaded,
 }: {
   userId: string;
@@ -60,18 +109,22 @@ export function FileUploader({
   }) => void;
 }) {
   const [fileType, setFileType] = useState(defaultFileType);
+  const [customType, setCustomType] = useState("");
+
+  const effectiveType = fileType === "99" ? customType.trim() : fileType;
+
   const upload = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData();
       form.append("file", file);
-      form.append("fileType", fileType.trim());
+      form.append("fileType", effectiveType);
       const response = await walletApi.post(
         `/api/admin/mansa/senders/${userId}/files`,
         form,
       );
       return {
         file_id: response.data.data.file_id as string,
-        file_type: fileType.trim(),
+        file_type: effectiveType,
         name: file.name,
       };
     },
@@ -83,17 +136,26 @@ export function FileUploader({
   });
 
   return (
-    <div className="flex gap-2 items-center">
-      <input
-        className="input w-32"
-        placeholder="File type code"
+    <div className="flex flex-wrap gap-2 items-center bg-vellum/50 p-2 rounded-lg border border-graphite-hairline">
+      <Select
         value={fileType}
-        onChange={(e) => setFileType(e.target.value)}
+        onChange={setFileType}
+        options={KYC_FILE_TYPES}
+        placeholder="Select document type..."
+        className="input text-xs max-w-xs"
       />
+      {fileType === "99" && (
+        <input
+          className="input text-xs w-32"
+          placeholder="Type code"
+          value={customType}
+          onChange={(e) => setCustomType(e.target.value)}
+        />
+      )}
       <input
         type="file"
-        className="text-xs"
-        disabled={!fileType.trim() || upload.isPending}
+        className="text-xs file:btn-secondary file:text-xs file:py-1 file:px-2 file:cursor-pointer"
+        disabled={!effectiveType || upload.isPending}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) upload.mutate(file);
@@ -101,7 +163,7 @@ export function FileUploader({
         }}
       />
       {upload.isPending && (
-        <span className="text-xs text-slate">Uploading...</span>
+        <span className="text-xs text-slate animate-pulse">Uploading...</span>
       )}
     </div>
   );
@@ -122,11 +184,18 @@ export function StakeholderCard({
   onUpdate: (index: number, key: string, value: string) => void;
   onRemove: (index: number) => void;
 }) {
-  const f = (key: string, label: string, type = "text") => (
-    <Field label={label}>
+  const f = (
+    key: string,
+    label: string,
+    type = "text",
+    placeholder = "",
+    helper = "",
+  ) => (
+    <Field label={label} helper={helper}>
       <input
         type={type}
         className="input w-full"
+        placeholder={placeholder}
         value={s[key] || ""}
         onChange={(e) => setS(i, key, e.target.value)}
       />
@@ -134,19 +203,20 @@ export function StakeholderCard({
   );
 
   return (
-    <div className="border border-graphite-hairline rounded p-3 space-y-3">
-      <div className="flex justify-between text-xs text-slate">
-        <span>Stakeholder {i + 1}</span>
+    <div className="border border-graphite-hairline bg-paper rounded-xl p-4 space-y-4 shadow-sm">
+      <div className="flex justify-between items-center text-xs font-semibold text-ink border-b border-graphite-hairline pb-2">
+        <span>Stakeholder #{i + 1}</span>
         {totalCount > 1 && (
           <button
             type="button"
-            className="cursor-pointer text-red-600"
+            className="cursor-pointer text-red-600 hover:underline"
             onClick={() => onRemove(i)}
           >
-            Remove
+            Remove stakeholder
           </button>
         )}
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <Field label="Role">
           <Select
@@ -155,7 +225,7 @@ export function StakeholderCard({
             options={ROLES}
           />
         </Field>
-        {f("name", "Full name")}
+        {f("name", "Full legal name", "text", "John Doe")}
         <Field label="Gender">
           <Select
             value={s.gender}
@@ -167,16 +237,26 @@ export function StakeholderCard({
           />
         </Field>
         {f("birthday", "Date of birth", "date")}
-        {f("nationality", "Nationality (ISO-2)")}
-        {f("document_issuing_country", "Document issuing country (ISO-2)")}
-        <Field label="ID type">
+        <Field label="Nationality">
+          <CountrySelect
+            value={s.nationality}
+            onChange={(v) => setS(i, "nationality", v)}
+          />
+        </Field>
+        <Field label="Document issuing country">
+          <CountrySelect
+            value={s.document_issuing_country}
+            onChange={(v) => setS(i, "document_issuing_country", v)}
+          />
+        </Field>
+        <Field label="ID document type">
           <Select
             value={s.cert_type}
             onChange={(v) => setS(i, "cert_type", v)}
             options={CERT_TYPES}
           />
         </Field>
-        {f("cert_num", "ID number")}
+        {f("cert_num", "ID number", "text", "A12345678")}
         {f("effective_date", "ID issue date", "date")}
         <Field label="ID expiry date">
           <input
@@ -195,33 +275,43 @@ export function StakeholderCard({
               setS(i, "is_long_term", e.target.checked ? "1" : "0")
             }
           />{" "}
-          ID has no expiry
+          ID has no expiration date (Long-term)
         </label>
-        {f("residence_area", "Residence country (ISO-2)")}
-        {f("province", "Province / state")}
-        {f("city", "City")}
-        {f("address", "Address (with unit no.)")}
+        <Field label="Residence country">
+          <CountrySelect
+            value={s.residence_area}
+            onChange={(v) => setS(i, "residence_area", v)}
+          />
+        </Field>
+        {f("province", "Province / state", "text", "Lagos")}
+        {f("city", "City", "text", "Ikeja")}
+        {f("address", "Residential address", "text", "12 Broad Street, Suite 4")}
         {s.role === "1" &&
-          f("share_percentage", "Share percentage (e.g. 16.36)")}
+          f("share_percentage", "Share percentage (%)", "number", "25.00", "Must be > 0 for UBO")}
       </div>
-      <div className="space-y-1">
-        <p className="text-xs text-slate">
-          ID front {s.cert_front && "- uploaded"}
-        </p>
-        <FileUploader
-          userId={userId}
-          onUploaded={(u) => setS(i, "cert_front", u.file_id)}
-        />
+
+      <div className="space-y-3 pt-2 border-t border-graphite-hairline">
+        <div>
+          <p className="text-xs font-medium text-ink mb-1">
+            ID Document Front {s.cert_front ? "✓ Uploaded" : "(Required)"}
+          </p>
+          <FileUploader
+            userId={userId}
+            defaultFileType="11"
+            onUploaded={(u) => setS(i, "cert_front", u.file_id)}
+          />
+        </div>
         {s.cert_type === "11" && (
-          <>
-            <p className="text-xs text-slate">
-              ID back {s.cert_back && "- uploaded"}
+          <div>
+            <p className="text-xs font-medium text-ink mb-1">
+              ID Document Back {s.cert_back ? "✓ Uploaded" : "(Required for ID Card)"}
             </p>
             <FileUploader
               userId={userId}
+              defaultFileType="11"
               onUploaded={(u) => setS(i, "cert_back", u.file_id)}
             />
-          </>
+          </div>
         )}
       </div>
     </div>
