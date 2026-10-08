@@ -6,10 +6,11 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { CreditCard, Eye, RefreshCw } from 'lucide-react'
+import { CreditCard, Eye, Plus, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
+import { ALL_PROVIDERS, BeneficiaryFormModal, CURRENCIES } from './-components'
 
 export const Route = createFileRoute('/payouts/')({
   beforeLoad: () => {
@@ -81,10 +82,13 @@ function PayoutsPage() {
   const [userIdFilter, setUserIdFilter] = useState('')
   const [accountNumberFilter, setAccountNumberFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [currencyFilter, setCurrencyFilter] = useState('all')
+  const [providerFilter, setProviderFilter] = useState('all')
+  const [adding, setAdding] = useState(false)
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-payouts', page, search, userIdFilter, accountNumberFilter, typeFilter],
+    queryKey: ['admin-payouts', page, search, userIdFilter, accountNumberFilter, typeFilter, currencyFilter, providerFilter],
     queryFn: async () => {
       const params: any = { page, limit }
       if (search) params.search = search
@@ -102,6 +106,8 @@ function PayoutsPage() {
           ...params,
           user_id: userIdFilter || undefined,
           type: typeFilter !== 'all' ? typeFilter : undefined,
+          currency: currencyFilter !== 'all' ? currencyFilter : undefined,
+          provider: providerFilter !== 'all' ? providerFilter : undefined,
         },
       })
       return response.data.data
@@ -164,6 +170,11 @@ function PayoutsPage() {
       ),
     },
     {
+      key: 'provider',
+      header: 'Provider',
+      render: (row) => <span className="text-sm">{row.provider || '—'}</span>,
+    },
+    {
       key: 'country',
       header: 'Country',
       render: (row) => (
@@ -220,13 +231,19 @@ function PayoutsPage() {
               Manage beneficiary payout methods
             </p>
           </div>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
-            className="btn-secondary flex items-center gap-2 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setAdding(true)} className="btn-primary flex items-center gap-2 cursor-pointer">
+              <Plus className="w-4 h-4" />
+              Add beneficiary
+            </button>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
+              className="btn-secondary flex items-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
@@ -266,6 +283,22 @@ function PayoutsPage() {
                   { label: 'Wallet', value: 'WALLET' },
                 ],
               },
+              {
+                key: 'currency',
+                label: 'Currency',
+                type: 'select',
+                value: currencyFilter,
+                onChange: (v) => { setCurrencyFilter(v); setPage(1) },
+                options: [{ label: 'All Currencies', value: 'all' }, ...CURRENCIES.map((c) => ({ label: c, value: c }))],
+              },
+              {
+                key: 'provider',
+                label: 'Provider',
+                type: 'select',
+                value: providerFilter,
+                onChange: (v) => { setProviderFilter(v); setPage(1) },
+                options: [{ label: 'All Providers', value: 'all' }, ...ALL_PROVIDERS.map((p) => ({ label: p, value: p }))],
+              },
             ]}
           />
         </div>
@@ -285,6 +318,12 @@ function PayoutsPage() {
           rowKey={(row) => row.id}
         />
       </div>
+      {adding && (
+        <BeneficiaryFormModal
+          onClose={() => setAdding(false)}
+          onDone={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
+        />
+      )}
     </AdminLayout>
   )
 }

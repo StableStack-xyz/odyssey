@@ -1,7 +1,11 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { AdminLayout } from '../../components/layout/AdminLayout'
-import { ArrowLeft, CreditCard } from 'lucide-react'
+import { ArrowLeft, CreditCard, Pencil, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { BeneficiaryFormModal } from './-components'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
@@ -26,16 +30,31 @@ export const Route = createFileRoute('/payouts/$payoutId')({
 function PayoutDetailPage() {
   const { payoutId } = Route.useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['payout-method', payoutId],
     queryFn: async () => {
-      const response = await walletApi.get('/api/admin/payout-methods', {
-        params: { search: payoutId },
-      })
-      const methods = response.data?.data?.data || []
-      return methods.find((m: any) => m.id === payoutId) || null
+      try {
+        const response = await walletApi.get(`/api/admin/payout-methods/${payoutId}`)
+        return response.data?.data || null
+      } catch (error: any) {
+        if (error?.response?.status === 404) return null
+        throw error
+      }
     },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => walletApi.delete(`/api/admin/users/${data.user_id}/payout-methods/${payoutId}`),
+    onSuccess: () => {
+      toast.success('Beneficiary deleted')
+      queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })
+      navigate({ to: '/payouts' })
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Delete failed'),
   })
 
   const method = data
@@ -93,8 +112,18 @@ function PayoutDetailPage() {
                 <h2 className="font-display text-xl text-ink capitalize">
                   {method.label || (isBank ? method.account_name || 'Bank Account' : method.wallet_address?.slice(0, 10) + '...' || 'Wallet')}
                 </h2>
-                <p className="text-xs text-slate uppercase">{method.type} — {method.currency}{method.country ? ` — ${method.country}` : ''}</p>
+                <p className="text-xs text-slate uppercase">{method.type} — {method.currency}{method.provider ? ` — ${method.provider}` : ''}{method.country ? ` — ${method.country}` : ''}</p>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-2 cursor-pointer">
+                <Pencil className="w-4 h-4" />
+                Edit
+              </button>
+              <button onClick={() => setConfirmingDelete(true)} className="btn-secondary flex items-center gap-2 text-red-600 cursor-pointer">
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -285,6 +314,26 @@ function PayoutDetailPage() {
           </div>
         </div>
       </div>
+      {editing && (
+        <BeneficiaryFormModal
+          beneficiary={method}
+          onClose={() => setEditing(false)}
+          onDone={() => {
+            queryClient.invalidateQueries({ queryKey: ['payout-method', payoutId] })
+            queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })
+          }}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={confirmingDelete}
+        onClose={() => setConfirmingDelete(false)}
+        onConfirm={() => remove.mutate()}
+        title="Delete beneficiary"
+        message="This removes the saved beneficiary for the merchant. Past transactions are not affected."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={remove.isPending}
+      />
     </AdminLayout>
   )
 }

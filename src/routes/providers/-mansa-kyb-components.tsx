@@ -121,6 +121,11 @@ export function FileUploader({
       const response = await walletApi.post(
         `/api/admin/mansa/senders/${userId}/files`,
         form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
       return {
         file_id: response.data.data.file_id as string,

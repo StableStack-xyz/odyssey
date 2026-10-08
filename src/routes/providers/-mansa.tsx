@@ -8,21 +8,45 @@ import { walletApi } from '../../lib/api'
 import type { Pagination, Sender } from './-mansa-types'
 import { STATUS_FILTERS, errorMessage, statusStyle } from './-mansa-types'
 import { KycModal, RegisterModal } from './-mansa-components'
+import { MansaBeneficiaries } from './-mansa-beneficiaries'
+import { CopyId, useDebounced } from './-mansa-shared'
 
 export function MansaProvider() {
+  const [view, setView] = useState<'senders' | 'beneficiaries'>('senders')
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2">
+        {(['senders', 'beneficiaries'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-3 py-1.5 text-xs rounded-full cursor-pointer capitalize ${view === v ? 'bg-ink text-paper' : 'bg-vellum text-slate hover:bg-slate/10'}`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+      {view === 'senders' ? <MansaSenders /> : <MansaBeneficiaries />}
+    </div>
+  )
+}
+
+function MansaSenders() {
   const queryClient = useQueryClient()
   const [status, setStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search)
   const [page, setPage] = useState(1)
   const limit = 20
   const [registering, setRegistering] = useState(false)
   const [kycFor, setKycFor] = useState<Sender | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-mansa-senders', status, page],
+    queryKey: ['admin-mansa-senders', status, debouncedSearch, page],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const response = await walletApi.get('/api/admin/mansa/senders', {
-        params: { status: status || undefined, page, limit },
+        params: { status: status || undefined, search: debouncedSearch || undefined, page, limit },
       })
       return response.data as { data: Sender[]; pagination: Pagination }
     },
@@ -53,7 +77,7 @@ export function MansaProvider() {
     {
       key: 'sender_profile_id',
       header: 'Mansa sender ID',
-      render: (row) => <span className="text-xs font-mono text-slate">{row.sender_profile_id}</span>,
+      render: (row) => <CopyId value={row.sender_profile_id} />,
     },
     {
       key: 'status',
@@ -105,6 +129,15 @@ export function MansaProvider() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <input
+              className="input w-64"
+              placeholder="Search merchant or sender ID"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
             <select
               className="input"
               value={status}
