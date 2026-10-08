@@ -349,8 +349,9 @@ export function CollectedDocumentsImporter({
   const isAlreadyUploaded = (doc: ProfileDocument) =>
     files.some(
       (f) =>
-        f.name.toLowerCase() === doc.name.toLowerCase() ||
-        f.file_type === getType(doc)
+        f.name.toLowerCase().trim() === doc.name.toLowerCase().trim() ||
+        f.name.toLowerCase().includes(doc.name.toLowerCase()) ||
+        doc.name.toLowerCase().includes(f.name.toLowerCase())
     );
 
   const importSingleDoc = async (doc: ProfileDocument, customType?: string) => {
@@ -508,10 +509,10 @@ export function CollectedDocumentsImporter({
                   type="button"
                   disabled={uploaded || isLoading || isImportingAll}
                   onClick={() => importSingleDoc(doc)}
-                  className={`btn text-[11px] py-1 px-2.5 rounded-md whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                  className={`btn text-[11px] py-1 px-3 rounded-lg whitespace-nowrap shrink-0 flex items-center gap-1 font-medium transition-all ${
                     uploaded
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-medium"
-                      : "bg-ink text-white hover:bg-ink/90"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                      : "bg-brand text-white hover:bg-brand/90 shadow-sm"
                   }`}
                 >
                   {isLoading ? (
