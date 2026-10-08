@@ -105,11 +105,17 @@ export function MansaBeneficiaries() {
           <button
             onClick={() => sync.mutate(row.id)}
             disabled={sync.isPending}
-            className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink cursor-pointer"
+            className="p-2 hover:bg-vellum rounded-lg text-ash hover:text-ink cursor-pointer disabled:opacity-50"
             aria-label="Sync status"
             title="Sync status from Mansa"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw
+              className={`w-4 h-4 ${
+                sync.isPending && sync.variables === row.id
+                  ? 'animate-spin text-brand'
+                  : ''
+              }`}
+            />
           </button>
         ) : null,
     },
