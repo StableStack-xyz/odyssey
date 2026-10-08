@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -8,6 +8,7 @@ export interface Column<T> {
   sortable?: boolean;
   render?: (row: T, index: number) => ReactNode;
   className?: string;
+  width?: number;
 }
 
 interface DataTableProps<T> {
@@ -45,37 +46,79 @@ export function DataTable<T>({
   onRowClick,
   rowKey,
 }: DataTableProps<T>) {
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+
+  const handleMouseDown = (colKey: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const thElement = (e.currentTarget.parentElement as HTMLElement);
+    const startWidth = columnWidths[colKey] || thElement?.getBoundingClientRect().width || 120;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(60, startWidth + deltaX);
+      setColumnWidths((prev) => ({
+        ...prev,
+        [colKey]: newWidth,
+      }));
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const renderSortIcon = (column: Column<T>) => {
     if (!column.sortable) return null;
     if (sortBy !== column.key) {
-      return <ArrowUpDown className="w-3.5 h-3.5 text-ash" />;
+      return <ArrowUpDown className="w-3.5 h-3.5 text-ash shrink-0" />;
     }
     return sortOrder === 'asc'
-      ? <ArrowUp className="w-3.5 h-3.5 text-ink" />
-      : <ArrowDown className="w-3.5 h-3.5 text-ink" />;
+      ? <ArrowUp className="w-3.5 h-3.5 text-ink shrink-0" />
+      : <ArrowDown className="w-3.5 h-3.5 text-ink shrink-0" />;
   };
 
   return (
     <div className="bg-paper rounded-2xl border border-graphite-hairline overflow-hidden shadow-xl-3">
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-graphite-hairline bg-vellum">
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={`px-6 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider ${
-                    column.sortable ? 'cursor-pointer select-none hover:text-ink' : ''
-                  } ${column.className || ''}`}
-                  onClick={() => column.sortable && onSort?.(column.key)}
-                >
-                  <div className="flex items-center gap-1.5">
-                    {column.header}
-                    {renderSortIcon(column)}
-                  </div>
-                </th>
-              ))}
+              {columns.map((column) => {
+                const widthPx = columnWidths[column.key] || column.width;
+                const colStyle = widthPx
+                  ? { width: `${widthPx}px`, minWidth: `${widthPx}px`, maxWidth: `${widthPx}px` }
+                  : undefined;
+
+                return (
+                  <th
+                    key={column.key}
+                    style={colStyle}
+                    className={`relative group px-4 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider ${
+                      column.sortable ? 'cursor-pointer select-none hover:text-ink' : ''
+                    } ${column.className || ''}`}
+                    onClick={() => column.sortable && onSort?.(column.key)}
+                  >
+                    <div className="flex items-center justify-between gap-1.5 pr-2 truncate">
+                      <span className="truncate">{column.header}</span>
+                      {renderSortIcon(column)}
+                    </div>
+                    {/* Drag-to-Resize Column Handle */}
+                    <div
+                      onMouseDown={(e) => handleMouseDown(column.key, e)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-brand/50 group-hover:bg-brand/20 active:bg-brand z-10 transition-colors"
+                      title="Drag to resize column width"
+                    />
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-graphite-hairline">
@@ -100,16 +143,24 @@ export function DataTable<T>({
                   onClick={() => onRowClick?.(row)}
                   className={`transition-colors hover:bg-vellum ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={`px-6 py-4 text-sm text-ink ${column.className || ''}`}
-                    >
-                      {column.render
-                        ? column.render(row, index)
-                        : (row as Record<string, unknown>)[column.key] as ReactNode}
-                    </td>
-                  ))}
+                  {columns.map((column) => {
+                    const widthPx = columnWidths[column.key] || column.width;
+                    const colStyle = widthPx
+                      ? { width: `${widthPx}px`, minWidth: `${widthPx}px`, maxWidth: `${widthPx}px` }
+                      : undefined;
+
+                    return (
+                      <td
+                        key={column.key}
+                        style={colStyle}
+                        className={`px-4 py-4 text-sm text-ink truncate ${column.className || ''}`}
+                      >
+                        {column.render
+                          ? column.render(row, index)
+                          : ((row as Record<string, unknown>)[column.key] as ReactNode)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
