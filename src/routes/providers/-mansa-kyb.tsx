@@ -110,7 +110,7 @@ export function EnterpriseKybForm({
   };
 
   return (
-    <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-1">
+    <div className="space-y-6 pb-6 max-w-7xl mx-auto">
       <section className="space-y-2">
         <h4 className="text-sm text-ink">Company</h4>
         <div className="grid grid-cols-2 gap-3">
