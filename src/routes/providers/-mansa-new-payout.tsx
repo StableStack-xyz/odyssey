@@ -19,6 +19,7 @@ import { walletApi } from '../../lib/api'
 import { MerchantSearch } from '../payouts/-components'
 import type { MerchantOption } from '../payouts/-components'
 import { errorMessage } from './-mansa-types'
+import { capitalizeWords } from './-mansa-kyb-types'
 import { useDebounced } from './-mansa-shared'
 
 type TwoFactorMethod = 'authenticator' | 'email' | null
@@ -141,7 +142,9 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
     new Set([...(preview?.purpose_codes || []), ...DEFAULT_PURPOSE_CODES])
   )
   const selectedBeneficiary = beneficiaries?.find((b) => b.id === beneficiaryId)
-  const readyToReview = !!merchant && !!beneficiaryId && Number(amount) > 0 && !!preview
+
+  const isInsufficientBalance = !!usdtWallet && Number(amount) > Number(usdtWallet.balance || 0)
+  const readyToReview = !!merchant && !!beneficiaryId && Number(amount) > 0 && !!preview && !isInsufficientBalance
 
   return (
     <Modal isOpen onClose={onClose} title="New USD Payout" size="full">
@@ -172,7 +175,9 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-ink truncate">{merchant.merchant_name || 'Unnamed merchant'}</span>
+                        <span className="text-sm font-semibold text-ink truncate">
+                          {capitalizeWords(merchant.merchant_name) || merchant.email}
+                        </span>
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                       </div>
                       <p className="text-xs text-slate truncate">{merchant.email}</p>
@@ -398,7 +403,9 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
               <div className="divide-y divide-graphite-hairline text-xs">
                 <div className="py-2.5 flex justify-between items-center">
                   <span className="text-slate font-medium">Merchant (From Account):</span>
-                  <span className="font-semibold text-ink text-right">{merchant?.merchant_name || merchant?.email}</span>
+                  <span className="font-semibold text-ink text-right">
+                    {capitalizeWords(merchant?.merchant_name) || merchant?.email}
+                  </span>
                 </div>
                 <div className="py-2.5 flex justify-between items-center">
                   <span className="text-slate font-medium">Beneficiary (To Account):</span>
