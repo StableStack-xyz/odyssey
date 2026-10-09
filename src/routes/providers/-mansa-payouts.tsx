@@ -301,6 +301,7 @@ export function MansaPayouts() {
         onPageChange={setPage}
         rowKey={(row) => row.transaction_id}
       />
+      
       {creating && <NewPayoutModal method={data?.two_factor ?? null} onClose={() => setCreating(false)} onDone={refresh} />}
       {approving && (
         <ApproveModal payout={approving} method={data?.two_factor ?? null} onClose={() => setApproving(null)} onDone={refresh} />
