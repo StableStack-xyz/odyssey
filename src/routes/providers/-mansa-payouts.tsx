@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Loader2, ShieldCheck, X } from 'lucide-react'
+import { Check, Loader2, Plus, ShieldCheck, X } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
 import type { Pagination } from './-mansa-types'
 import { errorMessage } from './-mansa-types'
+import { NewPayoutModal } from './-mansa-new-payout'
 
 interface PendingPayout {
   transaction_id: string
@@ -205,6 +206,7 @@ export function MansaPayouts() {
   const [page, setPage] = useState(1)
   const [approving, setApproving] = useState<PendingPayout | null>(null)
   const [rejecting, setRejecting] = useState<PendingPayout | null>(null)
+  const [creating, setCreating] = useState(false)
   const limit = 20
 
   const { data, isLoading } = useQuery({
@@ -275,11 +277,16 @@ export function MansaPayouts() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="font-display text-xl font-semibold text-ink">Payouts awaiting approval</h3>
-        <p className="text-slate text-sm mt-1">
-          USD payouts are quoted by Mansa, then wait here. USDT only leaves the merchant wallet after an admin approves with 2FA.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-display text-xl font-semibold text-ink">Payouts awaiting approval</h3>
+          <p className="text-slate text-sm mt-1">
+            USD payouts are quoted by Mansa, then wait here. USDT only leaves the merchant wallet after an admin approves with 2FA.
+          </p>
+        </div>
+        <button onClick={() => setCreating(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0">
+          <Plus className="w-4 h-4 shrink-0" /> New payout
+        </button>
       </div>
       <DataTable
         columns={columns}
@@ -294,6 +301,7 @@ export function MansaPayouts() {
         onPageChange={setPage}
         rowKey={(row) => row.transaction_id}
       />
+      {creating && <NewPayoutModal method={data?.two_factor ?? null} onClose={() => setCreating(false)} onDone={refresh} />}
       {approving && (
         <ApproveModal payout={approving} method={data?.two_factor ?? null} onClose={() => setApproving(null)} onDone={refresh} />
       )}
