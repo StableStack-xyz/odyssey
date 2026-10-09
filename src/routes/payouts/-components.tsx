@@ -63,15 +63,36 @@ function useDebounced<T>(value: T, delay = 300) {
   return debounced
 }
 
-export function MerchantSearch({ onPick }: { onPick: (merchant: MerchantOption) => void }) {
+export function MerchantSearch({
+  onPick,
+  mansaSendersOnly,
+}: {
+  onPick: (merchant: MerchantOption) => void
+  mansaSendersOnly?: boolean
+}) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debounced = useDebounced(search)
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['admin-beneficiary-merchants', debounced, page],
+    queryKey: ['admin-beneficiary-merchants', debounced, page, mansaSendersOnly],
     placeholderData: keepPreviousData,
     queryFn: async () => {
+      if (mansaSendersOnly) {
+        const response = await walletApi.get('/api/admin/mansa/senders', {
+          params: { search: debounced, page, limit: 10 },
+        })
+        const items = (response.data?.data || []).map((s: any) => ({
+          user_id: s.user_id,
+          merchant_name: s.merchant_name,
+          email: s.merchant_email || s.email || s.user_id,
+        }))
+        return {
+          data: items as MerchantOption[],
+          pagination: { totalPages: response.data?.pagination?.totalPages || 1 },
+        }
+      }
+
       const response = await walletApi.get('/api/admin/mansa/merchants', {
         params: { search: debounced, page, limit: 10 },
       })
