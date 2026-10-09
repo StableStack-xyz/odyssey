@@ -118,8 +118,8 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
   const ready = !!merchant && !!beneficiaryId && Number(amount) > 0 && !!preview && code.length === 6 && !!method
 
   return (
-    <Modal isOpen onClose={onClose} title="New USD payout" size="lg">
-      <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+    <Modal isOpen onClose={onClose} title="New USD payout" size="full">
+      <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-1">
         {merchant ? (
           <div className="space-y-3">
             <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex items-center justify-between gap-3 shadow-sm transition-colors">
@@ -192,8 +192,8 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
           </div>
         ) : (
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-ink">Select Merchant *</label>
-            <MerchantSearch onPick={setMerchant} />
+            <label className="block text-xs font-semibold text-ink">Select Merchant (Sender Profile) *</label>
+            <MerchantSearch onPick={setMerchant} mansaSendersOnly />
           </div>
         )}
 
