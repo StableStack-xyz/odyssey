@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Building2, Calculator, CheckCircle2, Loader2, ShieldCheck, Sparkles, UserCheck } from 'lucide-react'
+import { AlertCircle, Building2, Calculator, CheckCircle2, Loader2, ShieldCheck, Sparkles, UserCheck, Wallet } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
 import { MerchantSearch } from '../payouts/-components'
@@ -26,6 +26,24 @@ interface Preview {
   requires_approval: boolean
 }
 
+interface WalletAddress {
+  id: string
+  address: string
+  network: string
+  balance: string
+  status: string
+}
+
+interface UserWallet {
+  id: string
+  user_id: string
+  asset_type: string
+  currency: string
+  balance: string
+  status: string
+  addresses: WalletAddress[]
+}
+
 export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorMethod; onClose: () => void; onDone: () => void }) {
   const [merchant, setMerchant] = useState<MerchantOption | null>(null)
   const [beneficiaryId, setBeneficiaryId] = useState('')
@@ -45,6 +63,22 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
       return response.data.data as Beneficiary[]
     },
   })
+
+  const { data: userWallets, isLoading: loadingWallets } = useQuery({
+    queryKey: ['admin-merchant-wallets', merchant?.user_id],
+    enabled: !!merchant,
+    queryFn: async () => {
+      const response = await walletApi.get(`/api/wallets/${merchant!.user_id}`)
+      return response.data.data as UserWallet[]
+    },
+  })
+
+  const usdtWallet = userWallets?.find(
+    (w) => w.currency?.toUpperCase() === 'USDT' || w.asset_type?.toUpperCase() === 'USDT'
+  )
+  const tronAddress = usdtWallet?.addresses?.find(
+    (a) => a.network?.toUpperCase().includes('TRON') || a.network?.toUpperCase().includes('TRX')
+  )
 
   const amountValid = Number(debouncedAmount) > 0
   const { data: preview, isLoading: loadingPreview, error: previewError } = useQuery({
@@ -87,29 +121,74 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
     <Modal isOpen onClose={onClose} title="New USD payout" size="lg">
       <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
         {merchant ? (
-          <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex items-center justify-between gap-3 shadow-sm transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-lg bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
-                <Building2 className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-ink truncate">{merchant.merchant_name || 'Unnamed merchant'}</span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <div className="space-y-3">
+            <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex items-center justify-between gap-3 shadow-sm transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4 h-4" />
                 </div>
-                <p className="text-xs text-slate truncate">{merchant.email}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-ink truncate">{merchant.merchant_name || 'Unnamed merchant'}</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  </div>
+                  <p className="text-xs text-slate truncate">{merchant.email}</p>
+                </div>
               </div>
+              <button
+                type="button"
+                className="btn-secondary text-xs px-2.5 py-1 cursor-pointer shrink-0"
+                onClick={() => {
+                  setMerchant(null)
+                  setBeneficiaryId('')
+                }}
+              >
+                Change
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn-secondary text-xs px-2.5 py-1 cursor-pointer shrink-0"
-              onClick={() => {
-                setMerchant(null)
-                setBeneficiaryId('')
-              }}
-            >
-              Change
-            </button>
+
+            {loadingWallets ? (
+              <div className="p-3 border border-graphite-hairline rounded-xl flex items-center gap-2 text-xs text-slate">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" />
+                <span>Loading merchant USDT balance & TRON wallet...</span>
+              </div>
+            ) : usdtWallet ? (
+              <div className="p-3.5 bg-brand/5 border border-brand/20 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-brand" />
+                    <span className="font-semibold text-ink">Merchant USDT Wallet (TRON)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-slate font-medium">Available:</span>
+                    <span className="text-xs font-bold text-ink font-mono bg-paper px-2 py-0.5 rounded border border-graphite-hairline">
+                      {Number(usdtWallet.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} USDT
+                    </span>
+                  </div>
+                </div>
+
+                {tronAddress && (
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-slate pt-1.5 border-t border-brand/10">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="shrink-0 font-medium">TRON Deposit:</span>
+                      <code className="font-mono text-ink truncate bg-vellum/50 px-1.5 py-0.5 rounded text-[11px]" title={tronAddress.address}>
+                        {tronAddress.address}
+                      </code>
+                    </div>
+                    {tronAddress.balance !== undefined && (
+                      <span className="shrink-0 font-medium text-slate font-mono">
+                        {Number(tronAddress.balance || 0).toLocaleString()} USDT
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>No provisioned USDT wallet found for this merchant.</span>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-1.5">
