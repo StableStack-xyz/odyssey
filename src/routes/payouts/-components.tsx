@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Building2, Loader2, Search } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
-import { ISO_COUNTRIES } from '../providers/-mansa-kyb-types'
+import { ISO_COUNTRIES, capitalizeWords } from '../providers/-mansa-kyb-types'
 
 export interface BeneficiaryRecord {
   id: string
@@ -148,7 +148,7 @@ export function MerchantSearch({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-ink truncate group-hover:text-brand transition-colors">
-                        {m.merchant_name || 'Unnamed merchant'}
+                        {capitalizeWords(m.merchant_name) || 'Unnamed merchant'}
                       </p>
                       <p className="text-[11px] text-slate truncate">{m.email}</p>
                     </div>
