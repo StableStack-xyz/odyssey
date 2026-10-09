@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Building2, Loader2, Search } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
 import { ISO_COUNTRIES } from '../providers/-mansa-kyb-types'
@@ -31,7 +32,7 @@ export interface BeneficiaryRecord {
   } | null
 }
 
-interface MerchantOption {
+export interface MerchantOption {
   user_id: string
   merchant_name: string | null
   email: string
@@ -62,12 +63,12 @@ function useDebounced<T>(value: T, delay = 300) {
   return debounced
 }
 
-function MerchantSearch({ onPick }: { onPick: (merchant: MerchantOption) => void }) {
+export function MerchantSearch({ onPick }: { onPick: (merchant: MerchantOption) => void }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debounced = useDebounced(search)
 
-  const { data } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-beneficiary-merchants', debounced, page],
     placeholderData: keepPreviousData,
     queryFn: async () => {
@@ -83,35 +84,72 @@ function MerchantSearch({ onPick }: { onPick: (merchant: MerchantOption) => void
   const totalPages = data?.pagination?.totalPages || 1
 
   return (
-    <div className="space-y-2">
-      <input
-        className="input w-full"
-        placeholder="Search merchant by business name or email"
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value)
-          setPage(1)
-        }}
-        autoFocus
-      />
-      <ul className="divide-y divide-graphite-hairline max-h-48 overflow-y-auto">
-        {(data?.data || []).map((m) => (
-          <li key={m.user_id}>
-            <button type="button" onClick={() => onPick(m)} className="w-full text-left py-2 px-1 hover:bg-vellum cursor-pointer">
-              <p className="text-sm text-ink">{m.merchant_name || 'Unnamed merchant'}</p>
-              <p className="text-xs text-slate">{m.email}</p>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center justify-between text-xs text-slate">
-        <button type="button" className="btn-secondary cursor-pointer" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="w-4 h-4 text-slate absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          className="input w-full pl-9 pr-9 text-xs"
+          placeholder="Search merchant by business name or email..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
+          autoFocus
+        />
+        {isFetching && (
+          <Loader2 className="w-4 h-4 text-brand animate-spin absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        )}
+      </div>
+
+      <div className="border border-graphite-hairline rounded-xl overflow-hidden bg-vellum/20">
+        {isLoading ? (
+          <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate">
+            <Loader2 className="w-4 h-4 animate-spin text-brand" />
+            <span>Loading merchants...</span>
+          </div>
+        ) : !data?.data?.length ? (
+          <div className="py-6 text-center text-xs text-slate">
+            No merchants found matching "{debounced}"
+          </div>
+        ) : (
+          <ul className="divide-y divide-graphite-hairline max-h-52 overflow-y-auto">
+            {data.data.map((m) => (
+              <li key={m.user_id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(m)}
+                  className="w-full text-left py-2.5 px-3 hover:bg-brand/5 dark:hover:bg-brand/10 transition-colors cursor-pointer flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-vellum border border-graphite-hairline flex items-center justify-center text-slate group-hover:text-brand group-hover:border-brand/30 transition-colors shrink-0">
+                      <Building2 className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-ink truncate group-hover:text-brand transition-colors">
+                        {m.merchant_name || 'Unnamed merchant'}
+                      </p>
+                      <p className="text-[11px] text-slate truncate">{m.email}</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-medium text-brand opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    Select &rarr;
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-slate pt-1">
+        <button type="button" className="btn-secondary text-xs px-2.5 py-1 cursor-pointer disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
           Previous
         </button>
-        <span>
+        <span className="text-[11px]">
           Page {page} of {totalPages}
         </span>
-        <button type="button" className="btn-secondary cursor-pointer" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+        <button type="button" className="btn-secondary text-xs px-2.5 py-1 cursor-pointer disabled:opacity-40" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
           Next
         </button>
       </div>
