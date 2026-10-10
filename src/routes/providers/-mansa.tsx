@@ -60,7 +60,7 @@ function MansaSenders() {
   const [registering, setRegistering] = useState(false)
   const [kycFor, setKycFor] = useState<Sender | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-mansa-senders', status, debouncedSearch, page],
     placeholderData: keepPreviousData,
     queryFn: async () => {
@@ -177,6 +177,15 @@ function MansaSenders() {
                 </option>
               ))}
             </select>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="btn-secondary cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+              title="Refresh senders"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
             <button onClick={() => setRegistering(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap">
               <Plus className="w-4 h-4 shrink-0" /> Register sender
             </button>

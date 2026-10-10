@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Loader2, Plus, ShieldCheck, X } from 'lucide-react'
+import { Check, Loader2, Plus, RefreshCw, ShieldCheck, X } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
@@ -209,7 +209,7 @@ export function MansaPayouts() {
   const [creating, setCreating] = useState(false)
   const limit = 20
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-mansa-payouts', page],
     placeholderData: keepPreviousData,
     refetchInterval: 30000,
@@ -284,9 +284,20 @@ export function MansaPayouts() {
             USD payouts are quoted by Mansa, then wait here. USDT only leaves the merchant wallet after an admin approves with 2FA.
           </p>
         </div>
-        <button onClick={() => setCreating(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0">
-          <Plus className="w-4 h-4 shrink-0" /> New payout
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn-secondary cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+            title="Refresh payout approvals"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button onClick={() => setCreating(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0">
+            <Plus className="w-4 h-4 shrink-0" /> New payout
+          </button>
+        </div>
       </div>
       <DataTable
         columns={columns}
