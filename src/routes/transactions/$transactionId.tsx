@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { APP_NAME } from '../../lib/constants'
+import { getExplorerUrl } from '../../lib/explorer'
 
 export const Route = createFileRoute('/transactions/$transactionId')({
   beforeLoad: () => {
@@ -200,12 +201,13 @@ function TransactionDetailPage() {
                     >
                       <Copy className="w-3.5 h-3.5 text-ash" />
                     </button>
-                    {tx.network && (
+                    {tx.network && getExplorerUrl({ network: tx.network, txHash: tx.crypto_transaction_id }) && (
                       <a
-                        href={`https://${tx.network === 'polygon' ? 'polygonscan.com' : 'etherscan.io'}/tx/${tx.crypto_transaction_id}`}
+                        href={getExplorerUrl({ network: tx.network, txHash: tx.crypto_transaction_id })!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1 hover:bg-vellum rounded transition-colors"
+                        title="View on Explorer"
                       >
                         <ExternalLink className="w-3.5 h-3.5 text-ash" />
                       </a>

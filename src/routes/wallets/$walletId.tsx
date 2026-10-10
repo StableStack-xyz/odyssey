@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { APP_NAME } from '../../lib/constants'
+import { getExplorerUrl } from '../../lib/explorer'
 
 export const Route = createFileRoute('/wallets/$walletId')({
   beforeLoad: () => {
@@ -256,12 +257,13 @@ function WalletDetailPage() {
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
-                    {addr.network && (
+                    {addr.network && getExplorerUrl({ network: addr.network, address: addr.address }) && (
                       <a
-                        href={`https://${addr.network === 'polygon' ? 'polygonscan.com' : addr.network === 'bep20' ? 'bscscan.com' : 'etherscan.io'}/address/${addr.address}`}
+                        href={getExplorerUrl({ network: addr.network, address: addr.address })!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1.5 hover:bg-vellum rounded-lg text-slate hover:text-ink transition-colors cursor-pointer"
+                        title="View on Explorer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
