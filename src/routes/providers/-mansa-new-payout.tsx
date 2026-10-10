@@ -15,6 +15,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { Modal } from '../../components/ui/Modal'
+import { PinInput } from '../../components/ui/PinInput'
 import { walletApi } from '../../lib/api'
 import { MerchantSearch } from '../payouts/-components'
 import type { MerchantOption } from '../payouts/-components'
@@ -443,19 +444,10 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
             {/* 2FA Code Input Card */}
             {method ? (
               <div className="p-4 bg-vellum/40 border border-graphite-hairline rounded-2xl space-y-3">
-                <label className="block text-xs font-semibold text-ink">
-                  {method === 'email' ? 'Enter 2FA Code from Email *' : 'Enter 2FA Code from Authenticator App *'}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    className="input tracking-widest text-center text-lg font-mono font-bold w-48"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                    autoFocus
-                  />
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <label className="block text-xs font-semibold text-ink">
+                    {method === 'email' ? 'Enter 2FA Code from Email *' : 'Enter 2FA Code from Authenticator App *'}
+                  </label>
                   {method === 'email' && (
                     <button
                       type="button"
@@ -473,6 +465,14 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
                       )}
                     </button>
                   )}
+                </div>
+                <div className="pt-1 flex justify-start">
+                  <PinInput
+                    value={code}
+                    onChange={(val) => setCode(val)}
+                    length={6}
+                    autoFocus
+                  />
                 </div>
               </div>
             ) : (
