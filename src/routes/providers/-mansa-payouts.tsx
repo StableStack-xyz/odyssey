@@ -92,13 +92,27 @@ function ApproveModal({
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-graphite-hairline/50">
-              <span className="text-slate font-medium">Source Amount (Debit)</span>
-              <span className="text-ink font-mono font-medium">{money(payout.source_amount, 'USDT')}</span>
-            </div>
+            {/* Net Payout (USDT) before platform fee */}
+            {Number(payout.source_amount) > 0 && Number(payout.beneficiary_amount) > 0 && (
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-graphite-hairline/50">
+                <span className="text-slate font-medium">Payout Net (USDT)</span>
+                <span className="text-ink font-mono font-medium">
+                  {money(String((Number(payout.source_amount) - Number(payout.platform_fee || 0)).toFixed(3)), 'USDT')}
+                  {Math.abs(Number(payout.source_amount) - Number(payout.platform_fee || 0) - Number(payout.beneficiary_amount)) > 0.01 && (
+                    <span className="text-[10px] text-slate ml-1 font-normal">
+                      (@ {((Number(payout.source_amount) - Number(payout.platform_fee || 0)) / Number(payout.beneficiary_amount)).toFixed(4)} USDT/USD)
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-2">
               <span className="text-slate font-medium">Platform Fee</span>
               <span className="text-ink font-mono font-medium">{money(payout.platform_fee, 'USDT')}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-graphite-hairline/50 font-semibold">
+              <span className="text-ink">Total Source Debit</span>
+              <span className="text-ink font-mono text-sm">{money(payout.source_amount, 'USDT')}</span>
             </div>
           </div>
         </div>
