@@ -90,7 +90,8 @@ export function DataTable<T>({
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-graphite-hairline bg-vellum">
-              {columns.map((column) => {
+              {columns.map((column, index) => {
+                const isLast = index === columns.length - 1;
                 const widthPx = columnWidths[column.key] || column.width;
                 const colStyle = widthPx
                   ? { width: `${widthPx}px`, minWidth: `${widthPx}px`, maxWidth: `${widthPx}px` }
@@ -100,7 +101,9 @@ export function DataTable<T>({
                   <th
                     key={column.key}
                     style={colStyle}
-                    className={`relative group px-4 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider border-r border-graphite-hairline last:border-r-0 ${
+                    className={`relative group px-4 py-3 text-left text-xs font-normal text-slate uppercase tracking-wider ${
+                      isLast ? 'border-r-0' : 'border-r border-graphite-hairline'
+                    } ${
                       column.sortable ? 'cursor-pointer select-none hover:text-ink' : ''
                     } ${column.className || ''}`}
                     onClick={() => column.sortable && onSort?.(column.key)}
@@ -109,15 +112,17 @@ export function DataTable<T>({
                       <span className="truncate">{column.header}</span>
                       {renderSortIcon(column)}
                     </div>
-                    {/* Drag-to-Resize Column Handle */}
-                    <div
-                      onMouseDown={(e) => handleMouseDown(column.key, e)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-0 bottom-0 w-3 -mr-1.5 cursor-col-resize flex items-center justify-center group/resizer z-10"
-                      title="Drag to resize column width"
-                    >
-                      <div className="w-[2px] h-4 bg-slate/30 group-hover/resizer:bg-brand group-hover/resizer:h-full group-hover/resizer:w-[3px] transition-all rounded-full" />
-                    </div>
+                    {/* Drag-to-Resize Column Handle (hidden on last column) */}
+                    {!isLast && (
+                      <div
+                        onMouseDown={(e) => handleMouseDown(column.key, e)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-0 bottom-0 w-3 -mr-1.5 cursor-col-resize flex items-center justify-center group/resizer z-10"
+                        title="Drag to resize column width"
+                      >
+                        <div className="w-[2px] h-4 bg-slate/30 group-hover/resizer:bg-brand group-hover/resizer:h-full group-hover/resizer:w-[3px] transition-all rounded-full" />
+                      </div>
+                    )}
                   </th>
                 );
               })}
@@ -145,7 +150,8 @@ export function DataTable<T>({
                   onClick={() => onRowClick?.(row)}
                   className={`transition-colors hover:bg-vellum ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
-                  {columns.map((column) => {
+                  {columns.map((column, colIdx) => {
+                    const isLast = colIdx === columns.length - 1;
                     const widthPx = columnWidths[column.key] || column.width;
                     const colStyle = widthPx
                       ? { width: `${widthPx}px`, minWidth: `${widthPx}px`, maxWidth: `${widthPx}px` }
@@ -155,7 +161,9 @@ export function DataTable<T>({
                       <td
                         key={column.key}
                         style={colStyle}
-                        className={`px-4 py-4 text-sm text-ink truncate border-r border-graphite-hairline/40 last:border-r-0 ${column.className || ''}`}
+                        className={`px-4 py-4 text-sm text-ink truncate ${
+                          isLast ? 'border-r-0' : 'border-r border-graphite-hairline/40'
+                        } ${column.className || ''}`}
                       >
                         {column.render
                           ? column.render(row, index)
