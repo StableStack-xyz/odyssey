@@ -68,7 +68,7 @@ function WalletDetailPage() {
   })
 
   const wallet: WalletDetail = data?.data || data
-  const userId = wallet?.user_id
+  const userId = wallet?.user_id || (wallet as any)?.userId || (wallet as any)?.merchant_id || (wallet as any)?.merchantId || (wallet as any)?.owner_id || (wallet as any)?.ownerId
 
   // Fetch owner profile if not populated in wallet detail response
   const { data: fetchedUser, isLoading: loadingUser } = useQuery({
@@ -258,13 +258,13 @@ function WalletDetailPage() {
                       {owner.businessName || `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || 'System User'}
                     </p>
                     <p className="text-xs text-slate">
-                      {owner.email || wallet.user_id}
+                      {owner.email || userId}
                     </p>
                   </div>
                 </div>
-                {wallet.user_id && (
+                {userId && (
                   <button
-                    onClick={() => navigate({ to: `/users/$userId`, params: { userId: wallet.user_id } })}
+                    onClick={() => navigate({ to: `/users/$userId`, params: { userId } })}
                     className="w-full mt-4 py-2.5 px-4 bg-vellum hover:bg-slate/10 text-xs font-normal text-ink rounded-full border border-graphite-hairline transition-colors cursor-pointer"
                   >
                     View User Profile
