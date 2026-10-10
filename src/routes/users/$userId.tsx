@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
-import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, ExternalLink, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw } from 'lucide-react'
 import { authApi, walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { APP_NAME } from '../../lib/constants'
+import { getExplorerUrl } from '../../lib/explorer'
 
 export const Route = createFileRoute('/users/$userId')({
   beforeLoad: () => {
@@ -1240,12 +1241,26 @@ function UserDetailPage() {
                                 {addr.address}
                               </p>
                             </div>
-                            <button
-                              onClick={() => copyAddress(addr.address)}
-                              className="p-1.5 hover:bg-vellum rounded-lg text-slate hover:text-ink transition-colors cursor-pointer flex-shrink-0"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => copyAddress(addr.address)}
+                                className="p-1.5 hover:bg-vellum rounded-lg text-slate hover:text-ink transition-colors cursor-pointer"
+                                title="Copy address"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              {addr.network && getExplorerUrl({ network: addr.network, address: addr.address }) && (
+                                <a
+                                  href={getExplorerUrl({ network: addr.network, address: addr.address })!}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 hover:bg-vellum rounded-lg text-slate hover:text-ink transition-colors cursor-pointer"
+                                  title="View on Explorer"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
