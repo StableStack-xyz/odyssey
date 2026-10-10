@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Check, Loader2, Plus, ShieldCheck, X } from 'lucide-react'
+import { Check, Loader2, Plus, RefreshCw, ShieldCheck, X } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
@@ -9,6 +9,7 @@ import { PinInput } from '../../components/ui/PinInput'
 import { walletApi } from '../../lib/api'
 import type { Pagination } from './-mansa-types'
 import { errorMessage } from './-mansa-types'
+import { capitalizeWords } from './-mansa-kyb-types'
 import { NewPayoutModal } from './-mansa-new-payout'
 
 interface PendingPayout {
@@ -63,21 +64,42 @@ function ApproveModal({
   return (
     <Modal isOpen onClose={onClose} title="Approve USD payout" size="md">
       <div className="space-y-4">
-        <div className="p-3.5 bg-vellum/40 border border-graphite-hairline rounded-xl space-y-2 text-xs">
-          <div className="flex justify-between items-center pb-2 border-b border-graphite-hairline">
-            <span className="font-semibold text-ink">{payout.merchant_name || payout.merchant_email}</span>
-            <span className="text-slate font-medium">{money(payout.beneficiary_amount, 'USD')}</span>
+        <div className="p-4 bg-vellum/50 border border-graphite-hairline rounded-2xl space-y-3.5 shadow-sm">
+          <div className="flex justify-between items-start pb-3 border-b border-graphite-hairline gap-3">
+            <div>
+              <p className="font-semibold text-sm text-ink capitalize">
+                {capitalizeWords(payout.merchant_name) || payout.merchant_email || 'Unnamed Merchant'}
+              </p>
+              {payout.merchant_email && payout.merchant_name && (
+                <p className="text-xs text-slate">{payout.merchant_email}</p>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-sm font-bold font-mono text-ink bg-paper border border-graphite-hairline px-2.5 py-1 rounded-xl shadow-xs">
+                {money(payout.beneficiary_amount, 'USD')}
+              </span>
+            </div>
           </div>
-          <div className="space-y-1 text-slate">
-            <p>
-              <strong className="text-ink">Beneficiary:</strong> {payout.withdrawal_recipient_name || '-'} ({payout.bank_name || '-'} {payout.bank_account || ''})
-            </p>
-            <p>
-              <strong className="text-ink">Source Amount:</strong> {money(payout.source_amount, 'USDT')} sent from merchant wallet
-            </p>
-            <p>
-              <strong className="text-ink">Platform Fee:</strong> {money(payout.platform_fee, 'USDT')}
-            </p>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-slate font-medium shrink-0">Beneficiary</span>
+              <div className="text-right">
+                <span className="text-ink font-semibold">{payout.withdrawal_recipient_name || '-'}</span>
+                {(payout.bank_name || payout.bank_account) && (
+                  <p className="text-[11px] text-slate font-normal">
+                    {payout.bank_name || '-'} {payout.bank_account ? `(${payout.bank_account})` : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-graphite-hairline/50">
+              <span className="text-slate font-medium">Source Amount (Debit)</span>
+              <span className="text-ink font-mono font-medium">{money(payout.source_amount, 'USDT')}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate font-medium">Platform Fee</span>
+              <span className="text-ink font-mono font-medium">{money(payout.platform_fee, 'USDT')}</span>
+            </div>
           </div>
         </div>
 
@@ -209,7 +231,7 @@ export function MansaPayouts() {
   const [creating, setCreating] = useState(false)
   const limit = 20
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-mansa-payouts', page],
     placeholderData: keepPreviousData,
     refetchInterval: 30000,
@@ -227,7 +249,7 @@ export function MansaPayouts() {
       header: 'Merchant',
       render: (row) => (
         <div>
-          <p className="text-sm font-medium text-ink">{row.merchant_name || 'Unnamed merchant'}</p>
+          <p className="text-sm font-medium text-ink capitalize">{capitalizeWords(row.merchant_name) || 'Unnamed merchant'}</p>
           <p className="text-xs text-slate">{row.merchant_email}</p>
         </div>
       ),
@@ -284,9 +306,20 @@ export function MansaPayouts() {
             USD payouts are quoted by Mansa, then wait here. USDT only leaves the merchant wallet after an admin approves with 2FA.
           </p>
         </div>
-        <button onClick={() => setCreating(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0">
-          <Plus className="w-4 h-4 shrink-0" /> New payout
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn-secondary cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+            title="Refresh payout approvals"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button onClick={() => setCreating(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2 whitespace-nowrap shrink-0">
+            <Plus className="w-4 h-4 shrink-0" /> New payout
+          </button>
+        </div>
       </div>
       <DataTable
         columns={columns}
