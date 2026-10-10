@@ -255,7 +255,10 @@ export function MansaPayouts() {
     },
   })
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-mansa-payouts'] })
+  const refresh = () => {
+    refetch()
+    queryClient.invalidateQueries({ queryKey: ['admin-mansa-payouts'] })
+  }
 
   const columns: Column<PendingPayout>[] = [
     {
