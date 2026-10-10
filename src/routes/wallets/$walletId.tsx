@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { ArrowLeft, Copy, ExternalLink, Wallet } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, RefreshCw, Wallet } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -59,7 +59,7 @@ function WalletDetailPage() {
   const { walletId } = useParams({ from: '/wallets/$walletId' })
   const navigate = useNavigate()
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['wallet', walletId],
     queryFn: async () => {
       const response = await walletApi.get(`/api/admin/wallets/${walletId}`)
@@ -104,13 +104,31 @@ function WalletDetailPage() {
   return (
     <AdminLayout title="Wallet Detail">
       <div className="space-y-6">
-        <button
-          onClick={() => navigate({ to: '/wallets' })}
-          className="flex items-center gap-2 text-xs text-slate hover:text-ink transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Wallets
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate({ to: '/wallets' })}
+            className="flex items-center gap-2 text-xs text-slate hover:text-ink transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Wallets
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await refetch()
+                toast.success('Wallet details refreshed')
+              } catch {
+                toast.error('Failed to refresh wallet details')
+              }
+            }}
+            disabled={isFetching}
+            className="px-3 py-1.5 bg-vellum hover:bg-vellum/80 border border-graphite-hairline rounded-xl text-xs font-medium text-ink flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+            title="Refresh Wallet Details"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
 
         {/* Wallet header */}
         <div className="bg-vellum border border-graphite-hairline rounded-2xl p-6 shadow-xl-3">
