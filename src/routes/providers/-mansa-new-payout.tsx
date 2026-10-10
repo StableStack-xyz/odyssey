@@ -316,10 +316,13 @@ export function NewPayoutModal({ method, onClose, onDone }: { method: TwoFactorM
                   <div className="space-y-2 pt-2 border-t border-graphite-hairline">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold uppercase tracking-wider">
                       <ArrowDownLeft className="w-3.5 h-3.5" />
-                      They Receive
+                      They Receive (at most)
                     </div>
                     <p className="text-3xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                       ${preview.fees.recipientGets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    </p>
+                    <p className="text-[11px] text-slate">
+                      Mansa's wire fee comes out of the amount entered, so the beneficiary gets less. The exact figure is shown when the payout awaits approval.
                     </p>
                     <div className="flex items-center justify-center gap-4 text-xs text-slate pt-1">
                       <span>Platform Fee: <strong className="text-ink font-mono">{preview.fees.platformRevenue.toLocaleString()} USDT</strong></span>
