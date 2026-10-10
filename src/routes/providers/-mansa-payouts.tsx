@@ -5,6 +5,7 @@ import { Check, Loader2, Plus, ShieldCheck, X } from 'lucide-react'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { Modal } from '../../components/ui/Modal'
+import { PinInput } from '../../components/ui/PinInput'
 import { walletApi } from '../../lib/api'
 import type { Pagination } from './-mansa-types'
 import { errorMessage } from './-mansa-types'
@@ -81,23 +82,14 @@ function ApproveModal({
         </div>
 
         {method ? (
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate">
-              {method === 'email' ? '2FA Code from Email *' : '2FA Code from Authenticator App *'}
-            </label>
-            <div className="flex gap-2">
-              <input
-                className="input w-40 tracking-widest text-center text-sm"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="123456"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                autoFocus
-              />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <label className="block text-xs font-semibold text-ink">
+                {method === 'email' ? '2FA Code from Email *' : '2FA Code from Authenticator App *'}
+              </label>
               {method === 'email' && (
                 <button
-                  className="btn-secondary cursor-pointer inline-flex items-center gap-1.5"
+                  className="btn-secondary cursor-pointer inline-flex items-center gap-1.5 text-xs px-3 py-1.5"
                   disabled={sendCode.isPending}
                   onClick={() => sendCode.mutate()}
                 >
@@ -107,10 +99,18 @@ function ApproveModal({
                       Sending...
                     </>
                   ) : (
-                    'Send code'
+                    'Send code to email'
                   )}
                 </button>
               )}
+            </div>
+            <div className="pt-1 flex justify-start">
+              <PinInput
+                value={code}
+                onChange={(val) => setCode(val)}
+                length={6}
+                autoFocus
+              />
             </div>
           </div>
         ) : (
