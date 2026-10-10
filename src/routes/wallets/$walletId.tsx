@@ -2,8 +2,8 @@ import { createFileRoute, redirect, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { ArrowLeft, Copy, ExternalLink, RefreshCw, Wallet } from 'lucide-react'
-import { walletApi } from '../../lib/api'
+import { ArrowLeft, Copy, ExternalLink, Loader2, RefreshCw, Wallet } from 'lucide-react'
+import { walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
@@ -68,6 +68,32 @@ function WalletDetailPage() {
   })
 
   const wallet: WalletDetail = data?.data || data
+  const userId = wallet?.user_id
+
+  // Fetch owner profile if not populated in wallet detail response
+  const { data: fetchedUser, isLoading: loadingUser } = useQuery({
+    queryKey: ['wallet-owner-user', userId],
+    queryFn: async () => {
+      try {
+        const response = await baseApi.get(`/api/users/${userId}`)
+        const raw = response.data?.data || response.data
+        const profile = raw?.user_profile || raw?.profile || raw?.user || raw
+        const merchant = raw?.merchant_details || raw?.merchant || {}
+
+        return {
+          email: profile?.email || profile?.username || '',
+          first_name: profile?.first_name || '',
+          last_name: profile?.last_name || '',
+          businessName: merchant?.business_name || profile?.business_name || null,
+        }
+      } catch {
+        return null
+      }
+    },
+    enabled: !!userId && !wallet?.user,
+  })
+
+  const owner = wallet?.user || fetchedUser
 
   const copyToClipboard = (text: string, label: string) => {
     if (!text) return
@@ -214,20 +240,25 @@ function WalletDetailPage() {
             <h3 className="font-display text-lg text-ink mb-4">
               Owner
             </h3>
-            {wallet.user ? (
+            {loadingUser ? (
+              <div className="flex items-center gap-3 py-4">
+                <Loader2 className="w-5 h-5 text-slate animate-spin" />
+                <span className="text-sm text-slate">Loading owner details...</span>
+              </div>
+            ) : owner ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-vellum border border-graphite-hairline rounded-xl flex items-center justify-center">
                     <span className="text-sm font-bold text-ink uppercase">
-                      {wallet.user.first_name?.[0] || 'S'}{wallet.user.last_name?.[0] || 'S'}
+                      {owner.first_name?.[0] || owner.businessName?.[0] || 'U'}{owner.last_name?.[0] || ''}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-ink capitalize">
-                      {wallet.user.businessName || `${wallet.user.first_name || ''} ${wallet.user.last_name || ''}`.trim() || 'System'}
+                      {owner.businessName || `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || 'System User'}
                     </p>
                     <p className="text-xs text-slate">
-                      {wallet.user.email}
+                      {owner.email || wallet.user_id}
                     </p>
                   </div>
                 </div>
