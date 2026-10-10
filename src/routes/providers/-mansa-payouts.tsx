@@ -19,6 +19,7 @@ interface PendingPayout {
   source_amount: string | null
   beneficiary_amount: string | null
   platform_fee: string | null
+  wire_fee: string | null
   withdrawal_recipient_name: string | null
   bank_name: string | null
   bank_account: string | null
@@ -110,6 +111,12 @@ function ApproveModal({
               <span className="text-slate font-medium">Platform Fee</span>
               <span className="text-ink font-mono font-medium">{money(payout.platform_fee, 'USDT')}</span>
             </div>
+            {Number(payout.wire_fee) > 0 && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate font-medium">Mansa wire fee (in the debit)</span>
+                <span className="text-ink font-mono font-medium">{money(payout.wire_fee, 'USD')}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-2 pt-1 border-t border-graphite-hairline/50 font-semibold">
               <span className="text-ink">Total Source Debit</span>
               <span className="text-ink font-mono text-sm">{money(payout.source_amount, 'USDT')}</span>
