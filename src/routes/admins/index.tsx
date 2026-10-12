@@ -20,6 +20,8 @@ import {
   Check,
   RefreshCw,
   SlidersHorizontal,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { format } from 'date-fns';
@@ -76,6 +78,7 @@ function AdminsPage() {
   const [statusTargetAdmin, setStatusTargetAdmin] = useState<AdminListItem | null>(null);
 
   // Form states for Add Admin
+  const [showAddPassword, setShowAddPassword] = useState(false);
   const [addForm, setAddForm] = useState({
     firstName: '',
     lastName: '',
@@ -84,6 +87,31 @@ function AdminsPage() {
     adminRole: 'custom_admin' as AdminRole,
     permissions: {} as AdminPermissions,
   });
+
+  // Cryptographically secure password generator
+  const generatePassword = () => {
+    const length = 14;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
+    let password = '';
+
+    // Guarantee complexity criteria to pass backend validation
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+    password += '0123456789'[Math.floor(Math.random() * 10)];
+    password += '!@#$%^&*()_+'[Math.floor(Math.random() * 12)];
+
+    for (let i = password.length; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+
+    // Shuffle
+    const shuffled = password.split('').sort(() => 0.5 - Math.random()).join('');
+
+    setAddForm((prev) => ({ ...prev, password: shuffled }));
+    setShowAddPassword(true);
+    navigator.clipboard.writeText(shuffled);
+    toast.success('Strong password generated and copied to clipboard');
+  };
 
   // Form states for Edit Admin Permissions
   const [editRole, setEditRole] = useState<AdminRole>('custom_admin');
@@ -108,6 +136,7 @@ function AdminsPage() {
     onSuccess: () => {
       toast.success('Admin invited successfully');
       setIsAddModalOpen(false);
+      setShowAddPassword(false);
       setAddForm({
         firstName: '',
         lastName: '',
@@ -488,7 +517,10 @@ function AdminsPage() {
       {/* ============================================================ */}
       <Modal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setShowAddPassword(false);
+        }}
         title="Invite New Administrator"
         size="full"
         noPadding
@@ -572,14 +604,34 @@ function AdminsPage() {
                     <label className="block text-xs font-medium text-ink mb-1">
                       Temporary Password <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      required
-                      value={addForm.password}
-                      onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                      placeholder="At least 8 chars with letter, number, symbol"
-                      className="input bg-paper"
-                    />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
+                      <input
+                        type={showAddPassword ? 'text' : 'password'}
+                        required
+                        value={addForm.password}
+                        onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                        placeholder="At least 8 chars with letter, number, symbol"
+                        className="input bg-paper !pl-10 !pr-32 font-mono"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddPassword(!showAddPassword)}
+                          className="p-1 text-ash hover:text-slate transition-colors cursor-pointer"
+                          title={showAddPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={generatePassword}
+                          className="px-2.5 py-1 text-[11px] font-normal tracking-wide text-ink bg-vellum hover:bg-slate/10 border border-graphite-hairline rounded-full transition-colors cursor-pointer uppercase"
+                        >
+                          Generate
+                        </button>
+                      </div>
+                    </div>
                     <p className="text-[11px] text-slate mt-1">
                       Must contain at least 8 characters, a letter, number, and special character.
                     </p>
