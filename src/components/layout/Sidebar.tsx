@@ -19,25 +19,36 @@ import {
   ChevronRight,
   Building2,
   Landmark,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
+import type { ResourceModule } from '../../types/permissions';
 import { useState } from 'react';
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Users, label: 'Users', path: '/users' },
-  { icon: Wallet, label: 'Wallets', path: '/wallets' },
-  { icon: Gauge, label: 'Wallet Capacity', path: '/wallet-capacity' },
-  { icon: Landmark, label: 'Providers', path: '/providers' },
-  { icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' },
-  { icon: CreditCard, label: 'Beneficiaries', path: '/payouts' },
-  { icon: Building2, label: 'OTC', path: '/otc' },
-  { icon: Coins, label: 'Assets', path: '/assets' },
-  { icon: Settings, label: 'Fees', path: '/fees' },
-  { icon: Globe, label: 'Countries', path: '/countries' },
-  { icon: FileText, label: 'Reports', path: '/reports' },
-  { icon: Webhook, label: 'Webhooks', path: '/webhooks' },
-  { icon: Activity, label: 'Activity', path: '/activity' },
+interface MenuItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  path: string;
+  resource: ResourceModule;
+}
+
+const menuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/', resource: 'dashboard' },
+  { icon: Users, label: 'Users', path: '/users', resource: 'users' },
+  { icon: Wallet, label: 'Wallets', path: '/wallets', resource: 'wallets' },
+  { icon: Gauge, label: 'Wallet Capacity', path: '/wallet-capacity', resource: 'wallet_capacity' },
+  { icon: Landmark, label: 'Providers', path: '/providers', resource: 'providers' },
+  { icon: ArrowLeftRight, label: 'Transactions', path: '/transactions', resource: 'transactions' },
+  { icon: CreditCard, label: 'Beneficiaries', path: '/payouts', resource: 'payouts' },
+  { icon: Building2, label: 'OTC', path: '/otc', resource: 'otc' },
+  { icon: Coins, label: 'Assets', path: '/assets', resource: 'assets' },
+  { icon: Settings, label: 'Fees', path: '/fees', resource: 'fees' },
+  { icon: Globe, label: 'Countries', path: '/countries', resource: 'countries' },
+  { icon: FileText, label: 'Reports', path: '/reports', resource: 'reports' },
+  { icon: Webhook, label: 'Webhooks', path: '/webhooks', resource: 'webhooks' },
+  { icon: Activity, label: 'Activity', path: '/activity', resource: 'activity' },
+  { icon: ShieldCheck, label: 'Admins', path: '/admins', resource: 'admins' },
 ];
 
 interface SidebarProps {
@@ -48,7 +59,10 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { canRead, isFullAccess } = usePermissions();
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const visibleMenuItems = menuItems.filter((item) => canRead(item.resource));
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -88,7 +102,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         <ul className="space-y-1">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
@@ -118,7 +132,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         <div className="relative w-full flex justify-center">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+            title={isCollapsed ? `${user?.firstName} ${user?.lastName} (${isFullAccess ? 'Full Access' : 'Selected Access'})` : undefined}
             className={`flex items-center rounded-lg hover:bg-vellum transition-all ${
               isCollapsed ? 'p-1.5 justify-center' : 'w-full gap-3 p-2'
             }`}
@@ -132,9 +146,20 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
             {!isCollapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm text-ink font-medium truncate">
-                    {user?.firstName} {user?.lastName}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-ink font-medium truncate">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${
+                        isFullAccess
+                          ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20'
+                          : 'bg-vellum text-slate border border-graphite-hairline'
+                      }`}
+                    >
+                      {isFullAccess ? 'Full' : 'Selected'}
+                    </span>
+                  </div>
                   <p className="text-xs text-slate truncate">
                     {user?.email}
                   </p>
@@ -156,6 +181,16 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                 <User className="w-4 h-4 text-ash" />
                 My Profile
               </Link>
+              {isFullAccess && (
+                <Link
+                  to="/admins"
+                  onClick={() => setShowUserMenu(false)}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-vellum transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4 text-ash" />
+                  Admin Roles
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-vellum border-t border-graphite-hairline transition-colors cursor-pointer"
