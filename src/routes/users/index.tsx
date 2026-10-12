@@ -319,6 +319,84 @@ function UsersPage() {
     })
   }
 
+  const [exportingUserId, setExportingUserId] = useState<string | null>(null)
+
+  const exportSingleUserRow = async (u: User) => {
+    if (exportingUserId) return
+    setExportingUserId(u.id)
+    const toastId = toast.loading(`Preparing export for ${u.businessName || u.first_name || u.email}...`)
+
+    try {
+      let detailData: any = u
+      try {
+        const res = await baseApi.get(`/api/users/${u.id}`)
+        if (res.data?.data) {
+          detailData = res.data.data
+        }
+      } catch {
+        // Fallback to table row data
+      }
+
+      const profile = detailData.user_profile || detailData
+      const merchant = detailData.merchant_details || {}
+
+      const escapeCsv = (val: unknown): string => {
+        if (val === null || val === undefined) return '""'
+        let str = String(val)
+        if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`
+        return `"${str.replace(/"/g, '""')}"`
+      }
+
+      const formatDateSafe = (dateStr?: string | null): string => {
+        if (!dateStr) return ''
+        try {
+          const d = new Date(dateStr)
+          return isNaN(d.getTime()) ? dateStr : format(d, 'yyyy-MM-dd HH:mm:ss')
+        } catch {
+          return dateStr
+        }
+      }
+
+      const rows = [
+        ['Field', 'Value'],
+        ['User ID', profile.id || u.id],
+        ['Business Name', u.businessName || merchant.business_name || profile.business_name || ''],
+        ['First Name', profile.first_name || u.first_name || ''],
+        ['Last Name', profile.last_name || u.last_name || ''],
+        ['Email', profile.email || u.email || ''],
+        ['Role', profile.role || u.role || ''],
+        ['Compliance Status', profile.compliance_status || u.complianceStatus || ''],
+        ['Account Status', u.is_blocked ? 'Blocked' : 'Active'],
+        ['Account Verified', (u.isAccountVerified ?? profile.is_account_verified) ? 'Yes' : 'No'],
+        ['Phone', profile.phone || ''],
+        ['Country', profile.country_code || merchant.country || ''],
+        ['Date Joined', formatDateSafe(profile.created_at || u.created_at)],
+      ]
+
+      const csvContent = rows.map((r) => r.map(escapeCsv).join(',')).join('\r\n')
+      const sanitizedName = (u.businessName || u.first_name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '-')
+      const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
+      const filename = `user-details-${sanitizedName}-${timestamp}.csv`
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast.success('User details exported successfully', { id: toastId })
+    } catch {
+      toast.error('Failed to export user details', { id: toastId })
+    } finally {
+      setExportingUserId(null)
+    }
+  }
+
   const columns: Column<User>[] = [
     {
       key: 'name',
@@ -378,15 +456,33 @@ function UsersPage() {
       key: 'actions',
       header: '',
       render: (row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            navigate({ to: `/users/$userId`, params: { userId: row.id } })
-          }}
-          className="p-2 hover:bg-vellum rounded-lg transition-colors cursor-pointer"
-        >
-          <Eye className="w-4 h-4 text-ash hover:text-ink" />
-        </button>
+        <div className="flex items-center gap-1 justify-end">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              exportSingleUserRow(row)
+            }}
+            disabled={exportingUserId === row.id}
+            className="p-2 hover:bg-vellum rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            title="Export this user's details to CSV"
+          >
+            {exportingUserId === row.id ? (
+              <Loader2 className="w-4 h-4 animate-spin text-slate" />
+            ) : (
+              <Download className="w-4 h-4 text-ash hover:text-ink" />
+            )}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate({ to: `/users/$userId`, params: { userId: row.id } })
+            }}
+            className="p-2 hover:bg-vellum rounded-lg transition-colors cursor-pointer"
+            title="View user details"
+          >
+            <Eye className="w-4 h-4 text-ash hover:text-ink" />
+          </button>
+        </div>
       ),
     },
   ]
