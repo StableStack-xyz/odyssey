@@ -7,11 +7,12 @@ import type { Column } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { Wallet as WalletIcon, Eye, Copy, RefreshCw } from 'lucide-react'
+import { Wallet as WalletIcon, Eye, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { APP_NAME } from '../../lib/constants'
+import { getExplorerUrl } from '../../lib/explorer'
 
 export const Route = createFileRoute('/wallets/')({
   beforeLoad: () => {
@@ -131,9 +132,22 @@ function WalletsPage() {
                 copyAddress(firstAddr.address)
               }}
               className="p-1 hover:bg-vellum rounded text-ash hover:text-ink transition-colors cursor-pointer"
+              title="Copy address"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
+            {firstAddr.network && getExplorerUrl({ network: firstAddr.network, address: firstAddr.address }) && (
+              <a
+                href={getExplorerUrl({ network: firstAddr.network, address: firstAddr.address })!}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 hover:bg-vellum rounded text-ash hover:text-ink transition-colors cursor-pointer"
+                title="View on Explorer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
         )
       },
@@ -207,10 +221,10 @@ function WalletsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-2xl font-semibold text-ink">
               Wallets
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-slate mt-1">
               Manage all user wallets on the platform
             </p>
           </div>

@@ -21,6 +21,7 @@ import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as TransactionsIndexRouteImport } from './routes/transactions/index'
 import { Route as SlackIndexRouteImport } from './routes/slack/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as PayoutsIndexRouteImport } from './routes/payouts/index'
 import { Route as OtcIndexRouteImport } from './routes/otc/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
@@ -92,6 +93,11 @@ const SlackIndexRoute = SlackIndexRouteImport.update({
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
   id: '/reports/',
   path: '/reports/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
+  id: '/providers/',
+  path: '/providers/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PayoutsIndexRoute = PayoutsIndexRouteImport.update({
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/fees/': typeof FeesIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/slack/': typeof SlackIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/fees': typeof FeesIndexRoute
   '/otc': typeof OtcIndexRoute
   '/payouts': typeof PayoutsIndexRoute
+  '/providers': typeof ProvidersIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/slack': typeof SlackIndexRoute
   '/transactions': typeof TransactionsIndexRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/fees/': typeof FeesIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/slack/': typeof SlackIndexRoute
   '/transactions/': typeof TransactionsIndexRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/fees/'
     | '/otc/'
     | '/payouts/'
+    | '/providers/'
     | '/reports/'
     | '/slack/'
     | '/transactions/'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/otc'
     | '/payouts'
+    | '/providers'
     | '/reports'
     | '/slack'
     | '/transactions'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
     | '/fees/'
     | '/otc/'
     | '/payouts/'
+    | '/providers/'
     | '/reports/'
     | '/slack/'
     | '/transactions/'
@@ -334,6 +346,7 @@ export interface RootRouteChildren {
   FeesIndexRoute: typeof FeesIndexRoute
   OtcIndexRoute: typeof OtcIndexRoute
   PayoutsIndexRoute: typeof PayoutsIndexRoute
+  ProvidersIndexRoute: typeof ProvidersIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
   SlackIndexRoute: typeof SlackIndexRoute
   TransactionsIndexRoute: typeof TransactionsIndexRoute
@@ -427,6 +440,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports/'
       preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/providers/': {
+      id: '/providers/'
+      path: '/providers'
+      fullPath: '/providers/'
+      preLoaderRoute: typeof ProvidersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payouts/': {
@@ -534,6 +554,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeesIndexRoute: FeesIndexRoute,
   OtcIndexRoute: OtcIndexRoute,
   PayoutsIndexRoute: PayoutsIndexRoute,
+  ProvidersIndexRoute: ProvidersIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
   SlackIndexRoute: SlackIndexRoute,
   TransactionsIndexRoute: TransactionsIndexRoute,
@@ -545,3 +566,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

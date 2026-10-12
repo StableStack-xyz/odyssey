@@ -6,10 +6,11 @@ import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
-import { CreditCard, Eye, RefreshCw } from 'lucide-react'
+import { CreditCard, Eye, Plus, RefreshCw } from 'lucide-react'
 import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
+import { ALL_PROVIDERS, BeneficiaryFormModal, CURRENCIES } from './-components'
 
 export const Route = createFileRoute('/payouts/')({
   beforeLoad: () => {
@@ -81,10 +82,13 @@ function PayoutsPage() {
   const [userIdFilter, setUserIdFilter] = useState('')
   const [accountNumberFilter, setAccountNumberFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [currencyFilter, setCurrencyFilter] = useState('all')
+  const [providerFilter, setProviderFilter] = useState('all')
+  const [adding, setAdding] = useState(false)
   const limit = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-payouts', page, search, userIdFilter, accountNumberFilter, typeFilter],
+    queryKey: ['admin-payouts', page, search, userIdFilter, accountNumberFilter, typeFilter, currencyFilter, providerFilter],
     queryFn: async () => {
       const params: any = { page, limit }
       if (search) params.search = search
@@ -102,6 +106,8 @@ function PayoutsPage() {
           ...params,
           user_id: userIdFilter || undefined,
           type: typeFilter !== 'all' ? typeFilter : undefined,
+          currency: currencyFilter !== 'all' ? currencyFilter : undefined,
+          provider: providerFilter !== 'all' ? providerFilter : undefined,
         },
       })
       return response.data.data
@@ -118,8 +124,8 @@ function PayoutsPage() {
       header: 'Type',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent-100 dark:bg-dark-primary/20 rounded-lg flex items-center justify-center">
-            <CreditCard className="w-4 h-4 text-accent-600 dark:text-dark-primary" />
+          <div className="w-8 h-8 bg-vellum rounded-lg flex items-center justify-center">
+            <CreditCard className="w-4 h-4 text-ink" />
           </div>
           <span className="text-sm font-medium capitalize">{row.type}</span>
         </div>
@@ -141,17 +147,17 @@ function PayoutsPage() {
             <p className="text-sm font-medium">{row.bank_name}</p>
           )}
           {row.account_number && (
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-slate font-mono">
               ****{row.account_number.slice(-4)}
             </p>
           )}
           {row.wallet_address && (
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-slate font-mono">
               {row.wallet_address.slice(0, 10)}...{row.wallet_address.slice(-6)}
             </p>
           )}
           {row.account_name && (
-            <p className="text-xs text-gray-400">{row.account_name}</p>
+            <p className="text-xs text-ash">{row.account_name}</p>
           )}
         </div>
       ),
@@ -162,6 +168,11 @@ function PayoutsPage() {
       render: (row) => (
         <span className="text-sm uppercase font-medium">{row.currency}</span>
       ),
+    },
+    {
+      key: 'provider',
+      header: 'Provider',
+      render: (row) => <span className="text-sm">{row.provider || '—'}</span>,
     },
     {
       key: 'country',
@@ -178,7 +189,7 @@ function PayoutsPage() {
           <p className="text-sm font-medium">
             {row.user?.businessName || `${row.user?.first_name || ''} ${row.user?.last_name || ''}`.trim() || 'Unknown'}
           </p>
-          <p className="text-xs text-gray-500">{row.user?.email || row.user_id?.slice(0, 8) + '...'}</p>
+          <p className="text-xs text-slate">{row.user?.email || row.user_id?.slice(0, 8) + '...'}</p>
         </div>
       ),
     },
@@ -186,7 +197,7 @@ function PayoutsPage() {
       key: 'created_at',
       header: 'Created',
       render: (row) => (
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-slate">
           {row.created_at ? format(new Date(row.created_at), 'MMM d, yyyy') : '—'}
         </span>
       ),
@@ -213,20 +224,26 @@ function PayoutsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="font-display text-2xl font-semibold text-ink">
               Beneficiaries
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-slate mt-1">
               Manage beneficiary payout methods
             </p>
           </div>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
-            className="btn-secondary flex items-center gap-2 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setAdding(true)} className="btn-primary flex items-center gap-2 cursor-pointer">
+              <Plus className="w-4 h-4" />
+              Add beneficiary
+            </button>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
+              className="btn-secondary flex items-center gap-2 cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
@@ -266,6 +283,22 @@ function PayoutsPage() {
                   { label: 'Wallet', value: 'WALLET' },
                 ],
               },
+              {
+                key: 'currency',
+                label: 'Currency',
+                type: 'select',
+                value: currencyFilter,
+                onChange: (v) => { setCurrencyFilter(v); setPage(1) },
+                options: [{ label: 'All Currencies', value: 'all' }, ...CURRENCIES.map((c) => ({ label: c, value: c }))],
+              },
+              {
+                key: 'provider',
+                label: 'Provider',
+                type: 'select',
+                value: providerFilter,
+                onChange: (v) => { setProviderFilter(v); setPage(1) },
+                options: [{ label: 'All Providers', value: 'all' }, ...ALL_PROVIDERS.map((p) => ({ label: p, value: p }))],
+              },
             ]}
           />
         </div>
@@ -275,7 +308,7 @@ function PayoutsPage() {
           data={payouts}
           isLoading={isLoading}
           emptyMessage="No payout methods found"
-          emptyIcon={<CreditCard className="w-8 h-8 text-gray-300 dark:text-gray-600" />}
+          emptyIcon={<CreditCard className="w-8 h-8 text-ash" />}
           page={page}
           totalPages={totalPages}
           total={total}
@@ -285,6 +318,12 @@ function PayoutsPage() {
           rowKey={(row) => row.id}
         />
       </div>
+      {adding && (
+        <BeneficiaryFormModal
+          onClose={() => setAdding(false)}
+          onDone={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
+        />
+      )}
     </AdminLayout>
   )
 }

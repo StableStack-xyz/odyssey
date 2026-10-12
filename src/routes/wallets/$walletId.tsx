@@ -2,12 +2,13 @@ import { createFileRoute, redirect, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { ArrowLeft, Copy, ExternalLink, Wallet } from 'lucide-react'
-import { walletApi } from '../../lib/api'
+import { ArrowLeft, Copy, ExternalLink, Loader2, RefreshCw, Wallet } from 'lucide-react'
+import { walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { APP_NAME } from '../../lib/constants'
+import { getExplorerUrl } from '../../lib/explorer'
 
 export const Route = createFileRoute('/wallets/$walletId')({
   beforeLoad: () => {
@@ -58,7 +59,7 @@ function WalletDetailPage() {
   const { walletId } = useParams({ from: '/wallets/$walletId' })
   const navigate = useNavigate()
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['wallet', walletId],
     queryFn: async () => {
       const response = await walletApi.get(`/api/admin/wallets/${walletId}`)
@@ -67,6 +68,32 @@ function WalletDetailPage() {
   })
 
   const wallet: WalletDetail = data?.data || data
+  const userId = wallet?.user_id || (wallet as any)?.userId || (wallet as any)?.merchant_id || (wallet as any)?.merchantId || (wallet as any)?.owner_id || (wallet as any)?.ownerId
+
+  // Fetch owner profile if not populated in wallet detail response
+  const { data: fetchedUser, isLoading: loadingUser } = useQuery({
+    queryKey: ['wallet-owner-user', userId],
+    queryFn: async () => {
+      try {
+        const response = await baseApi.get(`/api/users/${userId}`)
+        const raw = response.data?.data || response.data
+        const profile = raw?.user_profile || raw?.profile || raw?.user || raw
+        const merchant = raw?.merchant_details || raw?.merchant || {}
+
+        return {
+          email: profile?.email || profile?.username || '',
+          first_name: profile?.first_name || '',
+          last_name: profile?.last_name || '',
+          businessName: merchant?.business_name || profile?.business_name || null,
+        }
+      } catch {
+        return null
+      }
+    },
+    enabled: !!userId && !wallet?.user,
+  })
+
+  const owner = wallet?.user || fetchedUser
 
   const copyToClipboard = (text: string, label: string) => {
     if (!text) return
@@ -103,13 +130,31 @@ function WalletDetailPage() {
   return (
     <AdminLayout title="Wallet Detail">
       <div className="space-y-6">
-        <button
-          onClick={() => navigate({ to: '/wallets' })}
-          className="flex items-center gap-2 text-xs text-slate hover:text-ink transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Wallets
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate({ to: '/wallets' })}
+            className="flex items-center gap-2 text-xs text-slate hover:text-ink transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Wallets
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await refetch()
+                toast.success('Wallet details refreshed')
+              } catch {
+                toast.error('Failed to refresh wallet details')
+              }
+            }}
+            disabled={isFetching}
+            className="px-3 py-1.5 bg-vellum hover:bg-vellum/80 border border-graphite-hairline rounded-xl text-xs font-medium text-ink flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+            title="Refresh Wallet Details"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
 
         {/* Wallet header */}
         <div className="bg-vellum border border-graphite-hairline rounded-2xl p-6 shadow-xl-3">
@@ -195,26 +240,31 @@ function WalletDetailPage() {
             <h3 className="font-display text-lg text-ink mb-4">
               Owner
             </h3>
-            {wallet.user ? (
+            {loadingUser ? (
+              <div className="flex items-center gap-3 py-4">
+                <Loader2 className="w-5 h-5 text-slate animate-spin" />
+                <span className="text-sm text-slate">Loading owner details...</span>
+              </div>
+            ) : owner ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-vellum border border-graphite-hairline rounded-xl flex items-center justify-center">
                     <span className="text-sm font-bold text-ink uppercase">
-                      {wallet.user.first_name?.[0] || 'S'}{wallet.user.last_name?.[0] || 'S'}
+                      {owner.first_name?.[0] || owner.businessName?.[0] || 'U'}{owner.last_name?.[0] || ''}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-ink capitalize">
-                      {wallet.user.businessName || `${wallet.user.first_name || ''} ${wallet.user.last_name || ''}`.trim() || 'System'}
+                      {owner.businessName || `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || 'System User'}
                     </p>
                     <p className="text-xs text-slate">
-                      {wallet.user.email}
+                      {owner.email || userId}
                     </p>
                   </div>
                 </div>
-                {wallet.user_id && (
+                {userId && (
                   <button
-                    onClick={() => navigate({ to: `/users/$userId`, params: { userId: wallet.user_id } })}
+                    onClick={() => navigate({ to: `/users/$userId`, params: { userId } })}
                     className="w-full mt-4 py-2.5 px-4 bg-vellum hover:bg-slate/10 text-xs font-normal text-ink rounded-full border border-graphite-hairline transition-colors cursor-pointer"
                   >
                     View User Profile
@@ -256,12 +306,13 @@ function WalletDetailPage() {
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
-                    {addr.network && (
+                    {addr.network && getExplorerUrl({ network: addr.network, address: addr.address }) && (
                       <a
-                        href={`https://${addr.network === 'polygon' ? 'polygonscan.com' : addr.network === 'bep20' ? 'bscscan.com' : 'etherscan.io'}/address/${addr.address}`}
+                        href={getExplorerUrl({ network: addr.network, address: addr.address })!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1.5 hover:bg-vellum rounded-lg text-slate hover:text-ink transition-colors cursor-pointer"
+                        title="View on Explorer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>

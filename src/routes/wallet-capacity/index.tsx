@@ -1,14 +1,16 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Gauge, Pencil } from 'lucide-react'
-import { toast } from 'sonner'
+import { useQuery } from '@tanstack/react-query'
+import { Gauge, Pencil, Plus, Settings2 } from 'lucide-react'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { DataTable } from '../../components/ui/DataTable'
 import type { Column } from '../../components/ui/DataTable'
-import { Modal } from '../../components/ui/Modal'
 import { walletApi } from '../../lib/api'
 import { APP_NAME } from '../../lib/constants'
+import { useTiers } from './-hooks'
+import { ConfigModal, MerchantPicker, TierManager } from './-components'
+import type { CapacityUsage } from './-types'
+import { STATUS_STYLES, STATUS_LABELS } from './-types'
 
 export const Route = createFileRoute('/wallet-capacity/')({
   beforeLoad: () => {
@@ -28,60 +30,14 @@ export const Route = createFileRoute('/wallet-capacity/')({
   component: WalletCapacityPage,
 })
 
-const TIERS = [
-  { value: 'TIER_100', label: '100 wallets', limit: 100 },
-  { value: 'TIER_500', label: '500 wallets', limit: 500 },
-  { value: 'TIER_1500', label: '1,500 wallets', limit: 1500 },
-  { value: 'TIER_3000', label: '3,000 wallets', limit: 3000 },
-  { value: 'ENTERPRISE', label: 'Enterprise (negotiated)', limit: null },
-] as const
-
-type CapacityStatus = 'ok' | 'approaching_limit' | 'limit_reached'
-
-interface CapacityUsage {
-  merchant_id: string
-  tier: string
-  wallet_limit: number
-  allocated: number
-  remaining: number
-  usage_percent: number
-  activated: number
-  activation_rate: number
-  activation_threshold_percent: number
-  activation_threshold_met: boolean
-  status: CapacityStatus
-  message: string | null
-}
-
-interface WalletConfig {
-  merchant_id: string
-  tier: string
-  wallet_limit: number
-  activation_threshold_percent: number
-  warning_threshold_percent: number
-  enforce_limit: boolean
-  auto_upgrade: boolean
-  notes: string | null
-}
-
-const STATUS_STYLES: Record<CapacityStatus, string> = {
-  ok: 'bg-green-500/10 text-green-700',
-  approaching_limit: 'bg-amber-500/10 text-amber-700',
-  limit_reached: 'bg-red-500/10 text-red-700',
-}
-
-const STATUS_LABELS: Record<CapacityStatus, string> = {
-  ok: 'OK',
-  approaching_limit: 'Approaching limit',
-  limit_reached: 'Limit reached',
-}
-
-const tierLabel = (tier: string) => TIERS.find((t) => t.value === tier)?.label ?? tier
-
 function WalletCapacityPage() {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
+  const [managingTiers, setManagingTiers] = useState(false)
   const limit = 20
+  const { data: tiers = [] } = useTiers()
+  const tierLabel = (code: string) => tiers.find((t) => t.code === code)?.label ?? code
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-wallet-capacity', page],
@@ -99,12 +55,22 @@ function WalletCapacityPage() {
     {
       key: 'merchant_id',
       header: 'Merchant',
-      render: (row) => <span className="font-mono text-xs text-ink">{row.merchant_id}</span>,
+      render: (row) => (
+        <div>
+          <p className="text-sm font-medium text-ink">{row.merchant_name || 'Unnamed merchant'}</p>
+          <p className="text-xs text-slate">{row.merchant_email || row.merchant_id}</p>
+        </div>
+      ),
     },
     {
       key: 'tier',
       header: 'Tier',
-      render: (row) => <span className="text-sm text-ink">{tierLabel(row.tier)}</span>,
+      render: (row) => (
+        <span className="text-sm text-ink">
+          {tierLabel(row.tier)}
+          {row.has_config === false && <span className="ml-1 text-xs text-slate">(default)</span>}
+        </span>
+      ),
     },
     {
       key: 'usage',
@@ -167,12 +133,22 @@ function WalletCapacityPage() {
   return (
     <AdminLayout title="Wallet Capacity">
       <div className="space-y-6">
-        <div>
-          <h2 className="font-display text-2xl font-semibold text-ink">Wallet Capacity</h2>
-          <p className="text-slate mt-1">
-            Crypto wallet tiers, limits and activation per merchant. Activation is the share of
-            allocated wallets that have received a deposit or taken part in a transaction.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-ink">Wallet Capacity</h2>
+            <p className="text-slate mt-1">
+              Crypto wallet tiers, limits and activation per merchant. Activation is the share of
+              allocated wallets that have received a deposit or taken part in a transaction.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => setManagingTiers(true)} className="btn-secondary cursor-pointer inline-flex items-center gap-2">
+              <Settings2 className="w-4 h-4" /> Manage tiers
+            </button>
+            <button onClick={() => setPicking(true)} className="btn-primary cursor-pointer inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Add merchant
+            </button>
+          </div>
         </div>
 
         <DataTable
@@ -191,178 +167,17 @@ function WalletCapacityPage() {
         />
       </div>
 
-      {editing && <ConfigModal merchantId={editing} onClose={() => setEditing(null)} />}
-    </AdminLayout>
-  )
-}
-
-function ConfigModal({ merchantId, onClose }: { merchantId: string; onClose: () => void }) {
-  const queryClient = useQueryClient()
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-wallet-config', merchantId],
-    queryFn: async () => {
-      const response = await walletApi.get(`/api/admin/merchants/${merchantId}/wallet-config`)
-      return response.data.data as { config: WalletConfig; usage: CapacityUsage }
-    },
-  })
-
-  return (
-    <Modal isOpen onClose={onClose} title="Merchant wallet configuration" size="lg">
-      {isLoading || !data ? (
-        <p className="text-sm text-slate">Loading...</p>
-      ) : (
-        <ConfigForm
-          key={merchantId}
-          merchantId={merchantId}
-          config={data.config}
-          usage={data.usage}
-          onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ['admin-wallet-capacity'] })
-            queryClient.invalidateQueries({ queryKey: ['admin-wallet-config', merchantId] })
-            onClose()
+      {editing && <ConfigModal merchantId={editing} tiers={tiers} onClose={() => setEditing(null)} />}
+      {picking && (
+        <MerchantPicker
+          onPick={(id) => {
+            setPicking(false)
+            setEditing(id)
           }}
+          onClose={() => setPicking(false)}
         />
       )}
-    </Modal>
-  )
-}
-
-function ConfigForm({
-  merchantId,
-  config,
-  usage,
-  onSaved,
-}: {
-  merchantId: string
-  config: WalletConfig
-  usage: CapacityUsage
-  onSaved: () => void
-}) {
-  const [tier, setTier] = useState(config.tier)
-  const [walletLimit, setWalletLimit] = useState(String(config.wallet_limit))
-  const [activation, setActivation] = useState(String(config.activation_threshold_percent))
-  const [warning, setWarning] = useState(String(config.warning_threshold_percent))
-  const [enforce, setEnforce] = useState(config.enforce_limit)
-  const [autoUpgrade, setAutoUpgrade] = useState(config.auto_upgrade)
-  const [notes, setNotes] = useState(config.notes ?? '')
-
-  const onTierChange = (value: string) => {
-    setTier(value)
-    const preset = TIERS.find((t) => t.value === value)
-    if (preset?.limit) setWalletLimit(String(preset.limit))
-  }
-
-  const mutation = useMutation({
-    mutationFn: async () =>
-      walletApi.put(`/api/admin/merchants/${merchantId}/wallet-config`, {
-        tier,
-        wallet_limit: Number(walletLimit),
-        activation_threshold_percent: Number(activation),
-        warning_threshold_percent: Number(warning),
-        enforce_limit: enforce,
-        auto_upgrade: autoUpgrade,
-        notes: notes || null,
-      }),
-    onSuccess: () => {
-      toast.success('Wallet configuration updated')
-      onSaved()
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Failed to update configuration')
-    },
-  })
-
-  return (
-    <form
-      className="space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        mutation.mutate()
-      }}
-    >
-      <div className="rounded-xl bg-vellum border border-graphite-hairline p-3 text-xs text-slate space-y-1">
-        <p className="font-mono text-ink break-all">{merchantId}</p>
-        <p>
-          {usage.allocated} of {usage.wallet_limit} wallets allocated · {usage.activated} activated (
-          {usage.activation_rate}%)
-        </p>
-      </div>
-
-      <label className="block text-sm text-ink">
-        Tier
-        <select className="input mt-1 w-full" value={tier} onChange={(e) => onTierChange(e.target.value)}>
-          {TIERS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <div className="grid grid-cols-3 gap-3">
-        <label className="block text-sm text-ink">
-          Wallet limit
-          <input
-            type="number"
-            min={1}
-            required
-            className="input mt-1 w-full"
-            value={walletLimit}
-            onChange={(e) => setWalletLimit(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm text-ink">
-          Activation target %
-          <input
-            type="number"
-            min={1}
-            max={100}
-            required
-            className="input mt-1 w-full"
-            value={activation}
-            onChange={(e) => setActivation(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm text-ink">
-          Warn at usage %
-          <input
-            type="number"
-            min={1}
-            max={100}
-            required
-            className="input mt-1 w-full"
-            value={warning}
-            onChange={(e) => setWarning(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm text-ink">
-        <input type="checkbox" checked={enforce} onChange={(e) => setEnforce(e.target.checked)} />
-        Enforce limit (block new wallets at capacity)
-      </label>
-      <label className="flex items-center gap-2 text-sm text-ink">
-        <input type="checkbox" checked={autoUpgrade} onChange={(e) => setAutoUpgrade(e.target.checked)} />
-        Auto-unlock next tier when activation target is met at the limit
-      </label>
-
-      <label className="block text-sm text-ink">
-        Internal notes
-        <textarea
-          className="input mt-1 w-full"
-          rows={3}
-          maxLength={1000}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </label>
-
-      <div className="flex justify-end">
-        <button type="submit" disabled={mutation.isPending} className="btn-primary cursor-pointer disabled:opacity-50">
-          {mutation.isPending ? 'Saving...' : 'Save changes'}
-        </button>
-      </div>
-    </form>
+      {managingTiers && <TierManager onClose={() => setManagingTiers(false)} />}
+    </AdminLayout>
   )
 }
