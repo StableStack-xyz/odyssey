@@ -357,23 +357,261 @@ function UsersPage() {
         }
       }
 
-      const rows = [
-        ['Field', 'Value'],
+      const documents = detailData.userDocuments || []
+
+      const sections: string[] = []
+
+      // Section 1: Overview
+      sections.push('--- USER OVERVIEW ---')
+      sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+      const overviewFields: [string, string][] = [
         ['User ID', profile.id || u.id],
         ['Business Name', u.businessName || merchant.business_name || profile.business_name || ''],
         ['First Name', profile.first_name || u.first_name || ''],
         ['Last Name', profile.last_name || u.last_name || ''],
+        ['Username', profile.username || ''],
+        ['Slug', profile.slug || ''],
         ['Email', profile.email || u.email || ''],
-        ['Role', profile.role || u.role || ''],
-        ['Compliance Status', profile.compliance_status || u.complianceStatus || ''],
-        ['Account Status', u.is_blocked ? 'Blocked' : 'Active'],
-        ['Account Verified', (u.isAccountVerified ?? profile.is_account_verified) ? 'Yes' : 'No'],
+        ['Email Verified', profile.is_email_verified ? 'Yes' : 'No'],
         ['Phone', profile.phone || ''],
+        ['Phone Verified', profile.is_phone_verified ? 'Yes' : 'No'],
+        ['Role', profile.role || u.role || ''],
+        ['Account Status', profile.status || (u.is_blocked || profile.is_blocked ? 'Blocked' : 'Active')],
+        ['Is Active', profile.is_active ? 'Yes' : 'No'],
+        ['Is Admin', profile.is_admin ? 'Yes' : 'No'],
+        ['Is Blocked', (u.is_blocked || profile.is_blocked) ? 'Yes' : 'No'],
+        ['Compliance Status', profile.compliance_status || u.complianceStatus || ''],
+        ['Account Verified', (u.isAccountVerified ?? profile.is_account_verified) ? 'Yes' : 'No'],
         ['Country', profile.country_code || merchant.country || ''],
+        ['Currency', profile.currency || merchant.currency || ''],
+        ['Birth Date', profile.birth_date || ''],
         ['Date Joined', formatDateSafe(profile.created_at || u.created_at)],
+        ['Last Login', formatDateSafe(profile.last_login_at)],
+        ['Tax Identification Number', profile.tax_identification_number || ''],
+        ['Tax Verified', profile.is_tax_verified ? 'Yes' : 'No'],
+        ['Quidax ID', profile.quidax_user_id || ''],
+        ['Onboarding Reference', profile.onboarding_reference || ''],
       ]
+      for (const [f, v] of overviewFields) {
+        sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+      }
 
-      const csvContent = rows.map((r) => r.map(escapeCsv).join(',')).join('\r\n')
+      // Section 2: Merchant Details
+      if (merchant && Object.keys(merchant).length > 0) {
+        sections.push('')
+        sections.push('--- MERCHANT DETAILS ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const regAddr = merchant.addresses?.registered_address
+        const mailAddr = merchant.addresses?.mailing_address
+        const fullRegAddress = [regAddr?.street1, regAddr?.street2].filter(Boolean).join(', ')
+        const fullMailAddress = [mailAddr?.street1, mailAddr?.street2].filter(Boolean).join(', ')
+
+        const merchantFields: [string, string][] = [
+          ['Business Name', merchant.business_name || ''],
+          ['Registration Number', merchant.registration_number || ''],
+          ['Registration Verified', merchant.is_registration_number_verified ? 'Yes' : 'No'],
+          ['Tax Identification Number', merchant.tax_identification_number || ''],
+          ['Tax Verified', merchant.is_tax_verified ? 'Yes' : 'No'],
+          ['Business Type', merchant.business_type || ''],
+          ['Business Model', merchant.business_model || ''],
+          ['Industry', merchant.industry || ''],
+          ['Nature of Business', merchant.nature_of_business || ''],
+          ['Website', merchant.business_website || ''],
+          ['Phone', merchant.phone || ''],
+          ['Currency', merchant.currency || ''],
+          ['Country', merchant.country || ''],
+          ['Legal Structure', merchant.legal_structure || ''],
+          ['Formation Country', merchant.formation_country || ''],
+          ['Formation Date', merchant.formation_date ? formatDateSafe(merchant.formation_date) : ''],
+          ['Source of Funds', merchant.source_of_funds || ''],
+          ['Expected Monthly Transactions', merchant.expected_monthly_transactions || ''],
+          ['Expected Monthly Volume', merchant.expected_monthly_volume || ''],
+          ['Registered Street Address', fullRegAddress || ''],
+          ['Registered City', regAddr?.city || ''],
+          ['Registered State', regAddr?.state || ''],
+          ['Registered Postal Code', regAddr?.postal_code || ''],
+          ['Registered Country', regAddr?.country || ''],
+        ]
+
+        if (mailAddr) {
+          merchantFields.push(
+            ['Mailing Street Address', fullMailAddress || ''],
+            ['Mailing City', mailAddr.city || ''],
+            ['Mailing State', mailAddr.state || ''],
+            ['Mailing Postal Code', mailAddr.postal_code || ''],
+            ['Mailing Country', mailAddr.country || '']
+          )
+        }
+
+        if (merchant.business_bank_account) {
+          merchantFields.push(
+            ['Business Bank Name', merchant.business_bank_account.bank_name || ''],
+            ['Business Bank Account Name', merchant.business_bank_account.account_name || ''],
+            ['Business Bank Account Number', merchant.business_bank_account.account_number || ''],
+            ['Business Bank Branch Address', merchant.business_bank_account.branch_address || '']
+          )
+        }
+
+        for (const [f, v] of merchantFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+
+        // Contact Person
+        if (merchant.contact_person) {
+          sections.push('')
+          sections.push('--- CONTACT PERSON ---')
+          sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+          const contactFields: [string, string][] = [
+            ['Name', merchant.contact_person.full_name || ''],
+            ['Email', merchant.contact_person.email || ''],
+            ['Phone', merchant.contact_person.phone || ''],
+            ['Job Title', merchant.contact_person.job_title || ''],
+            ['ID Type', merchant.contact_person.id_type || ''],
+            ['ID Number', merchant.contact_person.id_number || ''],
+            ['BVN', merchant.contact_person.bvn || ''],
+            ['BVN Verified', merchant.contact_person.is_bvn_verified ? 'Yes' : 'No'],
+          ]
+          for (const [f, v] of contactFields) {
+            sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+          }
+        }
+
+        // Financial Profile
+        sections.push('')
+        sections.push('--- FINANCIAL PROFILE ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const financialFields: [string, string][] = [
+          ['Total Investable Assets', merchant.total_investable_assets || ''],
+          ['Estimated Fiat Balance', merchant.estimated_fiat_balance || ''],
+          ['Digital Assets', (merchant.digital_assets || []).join('; ')],
+          ['Estimated Non-Fiat Balance', merchant.estimated_non_fiat_balance || ''],
+          ['Expected Monthly Non-Fiat Transactions', merchant.expected_monthly_non_fiat_transactions || ''],
+        ]
+        for (const [f, v] of financialFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+
+        // Regulation & AML
+        sections.push('')
+        sections.push('--- REGULATION & AML ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const regAmlFields: [string, string][] = [
+          ['Regulated', merchant.is_regulated ? 'Yes' : 'No'],
+          ['Regulation Type', merchant.regulation_type || ''],
+          ['Regulatory Number', merchant.regulatory_number || ''],
+          ['Issuing Entity', merchant.issuing_entity || ''],
+          ['Regulated Activities', (merchant.regulated_activities || []).join('; ')],
+          ['Operating Countries', (merchant.operating_countries || []).join('; ')],
+          ['Transaction Countries', (merchant.transaction_countries || []).join('; ')],
+          ['AML Policy URL', merchant.policies?.aml_policy || ''],
+          ['KYC Policy URL', merchant.policies?.kyc_policy || ''],
+          ['Data Protection Policy URL', merchant.policies?.data_protection_policy || ''],
+        ]
+        for (const [f, v] of regAmlFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+
+        // Business Owners
+        if (merchant.business_owners && merchant.business_owners.length > 0) {
+          sections.push('')
+          sections.push(`--- BUSINESS OWNERS (${merchant.business_owners.length}) ---`)
+          sections.push([
+            '#',
+            'Full Name',
+            'Email',
+            'Phone',
+            'Title',
+            'Ownership %',
+            'Gender',
+            'Date of Birth',
+            'Nationality',
+            'ID Number',
+            'Tax ID',
+            'Relationship Date',
+            'Is Signer',
+            'Is Control Person',
+            'Is Beneficial Owner',
+            'Street 1',
+            'Street 2',
+            'City',
+            'State',
+            'Postal Code',
+            'Country',
+            'Front ID URL',
+            'Back ID URL',
+            'Supporting Documents',
+          ].map(escapeCsv).join(','))
+
+          merchant.business_owners.forEach((owner: any, idx: number) => {
+            const ownerDocs = (owner.supporting_document || [])
+              .map((d: any) => [d.doc_type, d.sub_type ? `(${d.sub_type})` : '', d.doc_image].filter(Boolean).join(' '))
+              .join('; ')
+
+            sections.push([
+              escapeCsv(String(idx + 1)),
+              escapeCsv([owner.firstName, owner.lastName].filter(Boolean).join(' ')),
+              escapeCsv(owner.email || ''),
+              escapeCsv(owner.phone_number || ''),
+              escapeCsv(owner.title || ''),
+              escapeCsv(owner.ownership_percentage != null ? `${owner.ownership_percentage}%` : ''),
+              escapeCsv(owner.gender || ''),
+              escapeCsv(owner.dob || ''),
+              escapeCsv(owner.nationality || ''),
+              escapeCsv(owner.id_number || ''),
+              escapeCsv(owner.tax_identification_number || ''),
+              escapeCsv(owner.relationship_establishment_date || ''),
+              escapeCsv(owner.is_signer ? 'Yes' : 'No'),
+              escapeCsv(owner.is_control_person ? 'Yes' : 'No'),
+              escapeCsv(owner.is_beneficial_owner ? 'Yes' : 'No'),
+              escapeCsv(owner.address?.street1 || ''),
+              escapeCsv(owner.address?.street2 || ''),
+              escapeCsv(owner.address?.city || ''),
+              escapeCsv(owner.address?.state || ''),
+              escapeCsv(owner.address?.postal_code || ''),
+              escapeCsv(owner.address?.country || ''),
+              escapeCsv(owner.front_image || ''),
+              escapeCsv(owner.back_image || ''),
+              escapeCsv(ownerDocs),
+            ].join(','))
+          })
+        }
+      }
+
+      // Section 3: Bank Details
+      if (profile.bank_details) {
+        sections.push('')
+        sections.push('--- BANK DETAILS ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const bankFields = [
+          ['Bank Identifier', profile.bank_details.bank_identifier || ''],
+          ['Identifier Type', profile.bank_details.bank_identifier_type || ''],
+          ['Bank Country', profile.bank_details.bank_country || ''],
+          ['Bank Verified', profile.bank_details.is_bank_verified ? 'Yes' : 'No'],
+        ]
+        for (const [f, v] of bankFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+      }
+
+      // Section 4: Verification Documents
+      if (documents.length > 0) {
+        sections.push('')
+        sections.push(`--- VERIFICATION DOCUMENTS (${documents.length}) ---`)
+        sections.push(['Document Type', 'Country', 'Approval Status', 'Verified', 'Rejection Reason', 'Submitted At', 'Document URL'].map(escapeCsv).join(','))
+        for (const doc of documents) {
+          sections.push([
+            escapeCsv((doc.doc_type || '').toLowerCase().replace(/_/g, ' ')),
+            escapeCsv(doc.doc_country || ''),
+            escapeCsv(doc.approval_status || ''),
+            escapeCsv(doc.is_doc_verified ? 'Yes' : 'No'),
+            escapeCsv(doc.rejection_reason || ''),
+            escapeCsv(formatDateSafe(doc.created_at)),
+            escapeCsv(doc.doc_image || ''),
+          ].join(','))
+        }
+      }
+
+      const csvContent = sections.join('\r\n')
       const sanitizedName = (u.businessName || u.first_name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '-')
       const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
       const filename = `user-details-${sanitizedName}-${timestamp}.csv`
