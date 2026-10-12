@@ -536,7 +536,7 @@ function AdminsPage() {
                         value={addForm.firstName}
                         onChange={(e) => setAddForm({ ...addForm, firstName: e.target.value })}
                         placeholder="John"
-                        className="input-text text-sm w-full"
+                        className="input bg-paper"
                       />
                     </div>
                     <div>
@@ -549,7 +549,7 @@ function AdminsPage() {
                         value={addForm.lastName}
                         onChange={(e) => setAddForm({ ...addForm, lastName: e.target.value })}
                         placeholder="Doe"
-                        className="input-text text-sm w-full"
+                        className="input bg-paper"
                       />
                     </div>
                   </div>
@@ -564,7 +564,7 @@ function AdminsPage() {
                       value={addForm.email}
                       onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                       placeholder="admin@stablestack.xyz"
-                      className="input-text text-sm w-full font-mono"
+                      className="input bg-paper font-mono"
                     />
                   </div>
 
@@ -578,7 +578,7 @@ function AdminsPage() {
                       value={addForm.password}
                       onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
                       placeholder="At least 8 chars with letter, number, symbol"
-                      className="input-text text-sm w-full"
+                      className="input bg-paper"
                     />
                     <p className="text-[11px] text-slate mt-1">
                       Must contain at least 8 characters, a letter, number, and special character.
