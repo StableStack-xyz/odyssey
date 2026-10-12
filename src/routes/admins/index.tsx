@@ -8,6 +8,7 @@ import { SearchInput } from '../../components/ui/SearchInput';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { StatsCard } from '../../components/ui/StatsCard';
+import { AccessDenied } from '../../components/auth/AccessDenied';
 import {
   ShieldCheck,
   Shield,
@@ -130,7 +131,14 @@ function AdminsPage() {
   // Create admin mutation
   const createAdminMutation = useMutation({
     mutationFn: async (payload: typeof addForm) => {
-      const res = await authApi.post('/api/users/auth/admins', payload);
+      const perms = { ...payload.permissions };
+      if (payload.adminRole === 'custom_admin') {
+        delete perms['*'];
+      }
+      const res = await authApi.post('/api/users/auth/admins', {
+        ...payload,
+        permissions: payload.adminRole === 'super_admin' ? { '*': ['*'] } : perms,
+      });
       return res.data;
     },
     onSuccess: () => {
@@ -155,9 +163,13 @@ function AdminsPage() {
   // Update permissions mutation
   const updatePermissionsMutation = useMutation({
     mutationFn: async ({ id, adminRole, permissions }: { id: string; adminRole: AdminRole; permissions: AdminPermissions }) => {
+      const perms = { ...permissions };
+      if (adminRole === 'custom_admin') {
+        delete perms['*'];
+      }
       const res = await authApi.patch(`/api/users/auth/admins/${id}/permissions`, {
         adminRole,
-        permissions,
+        permissions: adminRole === 'super_admin' ? { '*': ['*'] } : perms,
       });
       return res.data;
     },
@@ -232,7 +244,9 @@ function AdminsPage() {
   const handleOpenEdit = (admin: AdminListItem) => {
     setEditingAdmin(admin);
     setEditRole(admin.adminRole);
-    setEditPermissions(admin.permissions || {});
+    const cleanPerms = { ...(admin.permissions || {}) };
+    delete cleanPerms['*'];
+    setEditPermissions(cleanPerms);
   };
 
   // Filtered admins
@@ -398,6 +412,14 @@ function AdminsPage() {
       },
     },
   ];
+
+  if (!isFullAccess) {
+    return (
+      <AdminLayout title="Admin Roles & Access Control">
+        <AccessDenied message="Access Restricted: Only Full Access Super Administrators can manage administrators and platform access controls." />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Admin Roles & Access Control">
