@@ -26,10 +26,11 @@ export function usePermissions() {
 
   const isFullAccess = useMemo(() => {
     if (!user || !user.isAdmin) return false;
-    // Default to true if super_admin or if adminRole is not yet explicitly set (backwards compatible)
+    // Explicit super admin role or isFullAccess flag
     if (user.adminRole === 'super_admin' || user.isFullAccess === true) return true;
-    if (!user.adminRole) return true;
-    return false;
+    if (user.adminRole === 'custom_admin') return false;
+    // Backwards compatibility for legacy admins without adminRole
+    return true;
   }, [user]);
 
   const adminRole: AdminRole = useMemo(() => {
@@ -41,21 +42,22 @@ export function usePermissions() {
     if (isFullAccess) {
       return { '*': ['*'] };
     }
-    return user?.permissions || {};
+    // Clean permissions for custom_admin: Strip '*' wildcard so custom_admin NEVER inherits wildcard full access!
+    const userPerms = { ...(user?.permissions || {}) };
+    delete userPerms['*'];
+    return userPerms;
   }, [isFullAccess, user?.permissions]);
 
   const can = (resource: ResourceModule, action: PermissionAction = 'read'): boolean => {
     if (!user || !user.isAdmin) return false;
     if (isFullAccess) return true;
 
-    // Check module-specific permissions
+    // Admin management is strictly restricted to Super Admins (Full Access)
+    if (resource === 'admins') return false;
+
+    // Check module-specific permissions strictly
     const actions = permissions[resource] || [];
-    if (actions.includes(action)) return true;
-
-    // Check wildcard
-    if (permissions['*']?.includes('*') || permissions['*']?.includes(action)) return true;
-
-    return false;
+    return actions.includes(action);
   };
 
   const canRead = (resource: ResourceModule): boolean => can(resource, 'read');
@@ -65,6 +67,7 @@ export function usePermissions() {
   const canAccessRoute = (pathname: string): boolean => {
     const mod = getModuleForPath(pathname);
     if (!mod) return true; // Unscoped routes (e.g. /profile) are accessible
+    if (mod === 'admins') return isFullAccess;
     return canRead(mod);
   };
 

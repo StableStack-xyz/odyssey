@@ -11,6 +11,7 @@ import { walletApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { APP_NAME } from '../../lib/constants'
 import { ALL_PROVIDERS, BeneficiaryFormModal, CURRENCIES } from './-components'
+import { PermissionGate } from '../../components/auth/PermissionGate'
 
 export const Route = createFileRoute('/payouts/')({
   beforeLoad: () => {
@@ -232,10 +233,12 @@ function PayoutsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setAdding(true)} className="btn-primary flex items-center gap-2 cursor-pointer">
-              <Plus className="w-4 h-4" />
-              Add beneficiary
-            </button>
+            <PermissionGate resource="payouts" action="write">
+              <button onClick={() => setAdding(true)} className="btn-primary flex items-center gap-2 cursor-pointer">
+                <Plus className="w-4 h-4" />
+                Add beneficiary
+              </button>
+            </PermissionGate>
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-payouts'] })}
               className="btn-secondary flex items-center gap-2 cursor-pointer"
