@@ -1,3 +1,5 @@
+import type { AdminRole, AdminPermissions } from './permissions';
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -5,6 +7,9 @@ export interface AdminUser {
   lastName: string;
   image?: string;
   isAdmin: boolean;
+  adminRole?: AdminRole;
+  permissions?: AdminPermissions;
+  isFullAccess?: boolean;
   role: string;
   isBlocked: boolean;
   isAccountVerified: boolean;
@@ -27,6 +32,9 @@ export interface LoginResponse {
     email: string;
     image?: string;
     isAdmin: boolean;
+    adminRole?: AdminRole;
+    permissions?: AdminPermissions;
+    isFullAccess?: boolean;
     role: string;
     isBlocked: boolean;
     isAccountVerified: boolean;
@@ -66,6 +74,9 @@ export interface ValidateTokenResponse {
     userId: string;
     email: string;
     isAdmin: boolean;
+    adminRole?: AdminRole;
+    permissions?: AdminPermissions;
+    isFullAccess?: boolean;
     role: string;
     sessionId: string;
   };
