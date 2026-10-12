@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, type ComponentProps } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { toast } from 'sonner';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { APP_NAME } from '../lib/constants'
 
-function ReCAPTCHAWrapper(props: Omit<ComponentProps<'div'>, 'onChange'> & { sitekey: string; onChange: (token: string | null) => void; onExpired?: () => void; onErrored?: () => void }) {
+function ReCAPTCHAWrapper(props: Omit<ComponentProps<'div'>, 'onChange'> & { sitekey: string; onChange: (token: string | null) => void; onExpired?: () => void; onErrored?: () => void; theme?: 'light' | 'dark' }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ function ReCAPTCHAWrapper(props: Omit<ComponentProps<'div'>, 'onChange'> & { sit
           onChange={props.onChange}
           onExpired={props.onExpired}
           onErrored={props.onErrored}
-          theme="light"
+          theme={props.theme || 'light'}
         />
       );
 
@@ -51,6 +52,7 @@ export function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const { login } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const search = useSearch({ strict: false });
 
   const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SECRET_KEY;
@@ -96,10 +98,18 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col justify-between bg-paper transition-colors duration-200">
       {/* Top cream notice ribbon (flush, the only chromatic note) */}
-      <div className="w-full bg-cream-notice py-2.5 px-4 text-center border-b border-graphite-hairline">
+      <div className="w-full bg-cream-notice py-2.5 px-4 text-center border-b border-graphite-hairline relative">
         <p className="text-xs tracking-wider text-[#171717] font-display">
           STABLESTACK CONTROL PANEL • AUTHORIZED PERSONNEL ONLY
         </p>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#171717] hover:bg-black/10 transition-colors cursor-pointer"
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Main container */}
@@ -176,6 +186,7 @@ export function LoginPage() {
               <div className="py-2">
                 <ReCAPTCHAWrapper
                   sitekey={recaptchaSiteKey}
+                  theme={isDark ? 'dark' : 'light'}
                   onChange={(token: string | null) => setCaptchaToken(token)}
                   onExpired={() => setCaptchaToken(null)}
                   onErrored={() => setCaptchaToken(null)}

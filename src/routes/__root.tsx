@@ -4,6 +4,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
+import { ThemeProvider } from '../contexts/ThemeContext'
 import { queryClient } from '../lib/queryClient'
 import { captureEvent, initPostHog, identifyUser, isPostHogEnabled, trackPageView } from '../lib/posthog'
 
@@ -64,21 +65,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-body antialiased">
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <PostHogTracker />
-            {children}
-            <Toaster
-              position="bottom-right"
-              richColors
-              closeButton
-              duration={4000}
-              toastOptions={{
-                style: {
-                  fontFamily: 'Satoshi, sans-serif',
-                },
-              }}
-            />
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <PostHogTracker />
+              {children}
+              <Toaster
+                position="bottom-right"
+                richColors
+                closeButton
+                duration={4000}
+                toastOptions={{
+                  style: {
+                    fontFamily: 'Satoshi, sans-serif',
+                  },
+                }}
+              />
+            </AuthProvider>
+          </ThemeProvider>
         </QueryClientProvider>
         <TanStackDevtools
           config={{
