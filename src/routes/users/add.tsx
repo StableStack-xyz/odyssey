@@ -2,6 +2,8 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
+import { AccessDenied } from '../../components/auth/AccessDenied'
+import { usePermissions } from '../../hooks/usePermissions'
 import { ArrowLeft, Mail, Lock, User, Building, Phone, MapPin, Shield, Eye, EyeOff } from 'lucide-react'
 import { authApi } from '../../lib/api'
 import { toast } from 'sonner'
@@ -28,6 +30,7 @@ export const Route = createFileRoute('/users/add')({
 function AddUserPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { canWrite } = usePermissions()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -116,6 +119,14 @@ function AddUserPage() {
     e.preventDefault()
     if (!validate()) return
     addUserMutation.mutate(formData)
+  }
+
+  if (!canWrite('users')) {
+    return (
+      <AdminLayout title="Add User">
+        <AccessDenied message="You do not have write permissions for Users. Contact a Super Administrator to grant permission." />
+      </AdminLayout>
+    )
   }
 
   return (

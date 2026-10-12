@@ -8,6 +8,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { SearchInput } from '../../components/ui/SearchInput'
 import { FilterDropdown } from '../../components/ui/FilterDropdown'
 import { Modal } from '../../components/ui/Modal'
+import { PermissionGate } from '../../components/auth/PermissionGate'
 import {
   Users as UsersIcon,
   UserPlus,
@@ -809,13 +810,15 @@ function UsersPage() {
               )}
             </div>
 
-            <button
-              onClick={() => navigate({ to: '/users/add' })}
-              className="btn-primary flex items-center gap-2 cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add User
-            </button>
+            <PermissionGate resource="users" action="write">
+              <button
+                onClick={() => navigate({ to: '/users/add' })}
+                className="btn-primary flex items-center gap-2 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add User
+              </button>
+            </PermissionGate>
           </div>
         </div>
 

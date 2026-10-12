@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AdminUser, AuthState } from '../types/auth';
+import type { AdminRole, AdminPermissions } from '../types/permissions';
 import { authApi } from '../lib/api';
 import { collectDeviceAndLocationData } from '../services/deviceInfo';
 
@@ -60,6 +61,47 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Helper to sanitize admin user and guarantee custom_admin never inherits wildcard permissions
+function normalizeAdminUser(raw: any): AdminUser {
+  const isSuper = raw.adminRole === 'super_admin' || (raw.isAdmin && !raw.adminRole);
+  const adminRole: AdminRole = isSuper ? 'super_admin' : (raw.adminRole || 'custom_admin');
+  const isFullAccess = Boolean(isSuper || raw.isFullAccess === true);
+
+  let perms: AdminPermissions = raw.permissions || {};
+  if (typeof perms === 'string') {
+    try {
+      perms = JSON.parse(perms);
+    } catch {
+      perms = {};
+    }
+  }
+
+  if (isFullAccess) {
+    perms = { '*': ['*'] };
+  } else {
+    // Strip wildcard '*' so granular restrictions are strictly enforced for custom_admin
+    const clean = { ...perms };
+    delete clean['*'];
+    perms = clean;
+  }
+
+  return {
+    id: raw.id,
+    email: raw.email,
+    firstName: raw.firstName,
+    lastName: raw.lastName,
+    image: raw.image,
+    isAdmin: Boolean(raw.isAdmin),
+    adminRole,
+    permissions: perms,
+    isFullAccess,
+    role: raw.role,
+    isBlocked: Boolean(raw.isBlocked),
+    isAccountVerified: Boolean(raw.isAccountVerified),
+    lastLogin: raw.lastLogin,
+  };
+}
+
 // Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
@@ -77,15 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const user = JSON.parse(userStr) as AdminUser;
+        const rawUser = JSON.parse(userStr);
+        const user = normalizeAdminUser(rawUser);
         // Decode the token before validating with backend
         const decodedToken = atob(token);
         const refreshedUser = await validateTokenInternal(decodedToken);
         if (refreshedUser) {
-          const finalUser: AdminUser = {
+          const finalUser: AdminUser = normalizeAdminUser({
             ...user,
             ...refreshedUser,
-          };
+          });
           sessionStorage.setItem('admin_user', JSON.stringify(finalUser));
           dispatch({ type: 'RESTORE_SESSION', payload: { user: finalUser, token: decodedToken } });
         } else {
@@ -111,21 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Correctly read the nested data envelope wrapped by the backend middleware
       const innerData = response.data?.data || response.data;
       if (innerData?.isValid === true && innerData?.user?.isAdmin === true) {
-        const u = innerData.user;
-        return {
-          id: u.id,
-          email: u.email,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          image: u.image,
-          isAdmin: u.isAdmin,
-          adminRole: u.adminRole || (u.isAdmin ? 'super_admin' : 'custom_admin'),
-          permissions: u.permissions || (u.adminRole === 'super_admin' || u.isAdmin ? { '*': ['*'] } : {}),
-          isFullAccess: u.isFullAccess ?? Boolean(u.isAdmin && (u.adminRole === 'super_admin' || !u.adminRole)),
-          role: u.role,
-          isBlocked: u.isBlocked,
-          isAccountVerified: u.isAccountVerified,
-        };
+        return normalizeAdminUser(innerData.user);
       }
       return null;
     } catch {
@@ -151,21 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Not an admin user');
       }
 
-      const user: AdminUser = {
-        id: data.id,
-        email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        image: data.image,
-        isAdmin: data.isAdmin,
-        adminRole: data.adminRole || (data.isAdmin ? 'super_admin' : 'custom_admin'),
-        permissions: data.permissions || (data.adminRole === 'super_admin' || data.isAdmin ? { '*': ['*'] } : {}),
-        isFullAccess: data.isFullAccess ?? Boolean(data.isAdmin && (data.adminRole === 'super_admin' || !data.adminRole)),
-        role: data.role,
-        isBlocked: data.isBlocked,
-        isAccountVerified: data.isAccountVerified,
-        lastLogin: data.lastLogin,
-      };
+      const user: AdminUser = normalizeAdminUser(data);
 
       // Store in sessionStorage (base64 encoded for basic obfuscation) - client only
       if (typeof window !== 'undefined') {
