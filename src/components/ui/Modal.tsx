@@ -8,6 +8,7 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full';
+  noPadding?: boolean;
 }
 
 const sizeClasses = {
@@ -22,7 +23,7 @@ const sizeClasses = {
   full: 'w-screen h-screen max-w-none max-h-none rounded-none m-0',
 };
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', noPadding = false }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,7 +74,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             </button>
           </div>
         )}
-        <div className={`p-6 ${isFull ? 'flex-1 overflow-y-auto' : ''}`}>{children}</div>
+        <div
+          className={`${
+            noPadding ? 'p-0' : 'p-6'
+          } ${isFull ? (noPadding ? 'flex-1 min-h-0 flex flex-col overflow-hidden' : 'flex-1 overflow-y-auto') : ''}`}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

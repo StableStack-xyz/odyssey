@@ -27,6 +27,7 @@ import { Route as OtcIndexRouteImport } from './routes/otc/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
+import { Route as AdminsIndexRouteImport } from './routes/admins/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
 import { Route as WalletsWalletIdRouteImport } from './routes/wallets/$walletId'
 import { Route as UsersAddRouteImport } from './routes/users/add'
@@ -125,6 +126,11 @@ const AssetsIndexRoute = AssetsIndexRouteImport.update({
   path: '/assets/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminsIndexRoute = AdminsIndexRouteImport.update({
+  id: '/admins/',
+  path: '/admins/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivityIndexRoute = ActivityIndexRouteImport.update({
   id: '/activity/',
   path: '/activity/',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/users/add': typeof UsersAddRoute
   '/wallets/$walletId': typeof WalletsWalletIdRoute
   '/activity/': typeof ActivityIndexRoute
+  '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/fees/': typeof FeesIndexRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/users/add': typeof UsersAddRoute
   '/wallets/$walletId': typeof WalletsWalletIdRoute
   '/activity': typeof ActivityIndexRoute
+  '/admins': typeof AdminsIndexRoute
   '/assets': typeof AssetsIndexRoute
   '/countries': typeof CountriesIndexRoute
   '/fees': typeof FeesIndexRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/users/add': typeof UsersAddRoute
   '/wallets/$walletId': typeof WalletsWalletIdRoute
   '/activity/': typeof ActivityIndexRoute
+  '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/fees/': typeof FeesIndexRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/users/add'
     | '/wallets/$walletId'
     | '/activity/'
+    | '/admins/'
     | '/assets/'
     | '/countries/'
     | '/fees/'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/users/add'
     | '/wallets/$walletId'
     | '/activity'
+    | '/admins'
     | '/assets'
     | '/countries'
     | '/fees'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/users/add'
     | '/wallets/$walletId'
     | '/activity/'
+    | '/admins/'
     | '/assets/'
     | '/countries/'
     | '/fees/'
@@ -341,6 +353,7 @@ export interface RootRouteChildren {
   UsersAddRoute: typeof UsersAddRoute
   WalletsWalletIdRoute: typeof WalletsWalletIdRoute
   ActivityIndexRoute: typeof ActivityIndexRoute
+  AdminsIndexRoute: typeof AdminsIndexRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
   FeesIndexRoute: typeof FeesIndexRoute
@@ -484,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssetsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admins/': {
+      id: '/admins/'
+      path: '/admins'
+      fullPath: '/admins/'
+      preLoaderRoute: typeof AdminsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activity/': {
       id: '/activity/'
       path: '/activity'
@@ -549,6 +569,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersAddRoute: UsersAddRoute,
   WalletsWalletIdRoute: WalletsWalletIdRoute,
   ActivityIndexRoute: ActivityIndexRoute,
+  AdminsIndexRoute: AdminsIndexRoute,
   AssetsIndexRoute: AssetsIndexRoute,
   CountriesIndexRoute: CountriesIndexRoute,
   FeesIndexRoute: FeesIndexRoute,

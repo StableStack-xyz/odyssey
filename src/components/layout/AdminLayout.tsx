@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { AccessDenied } from '../auth/AccessDenied';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -13,6 +15,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title = 'Dashboard' }: AdminLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  const { canAccessRoute } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -45,13 +48,15 @@ export function AdminLayout({ children, title = 'Dashboard' }: AdminLayoutProps)
     return null;
   }
 
+  const hasAccess = canAccessRoute(location.pathname);
+
   return (
     <div className="flex min-h-screen bg-paper">
       <Sidebar isCollapsed={isCollapsed} onToggleCollapse={handleToggleCollapse} />
       <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-[72px]' : 'ml-64'}`}>
         <Header title={title} />
         <main className="p-8">
-          {children}
+          {hasAccess ? children : <AccessDenied />}
         </main>
       </div>
     </div>

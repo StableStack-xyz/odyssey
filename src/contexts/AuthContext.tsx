@@ -80,9 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const user = JSON.parse(userStr) as AdminUser;
         // Decode the token before validating with backend
         const decodedToken = atob(token);
-        const isValid = await validateTokenInternal(decodedToken);
-        if (isValid) {
-          dispatch({ type: 'RESTORE_SESSION', payload: { user, token: decodedToken } });
+        const refreshedUser = await validateTokenInternal(decodedToken);
+        if (refreshedUser) {
+          const finalUser: AdminUser = {
+            ...user,
+            ...refreshedUser,
+          };
+          sessionStorage.setItem('admin_user', JSON.stringify(finalUser));
+          dispatch({ type: 'RESTORE_SESSION', payload: { user: finalUser, token: decodedToken } });
         } else {
           sessionStorage.removeItem('admin_token');
           sessionStorage.removeItem('admin_user');
@@ -98,16 +103,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-  const validateTokenInternal = async (token: string): Promise<boolean> => {
+  const validateTokenInternal = async (token: string): Promise<Partial<AdminUser> | null> => {
     try {
       const response = await authApi.post('/api/validate/validate-token', {
         token,
       });
       // Correctly read the nested data envelope wrapped by the backend middleware
       const innerData = response.data?.data || response.data;
-      return innerData?.isValid === true && innerData?.user?.isAdmin === true;
+      if (innerData?.isValid === true && innerData?.user?.isAdmin === true) {
+        const u = innerData.user;
+        return {
+          id: u.id,
+          email: u.email,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          image: u.image,
+          isAdmin: u.isAdmin,
+          adminRole: u.adminRole || (u.isAdmin ? 'super_admin' : 'custom_admin'),
+          permissions: u.permissions || (u.adminRole === 'super_admin' || u.isAdmin ? { '*': ['*'] } : {}),
+          isFullAccess: u.isFullAccess ?? Boolean(u.isAdmin && (u.adminRole === 'super_admin' || !u.adminRole)),
+          role: u.role,
+          isBlocked: u.isBlocked,
+          isAccountVerified: u.isAccountVerified,
+        };
+      }
+      return null;
     } catch {
-      return false;
+      return null;
     }
   };
 
@@ -136,6 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName: data.lastName,
         image: data.image,
         isAdmin: data.isAdmin,
+        adminRole: data.adminRole || (data.isAdmin ? 'super_admin' : 'custom_admin'),
+        permissions: data.permissions || (data.adminRole === 'super_admin' || data.isAdmin ? { '*': ['*'] } : {}),
+        isFullAccess: data.isFullAccess ?? Boolean(data.isAdmin && (data.adminRole === 'super_admin' || !data.adminRole)),
         role: data.role,
         isBlocked: data.isBlocked,
         isAccountVerified: data.isAccountVerified,
@@ -171,7 +196,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const validateToken = async (): Promise<boolean> => {
     if (!state.token) return false;
-    return validateTokenInternal(state.token);
+    const validatedUser = await validateTokenInternal(state.token);
+    return validatedUser !== null;
   };
 
   return (
