@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
-import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, ExternalLink, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, ExternalLink, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw, Download, Loader2 } from 'lucide-react'
 import { authApi, walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -282,6 +282,7 @@ function UserDetailPage() {
   const [showRejectConfirm, setShowApproveReject] = useState(false)
   const [showApproveAppConfirm, setShowApproveAppConfirm] = useState(false)
   const [showRejectAppConfirm, setShowRejectAppConfirm] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Fetch user details by ID
   const { data: userData, isLoading: loadingUser } = useQuery({
@@ -440,9 +441,167 @@ function UserDetailPage() {
     return name.slice(0, 2).toUpperCase()
   }
 
-  // New helper to handle dynamic document types
+  // Helper to handle dynamic document types
   const formatDocType = (type: string) => {
     return type.toLowerCase().replace(/_/g, ' ')
+  }
+
+  const handleExportUserDetails = () => {
+    if (!userData || isExporting) return
+    setIsExporting(true)
+    const toastId = toast.loading('Preparing user details CSV...')
+
+    try {
+      const escapeCsv = (val: unknown): string => {
+        if (val === null || val === undefined) return '""'
+        let str = String(val)
+        if (/^[=+\-@\t\r]/.test(str)) {
+          str = `'${str}`
+        }
+        return `"${str.replace(/"/g, '""')}"`
+      }
+
+      const formatDateSafe = (dateStr?: string | null): string => {
+        if (!dateStr) return ''
+        try {
+          const d = new Date(dateStr)
+          return isNaN(d.getTime()) ? dateStr : format(d, 'yyyy-MM-dd HH:mm:ss')
+        } catch {
+          return dateStr
+        }
+      }
+
+      const { profile, documents, merchant, displayName, businessName, phone, country, currency } = userData
+      const sections: string[] = []
+
+      // Section 1: Overview
+      sections.push('--- USER OVERVIEW ---')
+      sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+      const overviewFields = [
+        ['User ID', profile.id || userId],
+        ['Display Name', displayName || ''],
+        ['Business Name', businessName || merchant?.business_name || ''],
+        ['First Name', profile.first_name || ''],
+        ['Last Name', profile.last_name || ''],
+        ['Email', profile.email || ''],
+        ['Email Verified', profile.is_email_verified ? 'Yes' : 'No'],
+        ['Phone', phone || ''],
+        ['Phone Verified', profile.is_phone_verified ? 'Yes' : 'No'],
+        ['Role', profile.role || ''],
+        ['Account Status', profile.status || (profile.is_blocked ? 'Blocked' : 'Active')],
+        ['Compliance Status', profile.compliance_status || ''],
+        ['Account Verified', profile.is_account_verified ? 'Yes' : 'No'],
+        ['Country', country || ''],
+        ['Currency', currency || ''],
+        ['Date Joined', formatDateSafe(profile.created_at)],
+        ['Last Login', formatDateSafe(profile.last_login_at)],
+        ['Tax Identification Number', profile.tax_identification_number || ''],
+        ['Tax Verified', profile.is_tax_verified ? 'Yes' : 'No'],
+        ['Onboarding Reference', profile.onboarding_reference || ''],
+      ]
+      for (const [f, v] of overviewFields) {
+        sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+      }
+
+      // Section 2: Merchant & Business Details
+      if (merchant && Object.keys(merchant).length > 0) {
+        sections.push('')
+        sections.push('--- BUSINESS & MERCHANT DETAILS ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const regAddr = merchant.addresses?.registered_address || merchant.addresses?.mailing_address
+        const fullAddress = [regAddr?.street1, regAddr?.street2].filter(Boolean).join(', ')
+        const merchantFields = [
+          ['Business Name', merchant.business_name || ''],
+          ['Registration Number', merchant.registration_number || ''],
+          ['Business Type', merchant.business_type || ''],
+          ['Industry', merchant.industry || ''],
+          ['Country', regAddr?.country || merchant.country || ''],
+          ['State', regAddr?.state || ''],
+          ['City', regAddr?.city || ''],
+          ['Address', fullAddress || ''],
+          ['Postal Code', regAddr?.postal_code || ''],
+          ['Website', merchant.business_website || ''],
+          ['Contact Name', merchant.contact_person?.full_name || ''],
+          ['Contact Email', merchant.contact_person?.email || ''],
+          ['Contact Phone', merchant.contact_person?.phone || ''],
+        ]
+        for (const [f, v] of merchantFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+      }
+
+      // Section 3: Bank Details
+      if (profile.bank_details) {
+        sections.push('')
+        sections.push('--- BANK DETAILS ---')
+        sections.push(['Field', 'Value'].map(escapeCsv).join(','))
+        const bankFields = [
+          ['Bank Identifier', profile.bank_details.bank_identifier || ''],
+          ['Identifier Type', profile.bank_details.bank_identifier_type || ''],
+          ['Bank Country', profile.bank_details.bank_country || ''],
+          ['Bank Verified', profile.bank_details.is_bank_verified ? 'Yes' : 'No'],
+        ]
+        for (const [f, v] of bankFields) {
+          sections.push([escapeCsv(f), escapeCsv(v)].join(','))
+        }
+      }
+
+      // Section 4: Wallets
+      if (wallets.length > 0) {
+        sections.push('')
+        sections.push('--- WALLETS ---')
+        sections.push(['Asset', 'Network', 'Wallet Address', 'Balance', 'Created At'].map(escapeCsv).join(','))
+        for (const w of wallets) {
+          const addr = w.addresses?.[0]
+          sections.push([
+            escapeCsv(w.currency || w.asset_type || ''),
+            escapeCsv(addr?.network || ''),
+            escapeCsv(addr?.address || ''),
+            escapeCsv(w.balance ?? '0'),
+            escapeCsv(formatDateSafe(w.created_at)),
+          ].join(','))
+        }
+      }
+
+      // Section 5: Verification Documents
+      if (documents.length > 0) {
+        sections.push('')
+        sections.push('--- VERIFICATION DOCUMENTS ---')
+        sections.push(['Document Type', 'Country', 'Approval Status', 'Verified', 'Rejection Reason', 'Submitted At'].map(escapeCsv).join(','))
+        for (const doc of documents) {
+          sections.push([
+            escapeCsv(doc.doc_type || ''),
+            escapeCsv(doc.doc_country || ''),
+            escapeCsv(doc.approval_status || ''),
+            escapeCsv(doc.is_doc_verified ? 'Yes' : 'No'),
+            escapeCsv(doc.rejection_reason || ''),
+            escapeCsv(formatDateSafe(doc.created_at)),
+          ].join(','))
+        }
+      }
+
+      const csvContent = sections.join('\r\n')
+      const sanitizedName = (businessName || displayName || 'user').toLowerCase().replace(/[^a-z0-9]/g, '-')
+      const timestamp = format(new Date(), 'yyyyMMdd-HHmmss')
+      const filename = `user-details-${sanitizedName}-${timestamp}.csv`
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast.success('User details exported successfully', { id: toastId })
+    } catch {
+      toast.error('Failed to export user details', { id: toastId })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   if (loadingUser) {
@@ -486,13 +645,28 @@ function UserDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Users
           </button>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['user', userId] })}
-            className="flex items-center gap-1.5 text-xs text-slate hover:text-ink transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportUserDetails}
+              disabled={isExporting}
+              className="btn-secondary flex items-center gap-1.5 text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export complete user details to CSV"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>{isExporting ? 'Exporting...' : 'Export Details'}</span>
+            </button>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['user', userId] })}
+              className="btn-secondary flex items-center gap-1.5 text-xs cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* User header */}
