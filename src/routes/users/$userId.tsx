@@ -481,8 +481,6 @@ function UserDetailPage() {
         ['User ID', profile.id || userId],
         ['Display Name', displayName || ''],
         ['Business Name', businessName || merchant?.business_name || ''],
-        ['First Name', profile.first_name || ''],
-        ['Last Name', profile.last_name || ''],
         ['Email', profile.email || ''],
         ['Email Verified', profile.is_email_verified ? 'Yes' : 'No'],
         ['Phone', phone || ''],

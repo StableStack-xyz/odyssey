@@ -365,12 +365,7 @@ function UsersPage() {
       sections.push('--- USER OVERVIEW ---')
       sections.push(['Field', 'Value'].map(escapeCsv).join(','))
       const overviewFields: [string, string][] = [
-        ['User ID', profile.id || u.id],
         ['Business Name', u.businessName || merchant.business_name || profile.business_name || ''],
-        ['First Name', profile.first_name || u.first_name || ''],
-        ['Last Name', profile.last_name || u.last_name || ''],
-        ['Username', profile.username || ''],
-        ['Slug', profile.slug || ''],
         ['Email', profile.email || u.email || ''],
         ['Email Verified', profile.is_email_verified ? 'Yes' : 'No'],
         ['Phone', profile.phone || ''],
@@ -378,7 +373,6 @@ function UsersPage() {
         ['Role', profile.role || u.role || ''],
         ['Account Status', profile.status || (u.is_blocked || profile.is_blocked ? 'Blocked' : 'Active')],
         ['Is Active', profile.is_active ? 'Yes' : 'No'],
-        ['Is Admin', profile.is_admin ? 'Yes' : 'No'],
         ['Is Blocked', (u.is_blocked || profile.is_blocked) ? 'Yes' : 'No'],
         ['Compliance Status', profile.compliance_status || u.complianceStatus || ''],
         ['Account Verified', (u.isAccountVerified ?? profile.is_account_verified) ? 'Yes' : 'No'],
@@ -389,7 +383,6 @@ function UsersPage() {
         ['Last Login', formatDateSafe(profile.last_login_at)],
         ['Tax Identification Number', profile.tax_identification_number || ''],
         ['Tax Verified', profile.is_tax_verified ? 'Yes' : 'No'],
-        ['Quidax ID', profile.quidax_user_id || ''],
         ['Onboarding Reference', profile.onboarding_reference || ''],
       ]
       for (const [f, v] of overviewFields) {
