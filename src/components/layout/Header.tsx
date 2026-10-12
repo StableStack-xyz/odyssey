@@ -1,6 +1,6 @@
 import { Bell, Search, Moon, Sun } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface HeaderProps {
   title: string;
@@ -8,22 +8,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { user } = useAuth();
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const theme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const dark = theme === 'dark' || (!theme && prefersDark);
-    setIsDark(dark);
-    document.documentElement.classList.toggle('dark', dark);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', newTheme);
-  };
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-40 h-16 bg-paper/80 backdrop-blur-xl border-b border-graphite-hairline">
