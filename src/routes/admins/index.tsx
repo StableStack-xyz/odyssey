@@ -491,30 +491,31 @@ function AdminsPage() {
         onClose={() => setIsAddModalOpen(false)}
         title="Invite New Administrator"
         size="full"
+        noPadding
       >
-        <div className="h-full flex flex-col bg-paper">
-          <div className="p-6 border-b border-graphite-hairline flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-display font-semibold text-ink">
-                Add Platform Administrator
-              </h2>
-              <p className="text-xs text-slate mt-0.5">
-                Assign account credentials and specify either Full Access or scoped Selected Access permissions.
-              </p>
-            </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!addForm.firstName || !addForm.lastName || !addForm.email || !addForm.password) {
+              toast.error('Please fill in all required credentials');
+              return;
+            }
+            createAdminMutation.mutate(addForm);
+          }}
+          className="flex flex-col h-full bg-paper min-h-0"
+        >
+          {/* Subtitle Banner */}
+          <div className="px-6 py-3.5 border-b border-graphite-hairline bg-vellum/30 shrink-0">
+            <h2 className="text-sm font-semibold text-ink">
+              Add Platform Administrator
+            </h2>
+            <p className="text-xs text-slate mt-0.5">
+              Assign account credentials and specify either Full Access or scoped Selected Access permissions.
+            </p>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!addForm.firstName || !addForm.lastName || !addForm.email || !addForm.password) {
-                toast.error('Please fill in all required credentials');
-                return;
-              }
-              createAdminMutation.mutate(addForm);
-            }}
-            className="flex-1 overflow-y-auto p-6 lg:p-8"
-          >
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-6 lg:p-8 min-h-0">
             <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Left Column: Account Details (5 cols) */}
               <div className="lg:col-span-5 space-y-6">
@@ -775,36 +776,36 @@ function AdminsPage() {
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Footer action bar */}
-            <div className="mt-8 pt-6 border-t border-graphite-hairline flex items-center justify-end gap-3 sticky bottom-0 bg-paper/95 backdrop-blur-sm p-4">
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="btn-secondary text-xs py-2 px-5 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={createAdminMutation.isPending}
-                className="btn-primary flex items-center gap-2 text-xs py-2 px-6 cursor-pointer disabled:opacity-50"
-              >
-                {createAdminMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Creating Administrator...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4" />
-                    <span>Create & Invite Admin</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+          {/* Fixed Footer action bar */}
+          <div className="shrink-0 border-t border-graphite-hairline bg-paper px-6 py-4 flex items-center justify-end gap-3 z-30 shadow-lg">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="btn-secondary text-xs py-2 px-5 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createAdminMutation.isPending}
+              className="btn-primary flex items-center gap-2 text-xs py-2 px-6 cursor-pointer disabled:opacity-50"
+            >
+              {createAdminMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Creating Administrator...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create & Invite Admin</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {/* ============================================================ */}
@@ -815,31 +816,37 @@ function AdminsPage() {
         onClose={() => setEditingAdmin(null)}
         title={editingAdmin ? `Edit Permissions — ${editingAdmin.firstName} ${editingAdmin.lastName}` : ''}
         size="full"
+        noPadding
       >
         {editingAdmin && (
-          <div className="h-full flex flex-col bg-paper">
-            <div className="p-6 border-b border-graphite-hairline flex items-center justify-between">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              updatePermissionsMutation.mutate({
+                id: editingAdmin.id,
+                adminRole: editRole,
+                permissions: editPermissions,
+              });
+            }}
+            className="flex flex-col h-full bg-paper min-h-0"
+          >
+            {/* Subtitle Banner */}
+            <div className="px-6 py-3.5 border-b border-graphite-hairline bg-vellum/30 shrink-0 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-display font-semibold text-ink">
+                <h2 className="text-sm font-semibold text-ink">
                   Update Permissions: {editingAdmin.firstName} {editingAdmin.lastName}
                 </h2>
                 <p className="text-xs text-slate mt-0.5">
-                  Account: <span className="font-mono text-ink">{editingAdmin.email}</span>
+                  Configure granular resource access or grant unrestricted Full Access.
                 </p>
               </div>
+              <span className="text-xs font-mono text-ink bg-paper px-2.5 py-1 rounded-md border border-graphite-hairline">
+                {editingAdmin.email}
+              </span>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                updatePermissionsMutation.mutate({
-                  id: editingAdmin.id,
-                  adminRole: editRole,
-                  permissions: editPermissions,
-                });
-              }}
-              className="flex-1 overflow-y-auto p-6 lg:p-8"
-            >
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto p-6 lg:p-8 min-h-0">
               <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left column: Role selection */}
                 <div className="lg:col-span-5 space-y-4">
@@ -1028,36 +1035,36 @@ function AdminsPage() {
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Action buttons */}
-              <div className="mt-8 pt-6 border-t border-graphite-hairline flex items-center justify-end gap-3 sticky bottom-0 bg-paper/95 backdrop-blur-sm p-4">
-                <button
-                  type="button"
-                  onClick={() => setEditingAdmin(null)}
-                  className="btn-secondary text-xs py-2 px-5 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatePermissionsMutation.isPending}
-                  className="btn-primary flex items-center gap-2 text-xs py-2 px-6 cursor-pointer disabled:opacity-50"
-                >
-                  {updatePermissionsMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving Changes...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Save Permissions</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Fixed Footer action bar */}
+            <div className="shrink-0 border-t border-graphite-hairline bg-paper px-6 py-4 flex items-center justify-end gap-3 z-30 shadow-lg">
+              <button
+                type="button"
+                onClick={() => setEditingAdmin(null)}
+                className="btn-secondary text-xs py-2 px-5 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updatePermissionsMutation.isPending}
+                className="btn-primary flex items-center gap-2 text-xs py-2 px-6 cursor-pointer disabled:opacity-50"
+              >
+                {updatePermissionsMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving Changes...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Save Permissions</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         )}
       </Modal>
 
