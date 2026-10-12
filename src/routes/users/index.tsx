@@ -214,21 +214,14 @@ function UsersPage() {
         return
       }
 
-      // Step 4: Build CSV rows
+      // Step 4: Build CSV rows (only requested fields)
       const headers = [
-        'User ID',
-        'First Name',
-        'Last Name',
         'Business Name',
         'Email',
-        'Phone',
-        'Role',
+        'Date Joined',
         'Compliance Status',
         'Account Status',
         'Account Verified',
-        'Admin',
-        'Country',
-        'Date Joined',
       ]
 
       const escapeCsv = (val: unknown): string => {
@@ -252,19 +245,12 @@ function UsersPage() {
       }
 
       const rows = filtered.map((u: any) => [
-        escapeCsv(u.id || ''),
-        escapeCsv(u.first_name || ''),
-        escapeCsv(u.last_name || ''),
         escapeCsv(u.businessName || u.business_name || ''),
         escapeCsv(u.email || ''),
-        escapeCsv(u.phone || u.phone_number || ''),
-        escapeCsv(u.role || ''),
+        escapeCsv(formatDateSafe(u.created_at)),
         escapeCsv(u.complianceStatus || u.compliance_status || ''),
         escapeCsv(u.is_blocked ? 'Blocked' : 'Active'),
         escapeCsv((u.isAccountVerified ?? u.is_account_verified) ? 'Yes' : 'No'),
-        escapeCsv(u.is_admin ? 'Yes' : 'No'),
-        escapeCsv(u.country || u.country_code || ''),
-        escapeCsv(formatDateSafe(u.created_at)),
       ])
 
       const csvContent = [headers.map(escapeCsv).join(','), ...rows.map((r) => r.join(','))].join('\r\n')
