@@ -418,7 +418,7 @@ function EmailBroadcastPage() {
     reader.readAsText(file);
   };
 
-  // Parse text or CSV content
+  // Parse text or CSV content with intelligent multi-format detection
   const parseImportText = (text: string) => {
     if (!text || !text.trim()) {
       setImportedList([]);
@@ -432,21 +432,35 @@ function EmailBroadcastPage() {
     let duplicateCount = 0;
     let invalidCount = 0;
 
+    const emailRegex = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
+    // Detect if first line is a true CSV header row:
+    // Header only if: contains delimiter AND does NOT contain '@' AND contains a keyword like 'email' or 'e-mail'
     let hasHeader = false;
-    let emailIdx = 0;
+    let emailIdx = -1;
     let nameIdx = -1;
     let companyIdx = -1;
 
-    if (lines.length > 0 && lines[0].includes(',')) {
-      const headerParts = lines[0].split(',').map((h) => h.trim().toLowerCase());
-      const foundEmailIdx = headerParts.findIndex((h) => h.includes('email') || h.includes('mail'));
-      if (foundEmailIdx !== -1) {
-        hasHeader = true;
-        emailIdx = foundEmailIdx;
-        nameIdx = headerParts.findIndex((h) => h.includes('name') || h.includes('first'));
-        companyIdx = headerParts.findIndex(
-          (h) => h.includes('business') || h.includes('company') || h.includes('org')
-        );
+    if (lines.length > 0) {
+      const firstLine = lines[0];
+      const line0HasAt = firstLine.includes('@');
+      if (!line0HasAt && (firstLine.includes(',') || firstLine.includes('\t') || firstLine.includes(';'))) {
+        const delim = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+        const headers = firstLine
+          .split(delim)
+          .map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+
+        for (let idx = 0; idx < headers.length; idx++) {
+          const h = headers[idx];
+          if (['email', 'e-mail', 'mail', 'email_address', 'email address', 'recipient'].includes(h)) {
+            emailIdx = idx;
+            hasHeader = true;
+          } else if (['name', 'full_name', 'fullname', 'first_name', 'firstname', 'recipient_name'].includes(h)) {
+            nameIdx = idx;
+          } else if (['company', 'business', 'business_name', 'org', 'organization'].includes(h)) {
+            companyIdx = idx;
+          }
+        }
       }
     }
 
@@ -454,48 +468,107 @@ function EmailBroadcastPage() {
 
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
-      let email = '';
-      let name = '';
-      let businessName = '';
 
-      if (line.includes(',')) {
-        const parts = line.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
-        email = parts[emailIdx] || '';
-        if (companyIdx !== -1 && parts[companyIdx]) {
-          businessName = parts[companyIdx];
+      // Format 1: Angle bracket format (e.g. "John Doe <john@example.com>" or "<john@example.com>")
+      const angleBracketMatch = line.match(/^(.*?)[<]([^>]+)[>](.*?)$/);
+      if (angleBracketMatch) {
+        const rawName = `${angleBracketMatch[1].trim()} ${angleBracketMatch[3].trim()}`
+          .trim()
+          .replace(/^["']|["']$/g, '');
+        const rawEmail = angleBracketMatch[2].trim().toLowerCase();
+
+        if (emailRegex.test(rawEmail)) {
+          if (seenEmails.has(rawEmail)) {
+            duplicateCount++;
+          } else {
+            seenEmails.add(rawEmail);
+            validRecipients.push({
+              email: rawEmail,
+              name: rawName || undefined,
+              firstName: rawName ? rawName.split(' ')[0] : undefined,
+            });
+          }
+        } else {
+          invalidCount++;
         }
-        if (nameIdx !== -1 && parts[nameIdx]) {
-          name = parts[nameIdx];
-        } else if (parts.length > 1 && emailIdx === 0) {
-          name = parts[1];
+        continue;
+      }
+
+      // Format 2: Delimited row (comma, tab, or semicolon)
+      const delim = line.includes('\t') ? '\t' : line.includes(';') ? ';' : line.includes(',') ? ',' : null;
+
+      if (delim) {
+        const parts = line.split(delim).map((p) => p.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+
+        // Check if multiple bare emails are pasted on a single line (e.g. "a@b.com, c@d.com, e@f.com")
+        const atParts = parts.filter((p) => emailRegex.test(p.toLowerCase()));
+        if (atParts.length > 1 && atParts.length === parts.length) {
+          for (const rawEmail of atParts) {
+            const em = rawEmail.toLowerCase();
+            if (seenEmails.has(em)) {
+              duplicateCount++;
+            } else {
+              seenEmails.add(em);
+              validRecipients.push({ email: em });
+            }
+          }
+          continue;
+        }
+
+        // Single record with multiple columns: find email, name, and optional company
+        let email = '';
+        let name = '';
+        let company = '';
+
+        if (hasHeader && emailIdx !== -1 && emailIdx < parts.length) {
+          email = parts[emailIdx] || '';
+          if (nameIdx !== -1 && nameIdx < parts.length) name = parts[nameIdx] || '';
+          if (companyIdx !== -1 && companyIdx < parts.length) company = parts[companyIdx] || '';
+        } else {
+          // Dynamic positional detection: find which column contains the '@'
+          const foundEmailIdx = parts.findIndex((p) => p.includes('@'));
+          if (foundEmailIdx !== -1) {
+            email = parts[foundEmailIdx];
+            const otherParts = parts.filter((_, idx) => idx !== foundEmailIdx);
+            if (otherParts.length >= 1) name = otherParts[0];
+            if (otherParts.length >= 2) company = otherParts[1];
+          } else {
+            email = parts[0] || '';
+          }
+        }
+
+        email = email.trim().toLowerCase();
+
+        if (emailRegex.test(email)) {
+          if (seenEmails.has(email)) {
+            duplicateCount++;
+          } else {
+            seenEmails.add(email);
+            const resolvedName = company || name || undefined;
+            validRecipients.push({
+              email,
+              name: resolvedName,
+              businessName: company || undefined,
+              firstName: name ? name.split(' ')[0] : company || undefined,
+            });
+          }
+        } else {
+          invalidCount++;
         }
       } else {
-        email = line.trim();
+        // Format 3: Bare single email
+        const email = line.trim().toLowerCase();
+        if (emailRegex.test(email)) {
+          if (seenEmails.has(email)) {
+            duplicateCount++;
+          } else {
+            seenEmails.add(email);
+            validRecipients.push({ email });
+          }
+        } else {
+          invalidCount++;
+        }
       }
-
-      email = email.toLowerCase().trim();
-
-      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      if (!isValidEmail) {
-        invalidCount++;
-        continue;
-      }
-
-      if (seenEmails.has(email)) {
-        duplicateCount++;
-        continue;
-      }
-
-      // Prioritize businessName if provided, otherwise individual name
-      const resolvedName = businessName || name || undefined;
-
-      seenEmails.add(email);
-      validRecipients.push({
-        email,
-        name: resolvedName,
-        businessName: businessName || undefined,
-        firstName: name ? name.split(' ')[0] : businessName || undefined,
-      });
     }
 
     setImportedList(validRecipients);
@@ -504,6 +577,23 @@ function EmailBroadcastPage() {
       duplicates: duplicateCount,
       invalid: invalidCount,
     });
+  };
+
+  const removeImportedRecipient = (emailToRemove: string) => {
+    const updated = importedList.filter((r) => r.email !== emailToRemove);
+    setImportedList(updated);
+    setImportStats((prev) => ({
+      ...prev,
+      valid: updated.length,
+    }));
+  };
+
+  const clearImportedList = () => {
+    setImportedList([]);
+    setRawPastedEmails('');
+    setCsvFileName('');
+    setImportStats({ valid: 0, duplicates: 0, invalid: 0 });
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Insert merge tag at active field cursor
@@ -1265,24 +1355,87 @@ function EmailBroadcastPage() {
                   </div>
 
                   {/* Import Stats Badges */}
-                  <div className="flex items-center gap-3 flex-wrap text-xs">
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 font-medium">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {importStats.valid} valid emails ready
-                    </span>
-                    {importStats.duplicates > 0 && (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 font-medium">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        {importStats.duplicates} duplicates removed
+                  <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {importStats.valid} valid recipient{importStats.valid === 1 ? '' : 's'} ready
                       </span>
-                    )}
-                    {importStats.invalid > 0 && (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-700 font-medium">
-                        <X className="w-3.5 h-3.5" />
-                        {importStats.invalid} invalid formats skipped
-                      </span>
+                      {importStats.duplicates > 0 && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 font-medium">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          {importStats.duplicates} duplicate{importStats.duplicates === 1 ? '' : 's'} removed
+                        </span>
+                      )}
+                      {importStats.invalid > 0 && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-700 font-medium">
+                          <X className="w-3.5 h-3.5" />
+                          {importStats.invalid} invalid format{importStats.invalid === 1 ? '' : 's'} skipped
+                        </span>
+                      )}
+                    </div>
+                    {importedList.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearImportedList}
+                        className="text-[11px] text-red-600 hover:text-red-800 hover:underline cursor-pointer"
+                      >
+                        Clear List
+                      </button>
                     )}
                   </div>
+
+                  {/* Imported Recipients Live Preview */}
+                  {importedList.length > 0 && (
+                    <div className="bg-paper rounded-xl border border-graphite-hairline overflow-hidden">
+                      <div className="p-2.5 bg-vellum/50 border-b border-graphite-hairline flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-xs font-semibold text-ink">
+                            Parsed Recipients ({importedList.length})
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate font-sans">
+                          Names will personalize <code>{"{{user_name}}"}</code> & <code>{"{{first_name}}"}</code>
+                        </span>
+                      </div>
+
+                      <div className="max-h-48 overflow-y-auto divide-y divide-graphite-hairline text-xs font-mono">
+                        {importedList.slice(0, 50).map((r, idx) => (
+                          <div
+                            key={r.email}
+                            className="px-3 py-1.5 flex items-center justify-between hover:bg-vellum/30 transition-colors"
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              <span className="text-[10px] text-slate w-5 text-right font-sans">
+                                {idx + 1}.
+                              </span>
+                              <span className="text-ink font-medium truncate">{r.email}</span>
+                              {r.name && (
+                                <span className="text-slate font-sans text-[11px] truncate">
+                                  ({r.name})
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeImportedRecipient(r.email)}
+                              className="text-slate hover:text-red-600 p-1 rounded hover:bg-vellum cursor-pointer shrink-0"
+                              title="Remove recipient"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {importedList.length > 50 && (
+                        <div className="p-2 bg-vellum/30 text-center text-[11px] text-slate font-sans border-t border-graphite-hairline">
+                          Showing first 50 of {importedList.length} imported recipients
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
