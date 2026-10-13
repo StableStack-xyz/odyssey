@@ -87,21 +87,21 @@ const TEMPLATE_PRESETS = [
     subject: 'Important Platform Update from StableStack',
     listContent: `<p>We have rolled out several infrastructure enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable:</p><ul><li><b>Instant Settlement:</b> Higher throughput across supported payout corridors.</li><li><b>Real-Time Monitoring:</b> Improved transaction tracking and status webhooks.</li><li><b>Enhanced Security:</b> Strengthened compliance verification and account safeguards.</li></ul>`,
     additionalMessage: 'If you have any questions or require custom limits, our 24/7 engineering and support team is always available to assist you.',
-    greetings: 'Regards,\nThe Stablestack Team.',
+    signoff: 'Regards,\nThe Stablestack Team.',
   },
   {
     name: 'Scheduled Maintenance',
     subject: 'Notice of Scheduled System Maintenance',
     listContent: `<p>Please be advised that we will be performing routine system maintenance on our payment processing rails.</p><blockquote><b>Maintenance Window:</b> Sunday, 02:00 AM – 04:00 AM UTC</blockquote><p>During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.</p>`,
     additionalMessage: 'No action is required on your part. Thank you for your patience and partnership.',
-    greetings: 'Regards,\nThe Stablestack Team.',
+    signoff: 'Regards,\nThe Stablestack Team.',
   },
   {
     name: 'Compliance Verification',
     subject: 'Action Required: Verify Account Information',
     listContent: `<p>As part of our periodic regulatory compliance review, please review your account details and ensure your business records are <u>fully up to date</u> to maintain uninterrupted high-volume processing.</p>`,
     additionalMessage: 'Please log in to your StableStack account settings to verify or update your compliance documents.',
-    greetings: 'Regards,\nThe Stablestack Team.',
+    signoff: 'Regards,\nThe Stablestack Team.',
   },
 ];
 
@@ -111,7 +111,7 @@ const ZEPTO_TEMPLATES = [
 ];
 
 const MERGE_TAGS = [
-  { tag: '{{signoff}}', label: 'Closing Sign-off ({{signoff}} / {{greetings}})' },
+  { tag: '{{signoff}}', label: 'Closing Sign-off ({{signoff}})' },
   { tag: '{{user_name}}', label: 'Business / Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
   { tag: '{{company}}', label: 'Company / Business' },
@@ -304,7 +304,7 @@ function EmailBroadcastPage() {
   const [subject, setSubject] = useState(TEMPLATE_PRESETS[0].subject);
   const [listContent, setListContent] = useState(TEMPLATE_PRESETS[0].listContent);
   const [additionalMessage, setAdditionalMessage] = useState(TEMPLATE_PRESETS[0].additionalMessage);
-  const [greetings, setGreetings] = useState(TEMPLATE_PRESETS[0].greetings);
+  const [signoff, setSignoff] = useState(TEMPLATE_PRESETS[0].signoff);
 
   // Preview tab & device state
   const [previewTab, setPreviewTab] = useState<'visual' | 'json'>('visual');
@@ -320,8 +320,8 @@ function EmailBroadcastPage() {
   // Textarea & Rich Editor refs
   const richEditorRef = useRef<RichTextEditorRef>(null);
   const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
-  const greetingsRef = useRef<HTMLTextAreaElement>(null);
-  const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage' | 'greetings'>('listContent');
+  const signoffRef = useRef<HTMLTextAreaElement>(null);
+  const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage' | 'signoff'>('listContent');
 
   // Fetch platform user counts with flexible audience filter parameters
   const { data: recipientCounts, isLoading: isLoadingCounts, refetch: refetchCounts } = useQuery({
@@ -364,7 +364,8 @@ function EmailBroadcastPage() {
         subject,
         listContent,
         additionalMessage,
-        greetings,
+        signoff,
+        greetings: signoff,
         messageContent: listContent,
         fromEmail: activeSender,
         fromName,
@@ -405,7 +406,8 @@ function EmailBroadcastPage() {
         subject,
         listContent,
         additionalMessage,
-        greetings,
+        signoff,
+        greetings: signoff,
         messageContent: listContent,
       };
 
@@ -670,6 +672,7 @@ function EmailBroadcastPage() {
     const newRecipient: ImportedRecipient = {
       email: trimmedEmail,
       name: trimmedName || undefined,
+      businessName: trimmedName || undefined,
       firstName: trimmedName ? trimmedName.split(' ')[0] : undefined,
     };
 
@@ -730,13 +733,13 @@ function EmailBroadcastPage() {
       return;
     }
 
-    if (activeFocusField === 'greetings' && greetingsRef.current) {
-      const el = greetingsRef.current;
+    if (activeFocusField === 'signoff' && signoffRef.current) {
+      const el = signoffRef.current;
       const start = el.selectionStart;
       const end = el.selectionEnd;
-      const prev = greetings;
+      const prev = signoff;
       const next = prev.substring(0, start) + tag + prev.substring(end);
-      setGreetings(next);
+      setSignoff(next);
       setTimeout(() => {
         el.focus();
         el.setSelectionRange(start + tag.length, start + tag.length);
@@ -866,8 +869,7 @@ function EmailBroadcastPage() {
     return JSON.stringify(
       {
         subject: subject || 'subject_value',
-        signoff: greetings || 'Regards,\nThe Stablestack Team.',
-        greetings: greetings || 'Regards,\nThe Stablestack Team.',
+        signoff: signoff || 'Regards,\nThe Stablestack Team.',
         User_name: 'Gabriel',
         user_name: 'Gabriel',
         list_content: listContent || 'list_content_value',
@@ -876,18 +878,18 @@ function EmailBroadcastPage() {
       null,
       2
     );
-  }, [subject, listContent, additionalMessage, greetings]);
+  }, [subject, listContent, additionalMessage, signoff]);
 
   // Live compiled preview matching the exact Zoho ZeptoMail Generic Notification Template layout
   const compiledPreviewHtml = useMemo(() => {
-    const defaultDynamicGreeting = greetings || 'Regards,\nThe Stablestack Team.';
+    const defaultDynamicSignoff = signoff || 'Regards,\nThe Stablestack Team.';
     const formatMergeTags = (text: string) => {
       if (!text) return '';
       return text
-        .replace(/\{\{greetings\}\}/gi, defaultDynamicGreeting)
-        .replace(/\{\{greeting\}\}/gi, defaultDynamicGreeting)
-        .replace(/\{\{signoff\}\}/gi, defaultDynamicGreeting)
-        .replace(/\{\{sign_off\}\}/gi, defaultDynamicGreeting)
+        .replace(/\{\{signoff\}\}/gi, defaultDynamicSignoff)
+        .replace(/\{\{sign_off\}\}/gi, defaultDynamicSignoff)
+        .replace(/\{\{greetings\}\}/gi, defaultDynamicSignoff)
+        .replace(/\{\{greeting\}\}/gi, defaultDynamicSignoff)
         .replace(/\{\{user_name\}\}/gi, 'Gabriel')
         .replace(/\{\{User_name\}\}/gi, 'Gabriel')
         .replace(/\{\{first_name\}\}/gi, 'Gabriel')
@@ -903,7 +905,7 @@ function EmailBroadcastPage() {
     const formattedListContent = formatMergeTags(listContent);
     const formattedAdditional = formatMergeTags(additionalMessage).replace(/\n/g, '<br/>');
     const displaySubject = subject || '{{subject}}';
-    const formattedGreetings = defaultDynamicGreeting
+    const formattedSignoff = defaultDynamicSignoff
       .split('\n')
       .map((line, idx) =>
         idx === 0
@@ -1117,13 +1119,13 @@ function EmailBroadcastPage() {
       }
 
       <div class="signoff">
-        ${formattedGreetings}
+        ${formattedSignoff}
       </div>
     </div>
   </div>
 </body>
 </html>`;
-  }, [subject, listContent, additionalMessage, greetings]);
+  }, [subject, listContent, additionalMessage, signoff]);
 
   if (!isFullAccess && !canRead('emails')) {
     return (
@@ -1543,13 +1545,13 @@ function EmailBroadcastPage() {
 
                           <div>
                             <label className="block text-[11px] font-medium text-ink mb-1">
-                              Recipient or Business Name <span className="text-slate font-normal">(Optional)</span>
+                              Business Name (<code>businessName</code>) <span className="text-slate font-normal">(Optional)</span>
                             </label>
                             <input
                               type="text"
                               value={manualRecipientName}
                               onChange={(e) => setManualRecipientName(e.target.value)}
-                              placeholder="e.g. Alex Johnson or Acme Corp"
+                              placeholder="e.g. Acme Corporation or Vertex Financials"
                               className="input bg-vellum/30 text-xs w-full py-2"
                             />
                           </div>
@@ -1564,7 +1566,7 @@ function EmailBroadcastPage() {
 
                         <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
                           <span className="text-[11px] text-slate">
-                            Names personalize <code>{'{{user_name}}'}</code>, <code>{'{{first_name}}'}</code>, and <code>{'{{greetings}}'}</code>
+                            Business names personalize <code>{'{{user_name}}'}</code>, <code>{'{{company}}'}</code>, and <code>{'{{first_name}}'}</code>
                           </span>
 
                           <button
@@ -1585,7 +1587,7 @@ function EmailBroadcastPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-medium text-ink">
-                          Paste Email Addresses & Names
+                          Paste Email Addresses & Business Names
                         </label>
                         <span className="text-[11px] text-slate">
                           Supports comma, space, tab, or angle brackets
@@ -1598,11 +1600,11 @@ function EmailBroadcastPage() {
                           setRawPastedEmails(e.target.value);
                           parseImportText(e.target.value);
                         }}
-                        placeholder={"john@example.com, John Doe\njane@acme.com, Jane Smith\nAlex Johnson <alex@company.com>\nbob@example.com"}
+                        placeholder={"john@example.com, Acme Corporation\njane@acme.com, Vertex Financials\nGlobex Payments <billing@globex.com>\nbob@example.com"}
                         className="input bg-paper font-mono text-xs w-full resize-y"
                       />
                       <p className="text-[11px] text-slate">
-                        Format examples: <code>email, name</code>, <code>name, email</code>, <code>email name</code>, or <code>Name &lt;email&gt;</code> (one per line).
+                        Format examples: <code>email, businessName</code>, <code>businessName, email</code>, <code>email businessName</code>, or <code>businessName &lt;email&gt;</code> (one per line).
                       </p>
                     </div>
                   )}
@@ -1957,7 +1959,7 @@ function EmailBroadcastPage() {
                         setSubject(preset.subject);
                         setListContent(preset.listContent);
                         setAdditionalMessage(preset.additionalMessage);
-                        setGreetings(preset.greetings || 'Regards,\nThe Stablestack Team.');
+                        setSignoff(preset.signoff || 'Regards,\nThe Stablestack Team.');
                         toast.info(`Loaded preset: ${preset.name}`);
                       }}
                       className="text-[11px] px-2 py-0.5 rounded border border-graphite-hairline bg-paper hover:bg-vellum text-ink transition-colors cursor-pointer"
@@ -1971,7 +1973,7 @@ function EmailBroadcastPage() {
                       setSubject('');
                       setListContent('');
                       setAdditionalMessage('');
-                      setGreetings('Regards,\nThe Stablestack Team.');
+                      setSignoff('Regards,\nThe Stablestack Team.');
                       toast.info('Composer fields cleared');
                     }}
                     className="text-[11px] px-2 py-0.5 rounded border border-graphite-hairline bg-paper hover:bg-red-50 hover:text-red-600 text-slate transition-colors cursor-pointer"
@@ -2068,31 +2070,31 @@ function EmailBroadcastPage() {
                 </p>
               </div>
 
-              {/* Closing Sign-off (Maps to {{signoff}} / {{greetings}}) */}
+              {/* Closing Sign-off (Maps to {{signoff}}) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-medium text-ink">
-                    Closing Sign-off (<code>{"{{signoff}}"}</code> / <code>{"{{greetings}}"}</code>) <span className="text-slate font-normal">(Dynamic)</span>
+                    Closing Sign-off (<code>{"{{signoff}}"}</code>) <span className="text-slate font-normal">(Dynamic)</span>
                   </label>
                   <button
                     type="button"
-                    onClick={() => setGreetings("Regards,\nThe Stablestack Team.")}
+                    onClick={() => setSignoff("Regards,\nThe Stablestack Team.")}
                     className="text-[10px] text-emerald-700 hover:underline cursor-pointer"
                   >
                     Reset to Default
                   </button>
                 </div>
                 <textarea
-                  ref={greetingsRef}
+                  ref={signoffRef}
                   rows={2}
-                  onFocus={() => setActiveFocusField('greetings')}
-                  value={greetings}
-                  onChange={(e) => setGreetings(e.target.value)}
+                  onFocus={() => setActiveFocusField('signoff')}
+                  value={signoff}
+                  onChange={(e) => setSignoff(e.target.value)}
                   placeholder="Regards,&#10;The Stablestack Team."
                   className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-slate mt-1">
-                  Dynamic closing sign-off injected into <code>{"{{signoff}}"}</code> (or <code>{"{{greetings}}"}</code>) at the bottom of the template.
+                  Dynamic closing sign-off injected into <code>{"{{signoff}}"}</code> at the bottom of the template.
                 </p>
               </div>
             </div>
@@ -2357,7 +2359,7 @@ function EmailBroadcastPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate">Sign-off:</span>
-              <span className="font-mono text-ink truncate max-w-[200px]">{greetings.replace(/\n/g, ' ')}</span>
+              <span className="font-mono text-ink truncate max-w-[200px]">{signoff.replace(/\n/g, ' ')}</span>
             </div>
           </div>
 
