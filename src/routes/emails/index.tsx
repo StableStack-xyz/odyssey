@@ -69,6 +69,7 @@ interface ImportedRecipient {
   firstName?: string;
   lastName?: string;
   businessName?: string;
+  status?: 'valid' | 'invalid' | 'duplicate';
 }
 
 const VERIFIED_SENDERS = [
@@ -112,9 +113,10 @@ const ZEPTO_TEMPLATES = [
 
 const MERGE_TAGS = [
   { tag: '{{signoff}}', label: 'Closing Sign-off ({{signoff}})' },
-  { tag: '{{user_name}}', label: 'Business / Recipient Name' },
+  { tag: '{{businessName}}', label: 'Business Name ({{businessName}})' },
+  { tag: '{{user_name}}', label: 'Business / Recipient Name ({{user_name}})' },
+  { tag: '{{company}}', label: 'Company / Business ({{company}})' },
   { tag: '{{first_name}}', label: 'First Name' },
-  { tag: '{{company}}', label: 'Company / Business' },
   { tag: '{{email}}', label: 'Email' },
   { tag: '{{date}}', label: 'Current Date' },
 ];
@@ -366,6 +368,7 @@ function EmailBroadcastPage() {
         additionalMessage,
         signoff,
         greetings: signoff,
+        businessName: previewBusinessName,
         messageContent: listContent,
         fromEmail: activeSender,
         fromName,
@@ -864,21 +867,45 @@ function EmailBroadcastPage() {
     return parts.join(' • ');
   };
 
+  // Selected sample business recipient for merge tags & greeting demonstration
+  const previewBusinessName = useMemo(() => {
+    if (targetType === 'imported' && importedList.length > 0) {
+      const match = importedList.find((r) => r.businessName?.trim() || r.name?.trim());
+      if (match?.businessName?.trim()) {
+        return match.businessName.trim();
+      }
+      if (match?.name?.trim()) {
+        return match.name.trim();
+      }
+    }
+    return 'Acme Corporation';
+  }, [targetType, importedList]);
+
+  const previewEmail = useMemo(() => {
+    if (targetType === 'imported' && importedList.length > 0) {
+      const match = importedList.find((r) => r.email?.trim());
+      if (match?.email?.trim()) return match.email.trim();
+    }
+    return 'contact@acmecorp.com';
+  }, [targetType, importedList]);
+
   // JSON Merge Info representation (matching ZeptoMail console)
   const mergeInfoJson = useMemo(() => {
     return JSON.stringify(
       {
         subject: subject || 'subject_value',
         signoff: signoff || 'Regards,\nThe Stablestack Team.',
-        User_name: 'Gabriel',
-        user_name: 'Gabriel',
+        User_name: previewBusinessName,
+        user_name: previewBusinessName,
+        businessName: previewBusinessName,
+        company: previewBusinessName,
         list_content: listContent || 'list_content_value',
         additional_message: additionalMessage || 'additional_message_value',
       },
       null,
       2
     );
-  }, [subject, listContent, additionalMessage, signoff]);
+  }, [subject, listContent, additionalMessage, signoff, previewBusinessName]);
 
   // Live compiled preview matching the exact Zoho ZeptoMail Generic Notification Template layout
   const compiledPreviewHtml = useMemo(() => {
@@ -890,12 +917,14 @@ function EmailBroadcastPage() {
         .replace(/\{\{sign_off\}\}/gi, defaultDynamicSignoff)
         .replace(/\{\{greetings\}\}/gi, defaultDynamicSignoff)
         .replace(/\{\{greeting\}\}/gi, defaultDynamicSignoff)
-        .replace(/\{\{user_name\}\}/gi, 'Gabriel')
-        .replace(/\{\{User_name\}\}/gi, 'Gabriel')
-        .replace(/\{\{first_name\}\}/gi, 'Gabriel')
-        .replace(/\{\{name\}\}/gi, 'Gabriel Ajenifuja')
-        .replace(/\{\{email\}\}/gi, 'gabriel@stablestack.xyz')
-        .replace(/\{\{company\}\}/gi, 'Acme Global Corp')
+        .replace(/\{\{user_name\}\}/gi, previewBusinessName)
+        .replace(/\{\{User_name\}\}/gi, previewBusinessName)
+        .replace(/\{\{businessName\}\}/gi, previewBusinessName)
+        .replace(/\{\{business_name\}\}/gi, previewBusinessName)
+        .replace(/\{\{company\}\}/gi, previewBusinessName)
+        .replace(/\{\{name\}\}/gi, previewBusinessName)
+        .replace(/\{\{first_name\}\}/gi, previewBusinessName.split(' ')[0])
+        .replace(/\{\{email\}\}/gi, previewEmail)
         .replace(
           /\{\{date\}\}/gi,
           new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1106,7 +1135,7 @@ function EmailBroadcastPage() {
 
     <!-- Main White Card Body -->
     <div class="body-content">
-      <div class="greeting">Hi Gabriel,</div>
+      <div class="greeting">Hi ${previewBusinessName},</div>
 
       <div class="list-content-box">
         ${formattedListContent || '<span style="color: #94a3b8; font-style: italic;">{{list_content}} placeholder</span>'}
@@ -1125,7 +1154,7 @@ function EmailBroadcastPage() {
   </div>
 </body>
 </html>`;
-  }, [subject, listContent, additionalMessage, signoff]);
+  }, [subject, listContent, additionalMessage, signoff, previewBusinessName, previewEmail]);
 
   if (!isFullAccess && !canRead('emails')) {
     return (
@@ -2217,13 +2246,13 @@ function EmailBroadcastPage() {
                   </pre>
                   <p className="text-[10px] text-slate leading-relaxed">
                     This JSON payload exactly matches the merge tags defined in your ZeptoMail console:
-                    <code>subject</code>, <code>user_name</code>, <code>list_content</code>, and <code>additional_message</code>.
+                    <code>subject</code>, <code>signoff</code>, <code>user_name</code>, <code>businessName</code>, <code>list_content</code>, and <code>additional_message</code>.
                   </p>
                 </div>
               )}
 
               <p className="text-[11px] text-slate text-center">
-                Preview reflects recipient <code>Gabriel</code> for merge tag demonstration.
+                Preview reflects business recipient <code>{previewBusinessName}</code> for merge tag demonstration.
               </p>
             </div>
           </div>
