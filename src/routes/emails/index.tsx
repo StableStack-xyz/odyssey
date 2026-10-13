@@ -23,7 +23,9 @@ import {
   X,
   ExternalLink,
   Tag,
-  Plus,
+  Code,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { toast } from 'sonner';
@@ -43,7 +45,7 @@ export const Route = createFileRoute('/emails/')({
   head: () => ({
     meta: [
       { title: `Email Campaigns & Broadcasts - ${APP_NAME}` },
-      { name: 'description', content: 'Bulk emailing system using Zoho ZeptoMail' },
+      { name: 'description', content: 'Bulk emailing system using Zoho ZeptoMail Generic Notification Template' },
     ],
   }),
   component: EmailBroadcastPage,
@@ -65,57 +67,41 @@ const VERIFIED_SENDERS = [
 
 const TEMPLATE_PRESETS = [
   {
-    name: 'General Announcement',
+    name: 'Platform Update',
     subject: 'Important Platform Update from StableStack',
-    preheader: 'Important improvements and updates regarding your StableStack account.',
-    bodyHtml: `<h3>Hello {{first_name}},</h3>
-<p>We are writing to share an important update regarding our platform features and infrastructure improvements.</p>
-<p>Over the past few weeks, we have rolled out several enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable.</p>
-<ul>
-  <li><strong>Instant Settlement:</strong> Higher throughput across supported payout corridors.</li>
-  <li><strong>Real-Time Monitoring:</strong> Improved transaction tracking and reporting.</li>
-  <li><strong>Enhanced Security:</strong> Strengthened compliance verification and account safeguards.</li>
-</ul>
-<p>If you have any questions, our support team is available 24/7 to assist you.</p>`,
-    ctaText: 'View Dashboard',
-    ctaUrl: 'https://stablestack.xyz',
+    listContent: `We have rolled out several infrastructure enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable:
+
+• Instant Settlement: Higher throughput across supported payout corridors.
+• Real-Time Monitoring: Improved transaction tracking and instant status webhooks.
+• Enhanced Security: Strengthened compliance verification and account safeguards.`,
+    additionalMessage: 'If you have any questions or require custom limits, our 24/7 engineering and support team is always available to assist you.',
   },
   {
     name: 'Scheduled Maintenance',
     subject: 'Notice of Scheduled System Maintenance',
-    preheader: 'Please be advised of upcoming maintenance on our payment rails.',
-    bodyHtml: `<h3>Dear {{first_name}},</h3>
-<p>Please be advised that we will be performing routine system maintenance on our processing infrastructure to enhance stability and performance.</p>
-<blockquote><strong>Maintenance Window:</strong> Sunday, 02:00 AM – 04:00 AM UTC</blockquote>
-<p>During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.</p>
-<p>Thank you for your patience and partnership.</p>`,
-    ctaText: 'System Status',
-    ctaUrl: 'https://status.stablestack.xyz',
+    listContent: `Please be advised that we will be performing routine system maintenance on our payment processing rails.
+
+Maintenance Window: Sunday, 02:00 AM – 04:00 AM UTC
+
+During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.`,
+    additionalMessage: 'No action is required on your part. Thank you for your patience and partnership.',
   },
   {
-    name: 'Compliance / Verification',
+    name: 'Compliance Verification',
     subject: 'Action Required: Verify Account Information',
-    preheader: 'Please review and confirm your compliance profile.',
-    bodyHtml: `<h3>Hi {{first_name}},</h3>
-<p>As part of our periodic compliance review and regulatory obligations, we kindly ask you to review your account details and ensure your business records are fully up to date.</p>
-<p>Keeping your profile verified ensures uninterrupted access to all payment corridors and high-volume limits.</p>`,
-    ctaText: 'Review Profile',
-    ctaUrl: 'https://stablestack.xyz/onboarding',
+    listContent: `As part of our periodic regulatory compliance review, please review your account details and ensure your business records are fully up to date to maintain uninterrupted high-volume processing.`,
+    additionalMessage: 'Please log in to your StableStack account settings to verify or update your compliance documents.',
   },
 ];
 
 const ZEPTO_TEMPLATES = [
-  { key: 'generic-template', name: 'Generic Notification Template (Empty Body Container)' },
-  { key: 'compliance-template', name: 'Compliance Template' },
-  { key: 'welcome-template', name: 'Welcome Template' },
-  { key: 'verify-your-account-template', name: 'Verify Your Account Template' },
-  { key: 'custom', name: '+ Custom ZeptoMail Template Key / Alias' },
+  { key: 'generic-notification-template', name: 'Generic Notification Template (Active in ZeptoMail)' },
+  { key: 'custom', name: '+ Enter Custom ZeptoMail Template Key / Alias' },
 ];
 
 const MERGE_TAGS = [
+  { tag: '{{user_name}}', label: 'Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
-  { tag: '{{last_name}}', label: 'Last Name' },
-  { tag: '{{name}}', label: 'Full Name' },
   { tag: '{{email}}', label: 'Email' },
   { tag: '{{company}}', label: 'Company / Business' },
   { tag: '{{date}}', label: 'Current Date' },
@@ -125,7 +111,7 @@ function EmailBroadcastPage() {
   const { user: currentAdmin, isFullAccess, canRead, canWrite } = usePermissions();
 
   // ZeptoMail template state
-  const [selectedTemplate, setSelectedTemplate] = useState('generic-template');
+  const [selectedTemplate, setSelectedTemplate] = useState('generic-notification-template');
   const [customTemplateKey, setCustomTemplateKey] = useState('');
 
   // Target mode state
@@ -139,23 +125,22 @@ function EmailBroadcastPage() {
   const [csvFileName, setCsvFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Email composer form state
+  // Email sender settings
   const [fromEmail, setFromEmail] = useState('hello@stablestack.xyz');
   const [customFromEmail, setCustomFromEmail] = useState('');
-  const [fromName, setFromName] = useState('Stablestack');
+  const [fromName, setFromName] = useState('StableStack');
   const [replyTo, setReplyTo] = useState('');
   const [ccList, setCcList] = useState('');
-  const [bccList, setBccList] = useState('');
 
-  const [subject, setSubject] = useState('Important Platform Update from StableStack');
-  const [preheader, setPreheader] = useState('Important improvements and updates regarding your StableStack account.');
-  const [bodyHtml, setBodyHtml] = useState(TEMPLATE_PRESETS[0].bodyHtml);
-  const [enableCta, setEnableCta] = useState(true);
-  const [ctaText, setCtaText] = useState('View Dashboard');
-  const [ctaUrl, setCtaUrl] = useState('https://stablestack.xyz');
+  // Template merge fields matching ZeptoMail Generic Notification Template
+  const [subject, setSubject] = useState(TEMPLATE_PRESETS[0].subject);
+  const [listContent, setListContent] = useState(TEMPLATE_PRESETS[0].listContent);
+  const [additionalMessage, setAdditionalMessage] = useState(TEMPLATE_PRESETS[0].additionalMessage);
 
-  // Preview device state
+  // Preview tab & device state
+  const [previewTab, setPreviewTab] = useState<'visual' | 'json'>('visual');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [copiedJson, setCopiedJson] = useState(false);
 
   // Modals state
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
@@ -163,8 +148,10 @@ function EmailBroadcastPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [sendResult, setSendResult] = useState<any | null>(null);
 
-  // Textarea ref for inserting merge tags
-  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Textarea refs
+  const listContentRef = useRef<HTMLTextAreaElement>(null);
+  const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
+  const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage'>('listContent');
 
   // Fetch platform user counts
   const { data: recipientCounts, isLoading: isLoadingCounts, refetch: refetchCounts } = useQuery({
@@ -185,16 +172,13 @@ function EmailBroadcastPage() {
         toEmail: testEmailAddress,
         templateKey: activeTemplateKey,
         subject,
-        messageContent: bodyHtml,
-        preheader,
-        bodyHtml,
+        listContent,
+        additionalMessage,
+        messageContent: listContent,
         fromEmail: activeSender,
         fromName,
         replyTo: replyTo || undefined,
         cc: ccList ? ccList.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
-        bcc: bccList ? bccList.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
-        ctaText: enableCta ? ctaText : '',
-        ctaUrl: enableCta ? ctaUrl : '',
       });
       return res.data;
     },
@@ -221,13 +205,10 @@ function EmailBroadcastPage() {
         fromName,
         replyTo: replyTo || undefined,
         cc: ccList ? ccList.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
-        bcc: bccList ? bccList.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
         subject,
-        messageContent: bodyHtml,
-        preheader,
-        bodyHtml,
-        ctaText: enableCta ? ctaText : '',
-        ctaUrl: enableCta ? ctaUrl : '',
+        listContent,
+        additionalMessage,
+        messageContent: listContent,
       };
 
       const res = await authApi.post('/api/users/auth/broadcast/send', payload);
@@ -236,7 +217,7 @@ function EmailBroadcastPage() {
     onSuccess: (data) => {
       setSendResult(data);
       setIsConfirmModalOpen(false);
-      toast.success(`Broadcast finished: ${data?.sent || 0} sent, ${data?.failed || 0} failed`);
+      toast.success(`Broadcast completed: ${data?.sent || 0} sent, ${data?.failed || 0} failed`);
     },
     onError: (err: any) => {
       setIsConfirmModalOpen(false);
@@ -272,7 +253,6 @@ function EmailBroadcastPage() {
     let duplicateCount = 0;
     let invalidCount = 0;
 
-    // Check if first line is CSV header
     let hasHeader = false;
     let emailIdx = 0;
     let nameIdx = -1;
@@ -308,7 +288,6 @@ function EmailBroadcastPage() {
 
       email = email.toLowerCase().trim();
 
-      // Basic regex check
       const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       if (!isValidEmail) {
         invalidCount++;
@@ -336,23 +315,36 @@ function EmailBroadcastPage() {
     });
   };
 
-  // Insert merge tag at current cursor position
+  // Insert merge tag at active field cursor
   const insertMergeTag = (tag: string) => {
-    if (!bodyTextareaRef.current) {
-      setBodyHtml((prev) => prev + ` ${tag}`);
+    if (activeFocusField === 'additionalMessage' && additionalMessageRef.current) {
+      const el = additionalMessageRef.current;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const prev = additionalMessage;
+      const next = prev.substring(0, start) + tag + prev.substring(end);
+      setAdditionalMessage(next);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + tag.length, start + tag.length);
+      }, 50);
       return;
     }
-    const el = bodyTextareaRef.current;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const prev = bodyHtml;
-    const next = prev.substring(0, start) + tag + prev.substring(end);
-    setBodyHtml(next);
 
-    setTimeout(() => {
-      el.focus();
-      el.setSelectionRange(start + tag.length, start + tag.length);
-    }, 50);
+    if (listContentRef.current) {
+      const el = listContentRef.current;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const prev = listContent;
+      const next = prev.substring(0, start) + tag + prev.substring(end);
+      setListContent(next);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + tag.length, start + tag.length);
+      }, 50);
+    } else {
+      setListContent((prev) => prev + ` ${tag}`);
+    }
   };
 
   // Selected recipient count
@@ -367,58 +359,202 @@ function EmailBroadcastPage() {
     return recipientCounts.total || 0;
   }, [targetType, importedList, platformFilter, recipientCounts]);
 
-  // Live compiled preview HTML
+  // JSON Merge Info representation (matching ZeptoMail console)
+  const mergeInfoJson = useMemo(() => {
+    return JSON.stringify(
+      {
+        subject: subject || 'subject_value',
+        user_name: 'user_name_value',
+        list_content: listContent || 'list_content_value',
+        additional_message: additionalMessage || 'additional_message_value',
+      },
+      null,
+      2
+    );
+  }, [subject, listContent, additionalMessage]);
+
+  // Live compiled preview matching the exact Zoho ZeptoMail Generic Notification Template layout
   const compiledPreviewHtml = useMemo(() => {
-    let replaced = bodyHtml
-      .replace(/\{\{first_name\}\}/gi, 'Gabriel')
-      .replace(/\{\{last_name\}\}/gi, 'Ajenifuja')
-      .replace(/\{\{name\}\}/gi, 'Gabriel Ajenifuja')
-      .replace(/\{\{email\}\}/gi, 'gabriel@stablestack.xyz')
-      .replace(/\{\{company\}\}/gi, 'Acme Global Corp')
-      .replace(/\{\{business_name\}\}/gi, 'Acme Global Corp')
-      .replace(
-        /\{\{date\}\}/gi,
-        new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      );
+    const formatContent = (text: string) => {
+      if (!text) return '';
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n\n/g, '<br/><br/>')
+        .replace(/\n/g, '<br/>')
+        .replace(/\{\{user_name\}\}/gi, 'Gabriel')
+        .replace(/\{\{first_name\}\}/gi, 'Gabriel')
+        .replace(/\{\{name\}\}/gi, 'Gabriel Ajenifuja')
+        .replace(/\{\{email\}\}/gi, 'gabriel@stablestack.xyz')
+        .replace(/\{\{company\}\}/gi, 'Acme Global Corp')
+        .replace(
+          /\{\{date\}\}/gi,
+          new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        );
+    };
+
+    const formattedListContent = formatContent(listContent);
+    const formattedAdditional = formatContent(additionalMessage);
+    const displaySubject = subject || '{{subject}}';
 
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f6f6f9; color: #1a1a24; }
-    .card { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e7e7ed; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-    .header { background: #0b091a; padding: 24px; text-align: center; }
-    .body { padding: 32px 28px; font-size: 14.5px; line-height: 1.65; color: #2b2b36; }
-    .body h1, .body h2, .body h3 { color: #0b091a; margin-top: 0; margin-bottom: 12px; }
-    .body p { margin: 0 0 14px 0; }
-    .body ul, .body ol { margin: 0 0 14px 0; padding-left: 20px; }
-    .body li { margin-bottom: 6px; }
-    .body blockquote { margin: 16px 0; padding: 10px 16px; background-color: #f8fafc; border-left: 3px solid #10b981; font-style: italic; color: #475569; }
-    .body a { color: #10b981; text-decoration: underline; }
-    .cta-wrap { text-align: center; margin: 28px 0 16px 0; }
-    .cta-btn { display: inline-block; padding: 12px 28px; background-color: #10b981; color: #ffffff !important; text-decoration: none !important; font-weight: 600; font-size: 14px; border-radius: 9999px; }
-    .footer { background: #fafafc; border-top: 1px solid #ededf2; padding: 24px 28px; text-align: center; font-size: 11.5px; color: #717184; }
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8f9fa;
+      color: #1a1a24;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      max-width: 580px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e9ecef;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+    /* Light Lavender Header with watermark effect matching ZeptoMail template */
+    .header {
+      background: #f4effb;
+      position: relative;
+      padding: 36px 36px 32px 36px;
+      overflow: hidden;
+    }
+    .header-watermark {
+      position: absolute;
+      right: -20px;
+      top: -20px;
+      width: 190px;
+      height: 190px;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 24px;
+    }
+    .logo-text {
+      font-size: 21px;
+      font-weight: 800;
+      color: #24133d;
+      letter-spacing: -0.02em;
+    }
+    .notification-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6326a6;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .subject-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #1c0c38;
+      margin: 0;
+      word-break: break-word;
+    }
+    /* Content Area */
+    .body-content {
+      padding: 32px 36px 36px 36px;
+      background-color: #ffffff;
+    }
+    .greeting {
+      font-size: 15px;
+      font-weight: 500;
+      color: #2d3748;
+      margin-bottom: 20px;
+    }
+    /* The Highlighted Gray Container Box for {{list_content}} */
+    .list-content-box {
+      background-color: #f8fafc;
+      border: 1px solid #f1f5f9;
+      border-radius: 10px;
+      padding: 20px 22px;
+      font-size: 14.5px;
+      line-height: 1.65;
+      color: #334155;
+      margin-bottom: 22px;
+      word-break: break-word;
+    }
+    /* The Additional Message below the Box */
+    .additional-message {
+      font-size: 14.5px;
+      line-height: 1.65;
+      color: #475569;
+      margin-bottom: 26px;
+      word-break: break-word;
+    }
+    /* Regards & Signoff */
+    .signoff {
+      margin-top: 24px;
+      font-size: 14.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .signoff-brand {
+      font-weight: 700;
+      color: #551e96;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="wrapper">
+    <!-- Header Card -->
     <div class="header">
-      <img src="https://res.cloudinary.com/dmllysomu/image/upload/v1774460775/stablestack-logo_my8fxq.png" alt="StableStack" width="120" style="display: block; margin: 0 auto;" />
+      <!-- Watermark shape -->
+      <svg class="header-watermark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="70" y="20" width="120" height="120" rx="36" transform="rotate(25 70 20)" fill="#7c3aed" />
+        <rect x="110" y="60" width="90" height="90" rx="28" transform="rotate(25 110 60)" fill="#6d28d9" />
+      </svg>
+
+      <div class="logo-row">
+        <!-- SVG StableStack Purple Rings Logo -->
+        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="20" cy="20" rx="17" ry="9" stroke="#6d28d9" stroke-width="3.5" transform="rotate(-25 20 20)"/>
+          <ellipse cx="20" cy="20" rx="17" ry="9" stroke="#a78bfa" stroke-width="3.5" transform="rotate(25 20 20)"/>
+        </svg>
+        <span class="logo-text">StableStack</span>
+      </div>
+
+      <div class="notification-label">NOTIFICATION:</div>
+      <h1 class="subject-title">${displaySubject}</h1>
     </div>
-    <div class="body">
-      ${replaced}
-      ${enableCta && ctaUrl && ctaText ? `<div class="cta-wrap"><a href="${ctaUrl}" class="cta-btn">${ctaText}</a></div>` : ''}
-    </div>
-    <div class="footer">
-      <p style="margin: 0 0 6px 0; font-weight: 500; color: #4b4b5c;">StableStack Inc. &bull; Enterprise Stablecoin Infrastructure</p>
-      <p style="margin: 0 0 6px 0;">Questions? Contact support@stablestack.xyz</p>
-      <p style="margin: 0; color: #9494a6;">&copy; ${new Date().getFullYear()} StableStack. All rights reserved.</p>
+
+    <!-- Main White Card Body -->
+    <div class="body-content">
+      <div class="greeting">Hi Gabriel,</div>
+
+      <div class="list-content-box">
+        ${formattedListContent || '<span style="color: #94a3b8; font-style: italic;">{{list_content}} placeholder</span>'}
+      </div>
+
+      ${
+        formattedAdditional
+          ? `<div class="additional-message">${formattedAdditional}</div>`
+          : ''
+      }
+
+      <div class="signoff">
+        <div>Regards,</div>
+        <div class="signoff-brand">The Stablestack Team</div>
+      </div>
     </div>
   </div>
 </body>
 </html>`;
-  }, [bodyHtml, enableCta, ctaText, ctaUrl]);
+  }, [subject, listContent, additionalMessage]);
 
   if (!isFullAccess && !canRead('emails')) {
     return (
@@ -443,7 +579,7 @@ function EmailBroadcastPage() {
               </h1>
             </div>
             <p className="text-xs text-slate mt-1">
-              Dispatch bulk transactional & announcement emails via Zoho ZeptoMail using the Master Branded Shell.
+              Dispatch bulk announcements and transactional updates using Zoho ZeptoMail <strong>Generic Notification Template</strong>.
             </p>
           </div>
 
@@ -462,8 +598,8 @@ function EmailBroadcastPage() {
                   toast.error('Please enter an email subject line');
                   return;
                 }
-                if (!bodyHtml.trim()) {
-                  toast.error('Please enter email body content');
+                if (!listContent.trim()) {
+                  toast.error('Please enter notification body content (list_content)');
                   return;
                 }
                 if (estimatedCount === 0) {
@@ -532,7 +668,7 @@ function EmailBroadcastPage() {
                 <button
                   type="button"
                   onClick={() => setTargetType('platform_users')}
-                  className={`py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  className={`py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     targetType === 'platform_users'
                       ? 'bg-ink text-paper shadow-sm'
                       : 'text-slate hover:text-ink'
@@ -544,7 +680,7 @@ function EmailBroadcastPage() {
                 <button
                   type="button"
                   onClick={() => setTargetType('imported')}
-                  className={`py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                  className={`py-2 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     targetType === 'imported'
                       ? 'bg-ink text-paper shadow-sm'
                       : 'text-slate hover:text-ink'
@@ -658,7 +794,7 @@ function EmailBroadcastPage() {
                 <span className="w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold flex items-center justify-center">
                   2
                 </span>
-                <h3 className="text-sm font-semibold text-ink">Sender & Routing Options</h3>
+                <h3 className="text-sm font-semibold text-ink">Sender & Template Configuration</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -714,7 +850,7 @@ function EmailBroadcastPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-ink mb-1">
-                    CC Email (Optional)
+                    CC Email Address (Optional)
                   </label>
                   <input
                     type="text"
@@ -724,13 +860,13 @@ function EmailBroadcastPage() {
                     className="input bg-paper text-xs"
                   />
                   <p className="text-[10px] text-slate mt-0.5">
-                    Comma-separated emails to receive a CC of the dispatch.
+                    Comma-separated emails to receive a CC copy of each dispatch.
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-ink mb-1">
-                    Reply-To (Optional)
+                    Reply-To Address (Optional)
                   </label>
                   <input
                     type="email"
@@ -747,12 +883,12 @@ function EmailBroadcastPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-ink mb-1">
-                      ZeptoMail Host Template <span className="text-red-500">*</span>
+                      Zoho ZeptoMail Template <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={selectedTemplate}
                       onChange={(e) => setSelectedTemplate(e.target.value)}
-                      className="input bg-paper text-xs cursor-pointer"
+                      className="input bg-paper text-xs cursor-pointer font-medium"
                     >
                       {ZEPTO_TEMPLATES.map((t) => (
                         <option key={t.key} value={t.key}>
@@ -761,7 +897,7 @@ function EmailBroadcastPage() {
                       ))}
                     </select>
                     <p className="text-[10px] text-slate mt-0.5">
-                      The shell template in Zoho ZeptoMail that content will be pushed into.
+                      Target template in Zoho ZeptoMail containing <code>subject</code>, <code>user_name</code>, <code>list_content</code> & <code>additional_message</code>.
                     </p>
                   </div>
 
@@ -778,6 +914,9 @@ function EmailBroadcastPage() {
                         placeholder="e.g. 2d6f.7... or template_alias"
                         className="input bg-paper font-mono text-xs"
                       />
+                      <p className="text-[10px] text-slate mt-0.5">
+                        Found under "Single email setup" or "Batch email setup" in ZeptoMail.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -791,7 +930,7 @@ function EmailBroadcastPage() {
                   <span className="w-5 h-5 rounded-full bg-ink text-paper text-[11px] font-bold flex items-center justify-center">
                     3
                   </span>
-                  <h3 className="text-sm font-semibold text-ink">Message Composer</h3>
+                  <h3 className="text-sm font-semibold text-ink">Template Content Composer</h3>
                 </div>
 
                 {/* Preset Templates Dropdown */}
@@ -803,10 +942,8 @@ function EmailBroadcastPage() {
                       type="button"
                       onClick={() => {
                         setSubject(preset.subject);
-                        setPreheader(preset.preheader);
-                        setBodyHtml(preset.bodyHtml);
-                        setCtaText(preset.ctaText);
-                        setCtaUrl(preset.ctaUrl);
+                        setListContent(preset.listContent);
+                        setAdditionalMessage(preset.additionalMessage);
                         toast.info(`Loaded preset: ${preset.name}`);
                       }}
                       className="text-[11px] px-2 py-0.5 rounded border border-graphite-hairline bg-paper hover:bg-vellum text-ink transition-colors cursor-pointer"
@@ -817,44 +954,32 @@ function EmailBroadcastPage() {
                 </div>
               </div>
 
-              {/* Subject & Preheader */}
-              <div className="space-y-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-ink">
-                      Subject Line <span className="text-red-500">*</span>
-                    </label>
-                    <span className="text-[10px] text-slate font-mono">{subject.length} chars</span>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g. Important Notice: Scheduled Payment Rails Maintenance"
-                    className="input bg-paper text-sm font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-ink mb-1">
-                    Preheader Text (Optional)
+              {/* Subject Line (Maps to {{subject}}) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink">
+                    Subject Line (<code>{"{{subject}}"}</code>) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={preheader}
-                    onChange={(e) => setPreheader(e.target.value)}
-                    placeholder="Short summary preview shown in the recipient inbox list"
-                    className="input bg-paper text-xs text-slate"
-                  />
+                  <span className="text-[10px] text-slate font-mono">{subject.length} chars</span>
                 </div>
+                <input
+                  type="text"
+                  required
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g. Important Platform Update from StableStack"
+                  className="input bg-paper text-sm font-semibold text-ink"
+                />
+                <p className="text-[10px] text-slate mt-0.5">
+                  Rendered in the email subject line and the top purple header: <code>NOTIFICATION: {subject || '{{subject}}'}</code>
+                </p>
               </div>
 
-              {/* Merge Tags Bar */}
+              {/* Merge Tags Quick Bar */}
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Tag className="w-3.5 h-3.5 text-ash" />
-                  <span className="text-xs font-medium text-ink">Insert Personalization Tags:</span>
+                  <span className="text-xs font-medium text-ink">Insert Recipient Merge Tags:</span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {MERGE_TAGS.map((t) => (
@@ -862,7 +987,7 @@ function EmailBroadcastPage() {
                       key={t.tag}
                       type="button"
                       onClick={() => insertMergeTag(t.tag)}
-                      className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-paper border border-graphite-hairline text-ink hover:border-emerald-500 hover:text-emerald-700 transition-colors cursor-pointer"
+                      className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-paper border border-graphite-hairline text-ink hover:border-emerald-500 hover:text-emerald-700 transition-colors cursor-pointer"
                     >
                       + {t.label} ({t.tag})
                     </button>
@@ -870,102 +995,117 @@ function EmailBroadcastPage() {
                 </div>
               </div>
 
-              {/* Rich Body Content (HTML / Markdown) */}
+              {/* Main Notification Box Content (Maps to {{list_content}}) */}
               <div>
-                <label className="block text-xs font-medium text-ink mb-1">
-                  Message Body Content (HTML Supported) <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink">
+                    Main Notification Body (<code>{"{{list_content}}"}</code>) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full font-mono">
+                    Highlighted Card Box
+                  </span>
+                </div>
                 <textarea
-                  ref={bodyTextareaRef}
-                  rows={9}
+                  ref={listContentRef}
+                  rows={7}
                   required
-                  value={bodyHtml}
-                  onChange={(e) => setBodyHtml(e.target.value)}
-                  placeholder="<p>Hello {{first_name}},</p><p>We are excited to announce...</p>"
-                  className="input bg-paper font-mono text-xs w-full resize-y leading-relaxed"
+                  onFocus={() => setActiveFocusField('listContent')}
+                  value={listContent}
+                  onChange={(e) => setListContent(e.target.value)}
+                  placeholder="Enter the core announcement, feature updates, or bullet points here..."
+                  className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
                 />
-                <p className="text-[11px] text-slate mt-1">
-                  Content will be injected into the central body area of the StableStack Master Email Template.
+                <p className="text-[10px] text-slate mt-1">
+                  This content is placed directly inside the gray highlighted card container in the center of the email.
                 </p>
               </div>
 
-              {/* Call-to-action button settings */}
-              <div className="pt-2 border-t border-graphite-hairline/80 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={enableCta}
-                    onChange={(e) => setEnableCta(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span className="text-xs font-medium text-ink">
-                    Include Call-to-Action (CTA) Button
-                  </span>
-                </label>
-
-                {enableCta && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
-                    <div>
-                      <label className="block text-[11px] text-slate mb-1">Button Text</label>
-                      <input
-                        type="text"
-                        value={ctaText}
-                        onChange={(e) => setCtaText(e.target.value)}
-                        placeholder="View Dashboard"
-                        className="input bg-paper text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate mb-1">Target URL</label>
-                      <input
-                        type="url"
-                        value={ctaUrl}
-                        onChange={(e) => setCtaUrl(e.target.value)}
-                        placeholder="https://stablestack.xyz"
-                        className="input bg-paper text-xs font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
+              {/* Additional Message (Maps to {{additional_message}}) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink">
+                    Additional Message / Closing Notes (<code>{"{{additional_message}}"}</code>) (Optional)
+                  </label>
+                  <span className="text-[10px] text-slate font-mono">Below Card Box</span>
+                </div>
+                <textarea
+                  ref={additionalMessageRef}
+                  rows={3}
+                  onFocus={() => setActiveFocusField('additionalMessage')}
+                  value={additionalMessage}
+                  onChange={(e) => setAdditionalMessage(e.target.value)}
+                  placeholder="e.g. If you have questions, our support team is available 24/7 to assist you."
+                  className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
+                />
+                <p className="text-[10px] text-slate mt-1">
+                  Placed right below the container card box, preceding "Regards, The Stablestack Team".
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Real-Time Interactive Preview (5 cols) */}
+          {/* Right Column: Real-Time Interactive ZeptoMail Preview (5 cols) */}
           <div className="lg:col-span-5 sticky top-24 space-y-3">
             <div className="bg-vellum/40 p-4 rounded-2xl border border-graphite-hairline space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <h3 className="text-sm font-semibold text-ink">Live Shell Preview</h3>
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <h3 className="text-sm font-semibold text-ink">ZeptoMail Template Preview</h3>
                 </div>
 
-                {/* Device switch */}
-                <div className="flex items-center p-0.5 bg-paper border border-graphite-hairline rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDevice('desktop')}
-                    className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
-                      previewDevice === 'desktop' ? 'bg-vellum text-ink' : 'text-slate hover:text-ink'
-                    }`}
-                    title="Desktop Preview"
-                  >
-                    <Monitor className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDevice('mobile')}
-                    className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
-                      previewDevice === 'mobile' ? 'bg-vellum text-ink' : 'text-slate hover:text-ink'
-                    }`}
-                    title="Mobile Preview (375px)"
-                  >
-                    <Smartphone className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center gap-2">
+                  {/* View Switcher: Visual vs JSON */}
+                  <div className="flex items-center p-0.5 bg-paper border border-graphite-hairline rounded-lg text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTab('visual')}
+                      className={`px-2 py-1 rounded transition-colors cursor-pointer ${
+                        previewTab === 'visual' ? 'bg-vellum font-semibold text-ink' : 'text-slate hover:text-ink'
+                      }`}
+                    >
+                      Visual Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTab('json')}
+                      className={`px-2 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                        previewTab === 'json' ? 'bg-vellum font-semibold text-ink' : 'text-slate hover:text-ink'
+                      }`}
+                    >
+                      <Code className="w-3 h-3" />
+                      <span>JSON Merge</span>
+                    </button>
+                  </div>
+
+                  {/* Device switch for visual */}
+                  {previewTab === 'visual' && (
+                    <div className="flex items-center p-0.5 bg-paper border border-graphite-hairline rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice('desktop')}
+                        className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
+                          previewDevice === 'desktop' ? 'bg-vellum text-ink' : 'text-slate hover:text-ink'
+                        }`}
+                        title="Desktop Preview"
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice('mobile')}
+                        className={`p-1.5 rounded text-xs transition-colors cursor-pointer ${
+                          previewDevice === 'mobile' ? 'bg-vellum text-ink' : 'text-slate hover:text-ink'
+                        }`}
+                        title="Mobile Preview"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Subject simulation */}
+              {/* Sender & Envelope details */}
               <div className="bg-paper p-3 rounded-xl border border-graphite-hairline text-xs space-y-1">
                 <div className="text-[11px] text-slate">
                   From: <span className="font-semibold text-ink">{fromName} &lt;{fromEmail}&gt;</span>
@@ -973,31 +1113,61 @@ function EmailBroadcastPage() {
                 <div className="text-xs font-medium text-ink truncate">
                   Subject: <span className="font-normal">{subject || '(No subject)'}</span>
                 </div>
-                {preheader && (
-                  <div className="text-[11px] text-slate truncate">
-                    Snippet: <span className="italic">{preheader}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Rendered Frame */}
-              <div
-                className={`mx-auto bg-paper rounded-xl border border-graphite-hairline overflow-hidden shadow-sm transition-all ${
-                  previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
-                }`}
-              >
-                <div className="h-[520px] w-full overflow-hidden">
-                  <iframe
-                    title="Email Preview"
-                    srcDoc={compiledPreviewHtml}
-                    className="w-full h-full border-0"
-                    sandbox="allow-same-origin"
-                  />
+                <div className="text-[11px] text-slate flex items-center justify-between pt-0.5 border-t border-graphite-hairline/60">
+                  <span>ZeptoMail Template:</span>
+                  <span className="font-mono font-medium text-purple-700">Generic Notification Template</span>
                 </div>
               </div>
 
+              {/* Tab 1: Visual Card Render */}
+              {previewTab === 'visual' && (
+                <div
+                  className={`mx-auto bg-paper rounded-xl border border-graphite-hairline overflow-hidden shadow-sm transition-all ${
+                    previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
+                  }`}
+                >
+                  <div className="h-[520px] w-full overflow-hidden">
+                    <iframe
+                      title="ZeptoMail Template Preview"
+                      srcDoc={compiledPreviewHtml}
+                      className="w-full h-full border-0"
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: JSON Merge Info View (matches screenshot) */}
+              {previewTab === 'json' && (
+                <div className="bg-paper rounded-xl border border-graphite-hairline p-3 font-mono text-xs space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-graphite-hairline text-[11px] text-slate">
+                    <span>ZeptoMail Merge Info Payload (JSON)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(mergeInfoJson);
+                        setCopiedJson(true);
+                        toast.success('JSON merge payload copied to clipboard');
+                        setTimeout(() => setCopiedJson(false), 2000);
+                      }}
+                      className="flex items-center gap-1 text-purple-600 hover:text-purple-700 cursor-pointer"
+                    >
+                      {copiedJson ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedJson ? 'Copied' : 'Copy JSON'}</span>
+                    </button>
+                  </div>
+                  <pre className="p-3 bg-vellum/50 rounded-lg text-ink overflow-x-auto text-[11.5px] leading-relaxed">
+                    {mergeInfoJson}
+                  </pre>
+                  <p className="text-[10px] text-slate leading-relaxed">
+                    This JSON payload exactly matches the merge tags defined in your ZeptoMail console:
+                    <code>subject</code>, <code>user_name</code>, <code>list_content</code>, and <code>additional_message</code>.
+                  </p>
+                </div>
+              )}
+
               <p className="text-[11px] text-slate text-center">
-                Preview displays sample recipient <code>Gabriel Ajenifuja</code> for merge tags.
+                Preview reflects recipient <code>Gabriel</code> for merge tag demonstration.
               </p>
             </div>
           </div>
@@ -1010,7 +1180,7 @@ function EmailBroadcastPage() {
       <Modal
         isOpen={isTestModalOpen}
         onClose={() => setIsTestModalOpen(false)}
-        title="Send Test Email"
+        title="Send Test Notification"
         size="md"
       >
         <form
@@ -1021,7 +1191,7 @@ function EmailBroadcastPage() {
           className="space-y-4"
         >
           <p className="text-xs text-slate">
-            Sends an immediate test email of this exact campaign to verify formatting in Gmail, Outlook, and mobile mail clients.
+            Sends an immediate test email to verify how the <strong>Generic Notification Template</strong> renders in your mailbox.
           </p>
 
           <div>
@@ -1045,6 +1215,9 @@ function EmailBroadcastPage() {
             <div className="text-slate">
               Subject: <span className="font-semibold text-ink">[TEST] {subject}</span>
             </div>
+            <div className="text-slate">
+              Template: <span className="font-mono text-purple-700">Generic Notification Template</span>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-graphite-hairline">
@@ -1063,7 +1236,7 @@ function EmailBroadcastPage() {
               {sendTestMutation.isPending ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Sending Test...</span>
+                  <span>Dispatching Test...</span>
                 </>
               ) : (
                 <>
@@ -1082,16 +1255,16 @@ function EmailBroadcastPage() {
       <Modal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
-        title="Confirm Bulk Email Broadcast"
+        title="Confirm Bulk Broadcast Dispatch"
         size="md"
       >
         <div className="space-y-4">
           <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-900 leading-relaxed">
-              <span className="font-semibold">Review before sending:</span> You are about to dispatch this campaign to{' '}
-              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail.
-              Each recipient will receive an individual personalized email.
+              <span className="font-semibold">Review before sending:</span> You are about to dispatch this email campaign to{' '}
+              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail using the Generic Notification Template.
+              Each recipient receives a personalized email with their individual merge data.
             </div>
           </div>
 
@@ -1123,6 +1296,10 @@ function EmailBroadcastPage() {
             <div className="flex justify-between">
               <span className="text-slate">Subject:</span>
               <span className="font-semibold text-ink truncate max-w-[200px]">{subject}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate">Template:</span>
+              <span className="font-mono text-purple-700">Generic Notification Template</span>
             </div>
           </div>
 
@@ -1157,47 +1334,53 @@ function EmailBroadcastPage() {
       </Modal>
 
       {/* ============================================================ */}
-      {/* MODAL 3: COMPLETION SUMMARY                                  */}
+      {/* MODAL 3: DISPATCH RESULTS SUMMARY                            */}
       {/* ============================================================ */}
       {sendResult && (
         <Modal
-          isOpen={Boolean(sendResult)}
+          isOpen={!!sendResult}
           onClose={() => setSendResult(null)}
           title="Broadcast Dispatch Summary"
           size="md"
         >
           <div className="space-y-4">
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-              <h4 className="text-sm font-semibold text-ink">Broadcast Complete</h4>
-              <p className="text-xs text-slate mt-1">
-                Your email broadcast has finished processing through Zoho ZeptoMail.
-              </p>
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+              <div>
+                <h4 className="text-xs font-semibold text-emerald-950">Broadcast Dispatch Concluded</h4>
+                <p className="text-[11px] text-emerald-800 mt-0.5">
+                  Zoho ZeptoMail processed the broadcast batch successfully.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-paper border border-graphite-hairline rounded-xl">
-                <div className="text-[10px] text-slate uppercase">Total</div>
+              <div className="p-3 bg-vellum/50 rounded-xl border border-graphite-hairline">
+                <div className="text-[11px] text-slate">Total Target</div>
                 <div className="text-base font-bold font-mono text-ink mt-0.5">{sendResult.total}</div>
               </div>
-              <div className="p-3 bg-paper border border-graphite-hairline rounded-xl">
-                <div className="text-[10px] text-slate uppercase">Sent</div>
-                <div className="text-base font-bold font-mono text-emerald-600 mt-0.5">{sendResult.sent}</div>
+              <div className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/20">
+                <div className="text-[11px] text-emerald-700">Successfully Sent</div>
+                <div className="text-base font-bold font-mono text-emerald-600 mt-0.5">
+                  {sendResult.sent}
+                </div>
               </div>
-              <div className="p-3 bg-paper border border-graphite-hairline rounded-xl">
-                <div className="text-[10px] text-slate uppercase">Failed</div>
-                <div className="text-base font-bold font-mono text-red-500 mt-0.5">{sendResult.failed}</div>
+              <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/20">
+                <div className="text-[11px] text-red-700">Failed / Rejected</div>
+                <div className="text-base font-bold font-mono text-red-600 mt-0.5">
+                  {sendResult.failed}
+                </div>
               </div>
             </div>
 
             {sendResult.failedList && sendResult.failedList.length > 0 && (
-              <div className="space-y-2">
-                <h5 className="text-xs font-semibold text-ink">Failed Deliveries ({sendResult.failedList.length})</h5>
-                <div className="max-h-40 overflow-y-auto p-2 bg-paper border border-graphite-hairline rounded-xl text-xs space-y-1 font-mono">
-                  {sendResult.failedList.map((f: any, idx: number) => (
-                    <div key={idx} className="flex justify-between text-red-600">
-                      <span>{f.email}</span>
-                      <span className="text-[11px] text-slate">{f.reason}</span>
+              <div className="space-y-1.5">
+                <div className="text-xs font-medium text-ink">Failed Recipients Details:</div>
+                <div className="max-h-36 overflow-y-auto space-y-1 p-2 rounded-xl bg-paper border border-graphite-hairline text-xs font-mono">
+                  {sendResult.failedList.map((f: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center text-[11px] py-1 border-b border-graphite-hairline last:border-0">
+                      <span className="text-ink">{f.email}</span>
+                      <span className="text-red-500 text-[10px]">{f.reason}</span>
                     </div>
                   ))}
                 </div>
@@ -1210,7 +1393,7 @@ function EmailBroadcastPage() {
                 onClick={() => setSendResult(null)}
                 className="btn-primary text-xs py-2 px-5 cursor-pointer"
               >
-                Close Summary
+                Done
               </button>
             </div>
           </div>
