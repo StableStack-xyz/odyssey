@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdminLayout } from '../../components/layout/AdminLayout';
 import { Modal } from '../../components/ui/Modal';
 import { StatsCard } from '../../components/ui/StatsCard';
+import { RichTextEditor, type RichTextEditorRef } from '../../components/ui/RichTextEditor';
 import {
   Mail,
   Send,
@@ -45,7 +46,7 @@ export const Route = createFileRoute('/emails/')({
   head: () => ({
     meta: [
       { title: `Email Campaigns & Broadcasts - ${APP_NAME}` },
-      { name: 'description', content: 'Bulk emailing system using Zoho ZeptoMail Generic Notification Template' },
+      { name: 'description', content: 'Bulk emailing system using Zoho ZeptoMail Generic Template' },
     ],
   }),
   component: EmailBroadcastPage,
@@ -69,27 +70,19 @@ const TEMPLATE_PRESETS = [
   {
     name: 'Platform Update',
     subject: 'Important Platform Update from StableStack',
-    listContent: `We have rolled out several infrastructure enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable:
-
-• Instant Settlement: Higher throughput across supported payout corridors.
-• Real-Time Monitoring: Improved transaction tracking and instant status webhooks.
-• Enhanced Security: Strengthened compliance verification and account safeguards.`,
+    listContent: `<p>We have rolled out several infrastructure enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable:</p><ul><li><b>Instant Settlement:</b> Higher throughput across supported payout corridors.</li><li><b>Real-Time Monitoring:</b> Improved transaction tracking and status webhooks.</li><li><b>Enhanced Security:</b> Strengthened compliance verification and account safeguards.</li></ul>`,
     additionalMessage: 'If you have any questions or require custom limits, our 24/7 engineering and support team is always available to assist you.',
   },
   {
     name: 'Scheduled Maintenance',
     subject: 'Notice of Scheduled System Maintenance',
-    listContent: `Please be advised that we will be performing routine system maintenance on our payment processing rails.
-
-Maintenance Window: Sunday, 02:00 AM – 04:00 AM UTC
-
-During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.`,
+    listContent: `<p>Please be advised that we will be performing routine system maintenance on our payment processing rails.</p><blockquote><b>Maintenance Window:</b> Sunday, 02:00 AM – 04:00 AM UTC</blockquote><p>During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.</p>`,
     additionalMessage: 'No action is required on your part. Thank you for your patience and partnership.',
   },
   {
     name: 'Compliance Verification',
     subject: 'Action Required: Verify Account Information',
-    listContent: `As part of our periodic regulatory compliance review, please review your account details and ensure your business records are fully up to date to maintain uninterrupted high-volume processing.`,
+    listContent: `<p>As part of our periodic regulatory compliance review, please review your account details and ensure your business records are <u>fully up to date</u> to maintain uninterrupted high-volume processing.</p>`,
     additionalMessage: 'Please log in to your StableStack account settings to verify or update your compliance documents.',
   },
 ];
@@ -148,8 +141,8 @@ function EmailBroadcastPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [sendResult, setSendResult] = useState<any | null>(null);
 
-  // Textarea refs
-  const listContentRef = useRef<HTMLTextAreaElement>(null);
+  // Textarea & Rich Editor refs
+  const richEditorRef = useRef<RichTextEditorRef>(null);
   const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
   const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage'>('listContent');
 
@@ -343,17 +336,8 @@ function EmailBroadcastPage() {
       return;
     }
 
-    if (listContentRef.current) {
-      const el = listContentRef.current;
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      const prev = listContent;
-      const next = prev.substring(0, start) + tag + prev.substring(end);
-      setListContent(next);
-      setTimeout(() => {
-        el.focus();
-        el.setSelectionRange(start + tag.length, start + tag.length);
-      }, 50);
+    if (richEditorRef.current) {
+      richEditorRef.current.insertTag(tag);
     } else {
       setListContent((prev) => prev + ` ${tag}`);
     }
@@ -387,15 +371,11 @@ function EmailBroadcastPage() {
 
   // Live compiled preview matching the exact Zoho ZeptoMail Generic Notification Template layout
   const compiledPreviewHtml = useMemo(() => {
-    const formatContent = (text: string) => {
+    const formatMergeTags = (text: string) => {
       if (!text) return '';
       return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\n\n/g, '<br/><br/>')
-        .replace(/\n/g, '<br/>')
         .replace(/\{\{user_name\}\}/gi, 'Gabriel')
+        .replace(/\{\{User_name\}\}/gi, 'Gabriel')
         .replace(/\{\{first_name\}\}/gi, 'Gabriel')
         .replace(/\{\{name\}\}/gi, 'Gabriel Ajenifuja')
         .replace(/\{\{email\}\}/gi, 'gabriel@stablestack.xyz')
@@ -406,8 +386,8 @@ function EmailBroadcastPage() {
         );
     };
 
-    const formattedListContent = formatContent(listContent);
-    const formattedAdditional = formatContent(additionalMessage);
+    const formattedListContent = formatMergeTags(listContent);
+    const formattedAdditional = formatMergeTags(additionalMessage).replace(/\n/g, '<br/>');
     const displaySubject = subject || '{{subject}}';
 
     return `<!DOCTYPE html>
@@ -498,6 +478,62 @@ function EmailBroadcastPage() {
       color: #334155;
       margin-bottom: 22px;
       word-break: break-word;
+    }
+    .list-content-box p {
+      margin: 0 0 10px 0;
+    }
+    .list-content-box p:last-child {
+      margin-bottom: 0;
+    }
+    .list-content-box b, .list-content-box strong {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .list-content-box i, .list-content-box em {
+      font-style: italic;
+    }
+    .list-content-box u {
+      text-decoration: underline;
+    }
+    .list-content-box s {
+      text-decoration: line-through;
+    }
+    .list-content-box ul {
+      margin: 8px 0;
+      padding-left: 20px;
+      list-style-type: disc;
+    }
+    .list-content-box ol {
+      margin: 8px 0;
+      padding-left: 20px;
+      list-style-type: decimal;
+    }
+    .list-content-box li {
+      margin-bottom: 5px;
+    }
+    .list-content-box h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 12px 0 6px 0;
+    }
+    .list-content-box h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 10px 0 4px 0;
+    }
+    .list-content-box blockquote {
+      border-left: 3px solid #10b981;
+      background: #f1f5f9;
+      padding: 8px 12px;
+      margin: 10px 0;
+      font-style: italic;
+      color: #475569;
+    }
+    .list-content-box a {
+      color: #6d28d9;
+      text-decoration: underline;
     }
     /* The Additional Message below the Box */
     .additional-message {
@@ -1009,26 +1045,25 @@ function EmailBroadcastPage() {
 
               {/* Main Notification Box Content (Maps to {{list_content}}) */}
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-medium text-ink">
-                    Main Notification Body (<code>{"{{list_content}}"}</code>) <span className="text-red-500">*</span>
+                    Notification Body (<code>{"{{list_content}}"}</code>) <span className="text-red-500">*</span>
                   </label>
-                  <span className="text-[10px] text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full font-mono">
-                    Highlighted Card Box
+                  <span className="text-[10px] text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-full font-mono">
+                    Formatted Card Box
                   </span>
                 </div>
-                <textarea
-                  ref={listContentRef}
-                  rows={7}
-                  required
-                  onFocus={() => setActiveFocusField('listContent')}
-                  value={listContent}
-                  onChange={(e) => setListContent(e.target.value)}
-                  placeholder="Enter the core announcement, feature updates, or bullet points here..."
-                  className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
-                />
-                <p className="text-[10px] text-slate mt-1">
-                  This content is placed directly inside the gray highlighted card container in the center of the email.
+                <div onFocus={() => setActiveFocusField('listContent')}>
+                  <RichTextEditor
+                    ref={richEditorRef}
+                    value={listContent}
+                    onChange={setListContent}
+                    placeholder="Enter the core announcement, feature updates, or formatted bullet points here..."
+                    minHeight="210px"
+                  />
+                </div>
+                <p className="text-[10px] text-slate mt-1.5">
+                  Format using <b>B</b> (Bold), <i>I</i> (Italic), <u>U</u> (Underline), lists, headings, and quotes. Injected into the template card box.
                 </p>
               </div>
 
