@@ -95,15 +95,15 @@ During this window, API transaction submissions and portal access may experience
 ];
 
 const ZEPTO_TEMPLATES = [
-  { key: 'generic-notification-template', name: 'Generic Notification Template (Active in ZeptoMail)' },
+  { key: 'generic-template', name: 'Generic Template' },
   { key: 'custom', name: '+ Enter Custom ZeptoMail Template Key / Alias' },
 ];
 
 const MERGE_TAGS = [
-  { tag: '{{user_name}}', label: 'Recipient Name' },
+  { tag: '{{user_name}}', label: 'Business / Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
-  { tag: '{{email}}', label: 'Email' },
   { tag: '{{company}}', label: 'Company / Business' },
+  { tag: '{{email}}', label: 'Email' },
   { tag: '{{date}}', label: 'Current Date' },
 ];
 
@@ -111,7 +111,7 @@ function EmailBroadcastPage() {
   const { user: currentAdmin, isFullAccess, canRead, canWrite } = usePermissions();
 
   // ZeptoMail template state
-  const [selectedTemplate, setSelectedTemplate] = useState('generic-notification-template');
+  const [selectedTemplate, setSelectedTemplate] = useState('generic-template');
   const [customTemplateKey, setCustomTemplateKey] = useState('');
 
   // Target mode state
@@ -256,6 +256,7 @@ function EmailBroadcastPage() {
     let hasHeader = false;
     let emailIdx = 0;
     let nameIdx = -1;
+    let companyIdx = -1;
 
     if (lines.length > 0 && lines[0].includes(',')) {
       const headerParts = lines[0].split(',').map((h) => h.trim().toLowerCase());
@@ -264,6 +265,9 @@ function EmailBroadcastPage() {
         hasHeader = true;
         emailIdx = foundEmailIdx;
         nameIdx = headerParts.findIndex((h) => h.includes('name') || h.includes('first'));
+        companyIdx = headerParts.findIndex(
+          (h) => h.includes('business') || h.includes('company') || h.includes('org')
+        );
       }
     }
 
@@ -273,10 +277,14 @@ function EmailBroadcastPage() {
       const line = lines[i];
       let email = '';
       let name = '';
+      let businessName = '';
 
       if (line.includes(',')) {
         const parts = line.split(',').map((p) => p.trim().replace(/^["']|["']$/g, ''));
         email = parts[emailIdx] || '';
+        if (companyIdx !== -1 && parts[companyIdx]) {
+          businessName = parts[companyIdx];
+        }
         if (nameIdx !== -1 && parts[nameIdx]) {
           name = parts[nameIdx];
         } else if (parts.length > 1 && emailIdx === 0) {
@@ -299,11 +307,15 @@ function EmailBroadcastPage() {
         continue;
       }
 
+      // Prioritize businessName if provided, otherwise individual name
+      const resolvedName = businessName || name || undefined;
+
       seenEmails.add(email);
       validRecipients.push({
         email,
-        name: name || undefined,
-        firstName: name ? name.split(' ')[0] : undefined,
+        name: resolvedName,
+        businessName: businessName || undefined,
+        firstName: name ? name.split(' ')[0] : businessName || undefined,
       });
     }
 
@@ -1115,7 +1127,7 @@ function EmailBroadcastPage() {
                 </div>
                 <div className="text-[11px] text-slate flex items-center justify-between pt-0.5 border-t border-graphite-hairline/60">
                   <span>ZeptoMail Template:</span>
-                  <span className="font-mono font-medium text-purple-700">Generic Notification Template</span>
+                  <span className="font-mono font-medium text-purple-700">generic-template</span>
                 </div>
               </div>
 
@@ -1191,7 +1203,7 @@ function EmailBroadcastPage() {
           className="space-y-4"
         >
           <p className="text-xs text-slate">
-            Sends an immediate test email to verify how the <strong>Generic Notification Template</strong> renders in your mailbox.
+            Sends an immediate test email to verify how the <strong>Generic Template</strong> renders in your mailbox.
           </p>
 
           <div>
@@ -1216,7 +1228,7 @@ function EmailBroadcastPage() {
               Subject: <span className="font-semibold text-ink">[TEST] {subject}</span>
             </div>
             <div className="text-slate">
-              Template: <span className="font-mono text-purple-700">Generic Notification Template</span>
+              Template: <span className="font-mono text-purple-700">Generic Template (generic-template)</span>
             </div>
           </div>
 
@@ -1263,7 +1275,7 @@ function EmailBroadcastPage() {
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-900 leading-relaxed">
               <span className="font-semibold">Review before sending:</span> You are about to dispatch this email campaign to{' '}
-              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail using the Generic Notification Template.
+              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail using the <strong>Generic Template</strong> (<code>generic-template</code>).
               Each recipient receives a personalized email with their individual merge data.
             </div>
           </div>
@@ -1299,7 +1311,7 @@ function EmailBroadcastPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate">Template:</span>
-              <span className="font-mono text-purple-700">Generic Notification Template</span>
+              <span className="font-mono text-purple-700">Generic Template (generic-template)</span>
             </div>
           </div>
 
