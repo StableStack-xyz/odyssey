@@ -20,6 +20,7 @@ import {
   Building2,
   Landmark,
   ShieldCheck,
+  Mail,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -48,6 +49,7 @@ const menuItems: MenuItem[] = [
   { icon: FileText, label: 'Reports', path: '/reports', resource: 'reports' },
   { icon: Webhook, label: 'Webhooks', path: '/webhooks', resource: 'webhooks' },
   { icon: Activity, label: 'Activity', path: '/activity', resource: 'activity' },
+  { icon: Mail, label: 'Broadcasts', path: '/emails', resource: 'emails' },
   { icon: ShieldCheck, label: 'Admins', path: '/admins', resource: 'admins' },
 ];
 

@@ -17,7 +17,8 @@ export type ResourceModule =
   | 'reports'
   | 'webhooks'
   | 'activity'
-  | 'admins';
+  | 'admins'
+  | 'emails';
 
 export type AdminPermissions = {
   [K in ResourceModule]?: PermissionAction[];
@@ -137,6 +138,13 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     label: 'Admin Management',
     description: 'Invite team members, assign Full Access vs Selected Access, and configure permissions',
     routes: ['/admins'],
+    actions: ['read', 'write'],
+  },
+  {
+    id: 'emails',
+    label: 'Email Campaigns',
+    description: 'Compose and dispatch bulk emails to imported lists or platform users via Zoho ZeptoMail',
+    routes: ['/emails'],
     actions: ['read', 'write'],
   },
 ];
