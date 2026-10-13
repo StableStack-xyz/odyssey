@@ -87,18 +87,21 @@ const TEMPLATE_PRESETS = [
     subject: 'Important Platform Update from StableStack',
     listContent: `<p>We have rolled out several infrastructure enhancements to make your stablecoin settlement and payout flows significantly faster and more reliable:</p><ul><li><b>Instant Settlement:</b> Higher throughput across supported payout corridors.</li><li><b>Real-Time Monitoring:</b> Improved transaction tracking and status webhooks.</li><li><b>Enhanced Security:</b> Strengthened compliance verification and account safeguards.</li></ul>`,
     additionalMessage: 'If you have any questions or require custom limits, our 24/7 engineering and support team is always available to assist you.',
+    greetings: 'Regards,\nThe Stablestack Team.',
   },
   {
     name: 'Scheduled Maintenance',
     subject: 'Notice of Scheduled System Maintenance',
     listContent: `<p>Please be advised that we will be performing routine system maintenance on our payment processing rails.</p><blockquote><b>Maintenance Window:</b> Sunday, 02:00 AM – 04:00 AM UTC</blockquote><p>During this window, API transaction submissions and portal access may experience brief intermittent pauses. All pending settlements will process automatically once maintenance concludes.</p>`,
     additionalMessage: 'No action is required on your part. Thank you for your patience and partnership.',
+    greetings: 'Regards,\nThe Stablestack Team.',
   },
   {
     name: 'Compliance Verification',
     subject: 'Action Required: Verify Account Information',
     listContent: `<p>As part of our periodic regulatory compliance review, please review your account details and ensure your business records are <u>fully up to date</u> to maintain uninterrupted high-volume processing.</p>`,
     additionalMessage: 'Please log in to your StableStack account settings to verify or update your compliance documents.',
+    greetings: 'Regards,\nThe Stablestack Team.',
   },
 ];
 
@@ -108,7 +111,7 @@ const ZEPTO_TEMPLATES = [
 ];
 
 const MERGE_TAGS = [
-  { tag: '{{greetings}}', label: 'Greeting (Hi Name,)' },
+  { tag: '{{greetings}}', label: 'Sign-off (Regards, The Stablestack Team)' },
   { tag: '{{user_name}}', label: 'Business / Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
   { tag: '{{company}}', label: 'Company / Business' },
@@ -301,6 +304,7 @@ function EmailBroadcastPage() {
   const [subject, setSubject] = useState(TEMPLATE_PRESETS[0].subject);
   const [listContent, setListContent] = useState(TEMPLATE_PRESETS[0].listContent);
   const [additionalMessage, setAdditionalMessage] = useState(TEMPLATE_PRESETS[0].additionalMessage);
+  const [greetings, setGreetings] = useState(TEMPLATE_PRESETS[0].greetings);
 
   // Preview tab & device state
   const [previewTab, setPreviewTab] = useState<'visual' | 'json'>('visual');
@@ -316,7 +320,8 @@ function EmailBroadcastPage() {
   // Textarea & Rich Editor refs
   const richEditorRef = useRef<RichTextEditorRef>(null);
   const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
-  const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage'>('listContent');
+  const greetingsRef = useRef<HTMLTextAreaElement>(null);
+  const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage' | 'greetings'>('listContent');
 
   // Fetch platform user counts with flexible audience filter parameters
   const { data: recipientCounts, isLoading: isLoadingCounts, refetch: refetchCounts } = useQuery({
@@ -359,6 +364,7 @@ function EmailBroadcastPage() {
         subject,
         listContent,
         additionalMessage,
+        greetings,
         messageContent: listContent,
         fromEmail: activeSender,
         fromName,
@@ -399,6 +405,7 @@ function EmailBroadcastPage() {
         subject,
         listContent,
         additionalMessage,
+        greetings,
         messageContent: listContent,
       };
 
@@ -723,6 +730,20 @@ function EmailBroadcastPage() {
       return;
     }
 
+    if (activeFocusField === 'greetings' && greetingsRef.current) {
+      const el = greetingsRef.current;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const prev = greetings;
+      const next = prev.substring(0, start) + tag + prev.substring(end);
+      setGreetings(next);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + tag.length, start + tag.length);
+      }, 50);
+      return;
+    }
+
     if (richEditorRef.current) {
       richEditorRef.current.insertTag(tag);
     } else {
@@ -841,7 +862,7 @@ function EmailBroadcastPage() {
     return JSON.stringify(
       {
         subject: subject || 'subject_value',
-        greetings: 'Hi Gabriel,',
+        greetings: greetings || 'Regards,\nThe Stablestack Team.',
         user_name: 'user_name_value',
         list_content: listContent || 'list_content_value',
         additional_message: additionalMessage || 'additional_message_value',
@@ -849,15 +870,16 @@ function EmailBroadcastPage() {
       null,
       2
     );
-  }, [subject, listContent, additionalMessage]);
+  }, [subject, listContent, additionalMessage, greetings]);
 
   // Live compiled preview matching the exact Zoho ZeptoMail Generic Notification Template layout
   const compiledPreviewHtml = useMemo(() => {
+    const defaultDynamicGreeting = greetings || 'Regards,\nThe Stablestack Team.';
     const formatMergeTags = (text: string) => {
       if (!text) return '';
       return text
-        .replace(/\{\{greetings\}\}/gi, 'Hi Gabriel,')
-        .replace(/\{\{greeting\}\}/gi, 'Hi Gabriel,')
+        .replace(/\{\{greetings\}\}/gi, defaultDynamicGreeting)
+        .replace(/\{\{greeting\}\}/gi, defaultDynamicGreeting)
         .replace(/\{\{user_name\}\}/gi, 'Gabriel')
         .replace(/\{\{User_name\}\}/gi, 'Gabriel')
         .replace(/\{\{first_name\}\}/gi, 'Gabriel')
@@ -873,6 +895,14 @@ function EmailBroadcastPage() {
     const formattedListContent = formatMergeTags(listContent);
     const formattedAdditional = formatMergeTags(additionalMessage).replace(/\n/g, '<br/>');
     const displaySubject = subject || '{{subject}}';
+    const formattedGreetings = defaultDynamicGreeting
+      .split('\n')
+      .map((line, idx) =>
+        idx === 0
+          ? `<div>${line}</div>`
+          : `<div class="signoff-brand">${line}</div>`
+      )
+      .join('');
 
     return `<!DOCTYPE html>
 <html>
@@ -1079,14 +1109,13 @@ function EmailBroadcastPage() {
       }
 
       <div class="signoff">
-        <div>Regards,</div>
-        <div class="signoff-brand">The Stablestack Team</div>
+        ${formattedGreetings}
       </div>
     </div>
   </div>
 </body>
 </html>`;
-  }, [subject, listContent, additionalMessage]);
+  }, [subject, listContent, additionalMessage, greetings]);
 
   if (!isFullAccess && !canRead('emails')) {
     return (
@@ -1913,6 +1942,7 @@ function EmailBroadcastPage() {
                         setSubject(preset.subject);
                         setListContent(preset.listContent);
                         setAdditionalMessage(preset.additionalMessage);
+                        setGreetings(preset.greetings || 'Regards,\nThe Stablestack Team.');
                         toast.info(`Loaded preset: ${preset.name}`);
                       }}
                       className="text-[11px] px-2 py-0.5 rounded border border-graphite-hairline bg-paper hover:bg-vellum text-ink transition-colors cursor-pointer"
@@ -2006,7 +2036,35 @@ function EmailBroadcastPage() {
                   className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-slate mt-1">
-                  Placed right below the container card box, preceding "Regards, The Stablestack Team".
+                  Placed right below the container card box, preceding the dynamic sign-off greeting.
+                </p>
+              </div>
+
+              {/* Sign-off Greeting (Maps to {{greetings}}) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-ink">
+                    Sign-off Greeting (<code>{"{{greetings}}"}</code>) <span className="text-slate font-normal">(Dynamic)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setGreetings("Regards,\nThe Stablestack Team.")}
+                    className="text-[10px] text-emerald-700 hover:underline cursor-pointer"
+                  >
+                    Reset to Default
+                  </button>
+                </div>
+                <textarea
+                  ref={greetingsRef}
+                  rows={2}
+                  onFocus={() => setActiveFocusField('greetings')}
+                  value={greetings}
+                  onChange={(e) => setGreetings(e.target.value)}
+                  placeholder="Regards,&#10;The Stablestack Team."
+                  className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
+                />
+                <p className="text-[10px] text-slate mt-1">
+                  Dynamic closing sign-off injected into <code>{"{{greetings}}"}</code> at the bottom of the template.
                 </p>
               </div>
             </div>
@@ -2268,6 +2326,10 @@ function EmailBroadcastPage() {
             <div className="flex justify-between">
               <span className="text-slate">Template:</span>
               <span className="font-mono text-purple-700">General Template (general-template)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate">Sign-off:</span>
+              <span className="font-mono text-ink truncate max-w-[200px]">{greetings.replace(/\n/g, ' ')}</span>
             </div>
           </div>
 
