@@ -932,227 +932,237 @@ function EmailBroadcastPage() {
     };
 
     const formattedListContent = formatMergeTags(listContent);
-    const formattedAdditional = formatMergeTags(additionalMessage).replace(/\n/g, '<br/>');
+    const formattedAdditional = formatMergeTags(additionalMessage).replace(/\n/g, '<br style="box-sizing: border-box; margin: 0; padding: 0;">');
     const displaySubject = subject || '{{subject}}';
     const formattedSignoff = defaultDynamicSignoff
       .split('\n')
-      .map((line, idx) =>
-        idx === 0
-          ? `<div>${line}</div>`
-          : `<div class="signoff-brand">${line}</div>`
-      )
-      .join('');
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('<br style="box-sizing: border-box; margin: 0; padding: 0;">');
 
-    return `<!DOCTYPE html>
-<html>
-<head>
+    return `<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${displaySubject} — Stablestack</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 24px 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f8f9fa;
-      color: #1a1a24;
-      -webkit-font-smoothing: antialiased;
+      padding: 0;
     }
+
+    body {
+      background-color: #E8E8EE;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      display: block;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    .outer {
+      background-color: #F8F7FA;
+      padding: 48px 16px 56px;
+    }
+
     .wrapper {
-      max-width: 580px;
+      max-width: 560px;
       margin: 0 auto;
-      background: #ffffff;
-      border-radius: 16px;
-      border: 1px solid #e9ecef;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
     }
-    /* Light Lavender Header with watermark effect matching ZeptoMail template */
-    .header {
-      background: #f4effb;
+
+    .hero {
+      background-color: #F3EEF6;
+      border-radius: 12px 12px 0 0;
+      padding: 40px 44px 44px;
       position: relative;
-      padding: 36px 36px 32px 36px;
       overflow: hidden;
     }
-    .header-watermark {
+
+    .hero-logo img {
+      height: 56px;
+      width: auto;
+    }
+
+    .hero-eyebrow {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #5D2F77;
+      margin-top: 32px;
+      line-height: 1.4;
+    }
+
+    .hero-headline {
+      font-size: 34px;
+      font-weight: 700;
+      color: #1F0A3B;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-top: 8px;
+    }
+
+    .hero-deco {
       position: absolute;
-      right: -20px;
       top: -20px;
-      width: 190px;
-      height: 190px;
-      opacity: 0.18;
+      right: -20px;
+      opacity: 0.12;
       pointer-events: none;
     }
-    .logo-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
+
+    .body-card {
+      background: #FFFFFF;
+      border-radius: 0 0 12px 12px;
+      padding: 36px 44px 44px;
+    }
+
+    .body-text {
+      font-size: 15px;
+      color: #3A3A4A;
+      line-height: 1.75;
       margin-bottom: 24px;
     }
-    .logo-text {
-      font-size: 21px;
-      font-weight: 800;
-      color: #24133d;
-      letter-spacing: -0.02em;
+
+    .list-container {
+      margin: 24px 0;
+      padding: 20px;
+      background: #F8F7FA;
+      border-radius: 8px;
     }
-    .notification-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #6326a6;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .subject-title {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1.25;
-      color: #1c0c38;
-      margin: 0;
-      word-break: break-word;
-    }
-    /* Content Area */
-    .body-content {
-      padding: 32px 36px 36px 36px;
-      background-color: #ffffff;
-    }
-    .greeting {
-      font-size: 15px;
-      font-weight: 500;
-      color: #2d3748;
-      margin-bottom: 20px;
-    }
-    /* The Highlighted Gray Container Box for {{list_content}} */
-    .list-content-box {
-      background-color: #f8fafc;
-      border: 1px solid #f1f5f9;
-      border-radius: 10px;
-      padding: 20px 22px;
-      font-size: 14.5px;
-      line-height: 1.65;
-      color: #334155;
-      margin-bottom: 22px;
-      word-break: break-word;
-    }
-    .list-content-box p {
+
+    .list-container p {
       margin: 0 0 10px 0;
     }
-    .list-content-box p:last-child {
+
+    .list-container p:last-child {
       margin-bottom: 0;
     }
-    .list-content-box b, .list-content-box strong {
-      font-weight: 700;
-      color: #0f172a;
-    }
-    .list-content-box i, .list-content-box em {
-      font-style: italic;
-    }
-    .list-content-box u {
-      text-decoration: underline;
-    }
-    .list-content-box s {
-      text-decoration: line-through;
-    }
-    .list-content-box ul {
+
+    .list-container ul {
       margin: 8px 0;
       padding-left: 20px;
       list-style-type: disc;
     }
-    .list-content-box ol {
+
+    .list-container ol {
       margin: 8px 0;
       padding-left: 20px;
       list-style-type: decimal;
     }
-    .list-content-box li {
+
+    .list-container li {
       margin-bottom: 5px;
     }
-    .list-content-box h2 {
-      font-size: 18px;
+
+    .list-container b, .list-container strong {
       font-weight: 700;
-      color: #1e293b;
-      margin: 12px 0 6px 0;
+      color: #0f172a;
     }
-    .list-content-box h3 {
-      font-size: 15px;
-      font-weight: 600;
-      color: #1e293b;
-      margin: 10px 0 4px 0;
-    }
-    .list-content-box blockquote {
-      border-left: 3px solid #10b981;
-      background: #f1f5f9;
-      padding: 8px 12px;
-      margin: 10px 0;
-      font-style: italic;
-      color: #475569;
-    }
-    .list-content-box a {
-      color: #6d28d9;
-      text-decoration: underline;
-    }
-    /* The Additional Message below the Box */
-    .additional-message {
-      font-size: 14.5px;
-      line-height: 1.65;
-      color: #475569;
-      margin-bottom: 26px;
-      word-break: break-word;
-    }
-    /* Regards & Signoff */
-    .signoff {
+
+    .sign-off {
       margin-top: 24px;
-      font-size: 14.5px;
-      line-height: 1.5;
-      color: #334155;
+      font-size: 15px;
+      color: #3A3A4A;
+      line-height: 1.7;
     }
-    .signoff-brand {
-      font-weight: 700;
-      color: #551e96;
-      margin-top: 4px;
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
     }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <!-- Header Card -->
-    <div class="header">
-      <!-- Watermark shape -->
-      <svg class="header-watermark" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="70" y="20" width="120" height="120" rx="36" transform="rotate(25 70 20)" fill="#7c3aed" />
-        <rect x="110" y="60" width="90" height="90" rx="28" transform="rotate(25 110 60)" fill="#6d28d9" />
-      </svg>
 
-      <div class="logo-row">
-        <!-- SVG StableStack Purple Rings Logo -->
-        <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="20" cy="20" rx="17" ry="9" stroke="#6d28d9" stroke-width="3.5" transform="rotate(-25 20 20)"/>
-          <ellipse cx="20" cy="20" rx="17" ry="9" stroke="#a78bfa" stroke-width="3.5" transform="rotate(25 20 20)"/>
-        </svg>
-        <span class="logo-text">StableStack</span>
-      </div>
+    .footer p {
+      font-size: 12px;
+      color: #A0A0B4;
+      line-height: 1.8;
+    }
 
-      <div class="notification-label">NOTIFICATION:</div>
-      <h1 class="subject-title">${displaySubject}</h1>
-    </div>
+    .footer a {
+      color: #5D2F77;
+      font-weight: 600;
+    }
 
-    <!-- Main White Card Body -->
-    <div class="body-content">
-      <div class="greeting">Hi ${previewBusinessName},</div>
+    .social-links {
+      margin: 28px auto 0;
+    }
 
-      <div class="list-content-box">
-        ${formattedListContent || '<span style="color: #94a3b8; font-style: italic;">{{list_content}} placeholder</span>'}
-      </div>
+    .social-links img {
+      width: 32px;
+      height: 32px;
+      margin: 0 12px;
+    }
 
-      ${
-        formattedAdditional
-          ? `<div class="additional-message">${formattedAdditional}</div>`
-          : ''
+    @media only screen and (max-width: 580px) {
+      .hero,
+      .body-card {
+        padding: 28px 24px;
       }
 
-      <div class="signoff">
-        ${formattedSignoff}
-      </div>
+      .hero-headline {
+        font-size: 26px;
+      }
+    }
+  </style>
+ </head>
+ <body>
+  <div class="outer" style="box-sizing: border-box; margin: 0; background-color: #F8F7FA; padding: 48px 16px 56px;">
+   <div class="wrapper" style="box-sizing: border-box; padding: 0; max-width: 560px; margin: 0 auto;">
+    <div class="hero" style="box-sizing: border-box; margin: 0; background-color: #F3EEF6; border-radius: 12px 12px 0 0; padding: 40px 44px 44px; position: relative; overflow: hidden;">
+     <div class="hero-logo" style="box-sizing: border-box; margin: 0; padding: 0;">
+      <img src="https://res.cloudinary.com/dmllysomu/image/upload/v1774460775/stablestack-logo_my8fxq.png" alt="Stablestack" style="box-sizing: border-box; margin: 0; padding: 0; border: 0; display: block; height: 56px; width: auto;" height="56">
+     </div>
+     <p class="hero-eyebrow" style="box-sizing: border-box; margin: 32px 0px 0px; padding: 0px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4;"><span class="colour" style="color:rgb(93, 47, 119)"><span class="size" style="font-size: 14px; box-sizing: border-box; margin: 32px 0px 0px; padding: 0px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4;"><span class="colour" style="color: rgb(93, 47, 119); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 14px; box-sizing: border-box; margin: 32px 0px 0px; padding: 0px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4;"><span class="colour" style="color: rgb(93, 47, 119); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 14px; box-sizing: border-box; margin: 32px 0px 0px; padding: 0px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4;"><span class="colour" style="color: rgb(93, 47, 119); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 14px; box-sizing: border-box; margin: 32px 0px 0px; padding: 0px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.4;">Notification:</span></span> 
+            <br style="box-sizing: border-box; margin: 0; padding: 0;"></span></span></span></span></span></span></p>
+     <h1 class="hero-headline" style="box-sizing: border-box; margin: 0; padding: 0; font-size: 34px; font-weight: 700; color: #1F0A3B; letter-spacing: -1px; line-height: 1.1; margin-top: 8px;">${displaySubject}
+      <br style="box-sizing: border-box; margin: 0; padding: 0;"></h1>
     </div>
+    <div class="body-card" style="box-sizing: border-box; margin: 0; background: #FFFFFF; border-radius: 0 0 12px 12px; padding: 36px 44px 44px;">
+     <p class="body-text" style="box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color:rgb(58, 58, 74)"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;">Hi <b style="box-sizing: border-box; margin: 0; padding: 0; text-transform: capitalize;">${previewBusinessName}</b>,</span></span> 
+            <br style="box-sizing: border-box; margin: 0; padding: 0;"></span></span></span></span></span></span></p>
+     <div class="list-container" style="box-sizing: border-box; margin: 24px 0; padding: 20px; background: #F8F7FA; border-radius: 8px;">
+      ${formattedListContent || '<span style="color: #94a3b8; font-style: italic;">{{list_content}} placeholder</span>'}
+      <br style="box-sizing: border-box; margin: 0; padding: 0;">
+     </div>
+     <p class="body-text" style="box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color:rgb(58, 58, 74)"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 0px 0px 24px; padding: 0px; line-height: 1.75;">${formattedAdditional || '{{additional_message}}'}</span></span> 
+            <br style="box-sizing: border-box; margin: 0; padding: 0;"></span></span></span></span></span></span></p>
+     <p class="sign-off" style="box-sizing: border-box; margin: 24px 0px 0px; padding: 0px; line-height: 1.7;"><span class="colour" style="color:rgb(58, 58, 74)"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 24px 0px 0px; padding: 0px; line-height: 1.7;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 24px 0px 0px; padding: 0px; line-height: 1.7;"><span class="colour" style="color: rgb(58, 58, 74); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 15px; box-sizing: border-box; margin: 24px 0px 0px; padding: 0px; line-height: 1.7;"><b style="box-sizing: border-box; margin: 0; padding: 0;">${formattedSignoff}</b></span></span> 
+          <br style="box-sizing: border-box; margin: 0; padding: 0;"></span></span></span></span></p>
+    </div>
+    <div class="footer" style="box-sizing: border-box; margin: 0; padding: 0; text-align: center; margin-top: 28px;">
+     <p style="box-sizing: border-box; margin: 0px; padding: 0px; line-height: 1.8;"><span class="colour" style="color:rgb(160, 160, 180)"><span class="size" style="font-size: 12px; box-sizing: border-box; margin: 0px; padding: 0px; line-height: 1.8;"><span class="colour" style="color: rgb(160, 160, 180); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 12px; box-sizing: border-box; margin: 0px; padding: 0px; line-height: 1.8;"><span class="colour" style="color: rgb(160, 160, 180); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 12px; box-sizing: border-box; margin: 0px; padding: 0px; line-height: 1.8;"><span class="colour" style="color: rgb(160, 160, 180); box-sizing: border-box; margin: 0px; padding: 0px;"><span class="size" style="font-size: 12px; box-sizing: border-box; margin: 0px; padding: 0px; line-height: 1.8;">© 2026 Stablestack · <a href="https://stablestack.com/" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;">Privacy Policy</a> · <a href="https://stablestack.com/" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;">Terms of Service</a> · <a href="https://stablestack.com/" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;">Help Centre</a></span></span> 
+            <br style="box-sizing: border-box; margin: 0; padding: 0;"></span></span></span></span></span></span></p>
+     <table class="social-links" align="center" cellpadding="0" cellspacing="0" role="presentation" style="box-sizing: border-box; padding: 0; border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 28px auto 0;">
+      <tbody style="box-sizing: border-box; margin: 0; padding: 0;">
+       <tr style="box-sizing: border-box; margin: 0; padding: 0;">
+        <td style="box-sizing: border-box; margin: 0; padding: 0;"><a href="https://x.com/0xStableStack" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;"><img src="https://img.icons8.com/ios-filled/50/5D2F77/twitterx--v1.png" alt="X" style="box-sizing: border-box; padding: 0; border: 0; display: block; width: 32px; height: 32px; margin: 0 12px;" width="32" height="32"></a></td>
+        <td style="box-sizing: border-box; margin: 0; padding: 0;"><a href="https://www.linkedin.com/company/stablestack/" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;"><img src="https://img.icons8.com/ios-filled/50/5D2F77/linkedin.png" alt="LinkedIn" style="box-sizing: border-box; padding: 0; border: 0; display: block; width: 32px; height: 32px; margin: 0 12px;" width="32" height="32"></a></td>
+        <td style="box-sizing: border-box; margin: 0; padding: 0;"><a href="https://www.youtube.com/@StableStack" style="box-sizing: border-box; margin: 0; padding: 0; text-decoration: none; color: #5D2F77; font-weight: 600;"><img src="https://img.icons8.com/ios-filled/50/5D2F77/youtube.png" alt="Youtube" style="box-sizing: border-box; padding: 0; border: 0; display: block; width: 32px; height: 32px; margin: 0 12px;" width="32" height="32"></a></td>
+       </tr>
+      </tbody>
+     </table>
+    </div>
+   </div>
   </div>
-</body>
+  <div style="box-sizing: border-box; margin: 0; padding: 0;">
+   <br style="box-sizing: border-box; margin: 0; padding: 0;">
+  </div>
+ </body>
 </html>`;
   }, [subject, listContent, additionalMessage, signoff, previewBusinessName, previewEmail]);
 
