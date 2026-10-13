@@ -97,11 +97,12 @@ const TEMPLATE_PRESETS = [
 ];
 
 const ZEPTO_TEMPLATES = [
-  { key: 'generic-template', name: 'Generic Template' },
+  { key: 'general-template', name: 'General Template' },
   { key: 'custom', name: '+ Enter Custom ZeptoMail Template Key / Alias' },
 ];
 
 const MERGE_TAGS = [
+  { tag: '{{greetings}}', label: 'Greeting (Hi Name,)' },
   { tag: '{{user_name}}', label: 'Business / Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
   { tag: '{{company}}', label: 'Company / Business' },
@@ -179,7 +180,7 @@ function EmailBroadcastPage() {
   const { user: currentAdmin, isFullAccess, canRead, canWrite } = usePermissions();
 
   // ZeptoMail template state
-  const [selectedTemplate, setSelectedTemplate] = useState('generic-template');
+  const [selectedTemplate, setSelectedTemplate] = useState('general-template');
   const [customTemplateKey, setCustomTemplateKey] = useState('');
 
   // Target mode state
@@ -639,6 +640,7 @@ function EmailBroadcastPage() {
     return JSON.stringify(
       {
         subject: subject || 'subject_value',
+        greetings: 'Hi Gabriel,',
         user_name: 'user_name_value',
         list_content: listContent || 'list_content_value',
         additional_message: additionalMessage || 'additional_message_value',
@@ -653,6 +655,8 @@ function EmailBroadcastPage() {
     const formatMergeTags = (text: string) => {
       if (!text) return '';
       return text
+        .replace(/\{\{greetings\}\}/gi, 'Hi Gabriel,')
+        .replace(/\{\{greeting\}\}/gi, 'Hi Gabriel,')
         .replace(/\{\{user_name\}\}/gi, 'Gabriel')
         .replace(/\{\{User_name\}\}/gi, 'Gabriel')
         .replace(/\{\{first_name\}\}/gi, 'Gabriel')
@@ -1656,7 +1660,7 @@ function EmailBroadcastPage() {
                 </div>
                 <div className="text-[11px] text-slate flex items-center justify-between pt-0.5 border-t border-graphite-hairline/60">
                   <span>ZeptoMail Template:</span>
-                  <span className="font-mono font-medium text-purple-700">generic-template</span>
+                  <span className="font-mono font-medium text-purple-700">general-template</span>
                 </div>
               </div>
 
@@ -1757,7 +1761,7 @@ function EmailBroadcastPage() {
               Subject: <span className="font-semibold text-ink">[TEST] {subject}</span>
             </div>
             <div className="text-slate">
-              Template: <span className="font-mono text-purple-700">Generic Template (generic-template)</span>
+              Template: <span className="font-mono text-purple-700">General Template (general-template)</span>
             </div>
           </div>
 
@@ -1804,7 +1808,7 @@ function EmailBroadcastPage() {
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-900 leading-relaxed">
               <span className="font-semibold">Review before sending:</span> You are about to dispatch this email campaign to{' '}
-              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail using the <strong>Generic Template</strong> (<code>generic-template</code>).
+              <strong className="underline">{estimatedCount.toLocaleString()} recipient(s)</strong> via Zoho ZeptoMail using the <strong>General Template</strong> (<code>general-template</code>).
               Each recipient receives a personalized email with their individual merge data.
             </div>
           </div>
@@ -1840,7 +1844,7 @@ function EmailBroadcastPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate">Template:</span>
-              <span className="font-mono text-purple-700">Generic Template (generic-template)</span>
+              <span className="font-mono text-purple-700">General Template (general-template)</span>
             </div>
           </div>
 
