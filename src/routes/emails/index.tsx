@@ -69,6 +69,7 @@ interface ImportedRecipient {
   firstName?: string;
   lastName?: string;
   businessName?: string;
+  status?: 'valid' | 'invalid' | 'duplicate';
 }
 
 const VERIFIED_SENDERS = [
@@ -869,19 +870,12 @@ function EmailBroadcastPage() {
   // Selected sample business recipient for merge tags & greeting demonstration
   const previewBusinessName = useMemo(() => {
     if (targetType === 'imported' && importedList.length > 0) {
-      const firstValid = importedList.find((r) => r.status === 'valid' && (r.businessName || r.name));
-      if (firstValid?.businessName?.trim()) {
-        return firstValid.businessName.trim();
+      const match = importedList.find((r) => r.businessName?.trim() || r.name?.trim());
+      if (match?.businessName?.trim()) {
+        return match.businessName.trim();
       }
-      if (firstValid?.name?.trim()) {
-        return firstValid.name.trim();
-      }
-      const firstAny = importedList.find((r) => (r.businessName || r.name));
-      if (firstAny?.businessName?.trim()) {
-        return firstAny.businessName.trim();
-      }
-      if (firstAny?.name?.trim()) {
-        return firstAny.name.trim();
+      if (match?.name?.trim()) {
+        return match.name.trim();
       }
     }
     return 'Acme Corporation';
@@ -889,9 +883,8 @@ function EmailBroadcastPage() {
 
   const previewEmail = useMemo(() => {
     if (targetType === 'imported' && importedList.length > 0) {
-      const firstValid = importedList.find((r) => r.status === 'valid' && r.email);
-      if (firstValid?.email?.trim()) return firstValid.email.trim();
-      if (importedList[0]?.email?.trim()) return importedList[0].email.trim();
+      const match = importedList.find((r) => r.email?.trim());
+      if (match?.email?.trim()) return match.email.trim();
     }
     return 'contact@acmecorp.com';
   }, [targetType, importedList]);
