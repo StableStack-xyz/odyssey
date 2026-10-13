@@ -672,6 +672,7 @@ function EmailBroadcastPage() {
     const newRecipient: ImportedRecipient = {
       email: trimmedEmail,
       name: trimmedName || undefined,
+      businessName: trimmedName || undefined,
       firstName: trimmedName ? trimmedName.split(' ')[0] : undefined,
     };
 
@@ -1544,13 +1545,13 @@ function EmailBroadcastPage() {
 
                           <div>
                             <label className="block text-[11px] font-medium text-ink mb-1">
-                              Recipient or Business Name <span className="text-slate font-normal">(Optional)</span>
+                              Business Name (<code>businessName</code>) <span className="text-slate font-normal">(Optional)</span>
                             </label>
                             <input
                               type="text"
                               value={manualRecipientName}
                               onChange={(e) => setManualRecipientName(e.target.value)}
-                              placeholder="e.g. Alex Johnson or Acme Corp"
+                              placeholder="e.g. Acme Corporation or Vertex Financials"
                               className="input bg-vellum/30 text-xs w-full py-2"
                             />
                           </div>
@@ -1565,7 +1566,7 @@ function EmailBroadcastPage() {
 
                         <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
                           <span className="text-[11px] text-slate">
-                            Names personalize <code>{'{{user_name}}'}</code>, <code>{'{{first_name}}'}</code>, and <code>{'{{greetings}}'}</code>
+                            Business names personalize <code>{'{{user_name}}'}</code>, <code>{'{{company}}'}</code>, and <code>{'{{first_name}}'}</code>
                           </span>
 
                           <button
@@ -1586,7 +1587,7 @@ function EmailBroadcastPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="block text-xs font-medium text-ink">
-                          Paste Email Addresses & Names
+                          Paste Email Addresses & Business Names
                         </label>
                         <span className="text-[11px] text-slate">
                           Supports comma, space, tab, or angle brackets
@@ -1599,11 +1600,11 @@ function EmailBroadcastPage() {
                           setRawPastedEmails(e.target.value);
                           parseImportText(e.target.value);
                         }}
-                        placeholder={"john@example.com, John Doe\njane@acme.com, Jane Smith\nAlex Johnson <alex@company.com>\nbob@example.com"}
+                        placeholder={"john@example.com, Acme Corporation\njane@acme.com, Vertex Financials\nGlobex Payments <billing@globex.com>\nbob@example.com"}
                         className="input bg-paper font-mono text-xs w-full resize-y"
                       />
                       <p className="text-[11px] text-slate">
-                        Format examples: <code>email, name</code>, <code>name, email</code>, <code>email name</code>, or <code>Name &lt;email&gt;</code> (one per line).
+                        Format examples: <code>email, businessName</code>, <code>businessName, email</code>, <code>email businessName</code>, or <code>businessName &lt;email&gt;</code> (one per line).
                       </p>
                     </div>
                   )}
