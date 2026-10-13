@@ -139,31 +139,31 @@ const PLATFORM_PRESETS = [
     icon: ShieldCheck,
   },
   {
-    id: 'pending',
-    label: 'Pending Compliance',
-    desc: 'Awaiting KYC / KYB document verification',
+    id: 'under_review',
+    label: 'Under Review',
+    desc: 'Accounts awaiting KYC / KYB compliance verification',
     role: 'all' as const,
-    compliance: 'Pending' as const,
+    compliance: 'UnderReview' as const,
     status: 'active' as const,
     icon: Clock,
   },
   {
-    id: 'approved',
-    label: 'Approved KYC/KYB',
-    desc: 'Cleared accounts with verified KYC/KYB records',
-    role: 'all' as const,
-    compliance: 'Approved' as const,
-    status: 'active' as const,
-    icon: CheckCircle2,
-  },
-  {
     id: 'not_submitted',
-    label: 'KYC Not Submitted',
+    label: 'Not Submitted',
     desc: 'Registered accounts pending initial document upload',
     role: 'all' as const,
     compliance: 'NotSubmitted' as const,
     status: 'active' as const,
     icon: HelpCircle,
+  },
+  {
+    id: 'approved',
+    label: 'Approved KYC/KYB',
+    desc: 'Cleared accounts with verified compliance records',
+    role: 'all' as const,
+    compliance: 'Approved' as const,
+    status: 'active' as const,
+    icon: CheckCircle2,
   },
   {
     id: 'rejected',
@@ -194,9 +194,9 @@ function EmailBroadcastPage() {
 
   // Target mode state
   const [targetType, setTargetType] = useState<'platform_users' | 'imported'>('platform_users');
-  const [platformPreset, setPlatformPreset] = useState<'all' | 'merchants' | 'pending' | 'approved' | 'rejected' | 'not_submitted' | 'blocked' | 'custom'>('all');
+  const [platformPreset, setPlatformPreset] = useState<'all' | 'merchants' | 'under_review' | 'pending' | 'approved' | 'rejected' | 'not_submitted' | 'blocked' | 'custom'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | 'merchant'>('all');
-  const [complianceFilter, setComplianceFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'>('all');
+  const [complianceFilter, setComplianceFilter] = useState<'all' | 'UnderReview' | 'NotSubmitted' | 'Approved' | 'Rejected' | 'Pending'>('all');
   const [accountStatusFilter, setAccountStatusFilter] = useState<'active' | 'blocked' | 'all'>('active');
 
   // Imported recipients state
@@ -766,11 +766,14 @@ function EmailBroadcastPage() {
   // Check whether current filter parameters match any preset
   const checkAndSyncPreset = (
     role: 'all' | 'merchant',
-    comp: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted',
+    comp: 'all' | 'UnderReview' | 'NotSubmitted' | 'Approved' | 'Rejected' | 'Pending',
     status: 'active' | 'blocked' | 'all'
   ) => {
     const matched = PLATFORM_PRESETS.find(
-      (p) => p.role === role && p.compliance === comp && p.status === status
+      (p) =>
+        p.role === role &&
+        (p.compliance === comp || (p.compliance === 'UnderReview' && comp === 'Pending')) &&
+        p.status === status
     );
     if (matched) {
       setPlatformPreset(matched.id as any);
@@ -794,7 +797,7 @@ function EmailBroadcastPage() {
   };
 
   const handleComplianceChange = (
-    newCompliance: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'
+    newCompliance: 'all' | 'UnderReview' | 'NotSubmitted' | 'Approved' | 'Rejected' | 'Pending'
   ) => {
     setComplianceFilter(newCompliance);
     checkAndSyncPreset(roleFilter, newCompliance, accountStatusFilter);
@@ -819,8 +822,9 @@ function EmailBroadcastPage() {
         return recipientCounts.total || 0;
       case 'merchants':
         return recipientCounts.merchants || 0;
+      case 'under_review':
       case 'pending':
-        return recipientCounts.pendingCompliance || 0;
+        return (recipientCounts as any).underReviewCompliance || recipientCounts.pendingCompliance || 0;
       case 'approved':
         return recipientCounts.approvedCompliance || 0;
       case 'not_submitted':
@@ -845,10 +849,10 @@ function EmailBroadcastPage() {
     if (roleFilter === 'merchant') parts.push('Merchants');
     else parts.push('All Roles');
 
-    if (complianceFilter === 'Pending') parts.push('Pending KYC');
+    if (complianceFilter === 'UnderReview' || complianceFilter === 'Pending') parts.push('Under Review');
+    else if (complianceFilter === 'NotSubmitted') parts.push('Not Submitted');
     else if (complianceFilter === 'Approved') parts.push('Approved KYC');
     else if (complianceFilter === 'Rejected') parts.push('Rejected KYC');
-    else if (complianceFilter === 'NotSubmitted') parts.push('KYC Not Submitted');
 
     if (accountStatusFilter === 'active') parts.push('Active Only');
     else if (accountStatusFilter === 'blocked') parts.push('Blocked Only');
@@ -1358,7 +1362,7 @@ function EmailBroadcastPage() {
                       {/* Compliance Status Filter */}
                       <div>
                         <label className="block text-[11px] font-medium text-slate mb-1">
-                          Compliance (KYC/KYB)
+                          Compliance Status
                         </label>
                         <select
                           value={complianceFilter}
@@ -1366,10 +1370,10 @@ function EmailBroadcastPage() {
                           className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
                         >
                           <option value="all">All Compliance Statuses</option>
-                          <option value="Pending">Pending Verification</option>
-                          <option value="Approved">Approved KYC/KYB</option>
-                          <option value="Rejected">Rejected KYC</option>
-                          <option value="NotSubmitted">KYC Not Submitted</option>
+                          <option value="UnderReview">Under Review</option>
+                          <option value="NotSubmitted">Not Submitted</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
                         </select>
                       </div>
 
@@ -1399,7 +1403,7 @@ function EmailBroadcastPage() {
                         </span>
                         <span
                           className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
-                            complianceFilter === 'Pending'
+                            complianceFilter === 'UnderReview' || complianceFilter === 'Pending'
                               ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
                               : complianceFilter === 'Approved'
                               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700'
@@ -1410,7 +1414,14 @@ function EmailBroadcastPage() {
                               : 'bg-vellum border-graphite-hairline text-ink'
                           }`}
                         >
-                          Compliance: {complianceFilter === 'all' ? 'All' : complianceFilter}
+                          Compliance:{' '}
+                          {complianceFilter === 'all'
+                            ? 'All'
+                            : complianceFilter === 'UnderReview' || complianceFilter === 'Pending'
+                            ? 'Under Review'
+                            : complianceFilter === 'NotSubmitted'
+                            ? 'Not Submitted'
+                            : complianceFilter}
                         </span>
                         <span
                           className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
@@ -1931,8 +1942,8 @@ function EmailBroadcastPage() {
                   <h3 className="text-sm font-semibold text-ink">Template Content Composer</h3>
                 </div>
 
-                {/* Preset Templates Dropdown */}
-                <div className="flex items-center gap-1.5 text-xs">
+                {/* Preset Templates Dropdown & Clear */}
+                <div className="flex items-center gap-1.5 text-xs flex-wrap">
                   <span className="text-slate">Presets:</span>
                   {TEMPLATE_PRESETS.map((preset) => (
                     <button
@@ -1950,6 +1961,19 @@ function EmailBroadcastPage() {
                       {preset.name}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubject('');
+                      setListContent('');
+                      setAdditionalMessage('');
+                      setGreetings('Regards,\nThe Stablestack Team.');
+                      toast.info('Composer fields cleared');
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded border border-graphite-hairline bg-paper hover:bg-red-50 hover:text-red-600 text-slate transition-colors cursor-pointer"
+                  >
+                    Clear
+                  </button>
                 </div>
               </div>
 
@@ -2014,7 +2038,7 @@ function EmailBroadcastPage() {
                   />
                 </div>
                 <p className="text-[10px] text-slate mt-1.5">
-                  Format using <b>B</b> (Bold), <i>I</i> (Italic), <u>U</u> (Underline), lists, headings, and quotes. Injected into the template card box.
+                  Format using <b>B</b> (Bold), <i>I</i> (Italic), <u>U</u> (Underline), lists, headings, and quotes. Injected into the template card box. (Note: The outer template already includes <code>Hi &#123;&#123;User_name&#125;&#125;,</code> above this card box).
                 </p>
               </div>
 
