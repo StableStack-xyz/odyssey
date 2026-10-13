@@ -27,6 +27,11 @@ import {
   Code,
   Copy,
   Check,
+  SlidersHorizontal,
+  Clock,
+  Filter,
+  ShieldAlert,
+  RotateCcw,
 } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { toast } from 'sonner';
@@ -100,6 +105,72 @@ const MERGE_TAGS = [
   { tag: '{{date}}', label: 'Current Date' },
 ];
 
+const PLATFORM_PRESETS = [
+  {
+    id: 'all',
+    label: 'All Active Users',
+    desc: 'All non-blocked registered platform accounts',
+    role: 'all' as const,
+    compliance: 'all' as const,
+    status: 'active' as const,
+    icon: Users,
+  },
+  {
+    id: 'merchants',
+    label: 'Merchants Only',
+    desc: 'Verified corporate & merchant accounts',
+    role: 'merchant' as const,
+    compliance: 'all' as const,
+    status: 'active' as const,
+    icon: ShieldCheck,
+  },
+  {
+    id: 'pending',
+    label: 'Pending Compliance',
+    desc: 'Awaiting KYC / KYB document verification',
+    role: 'all' as const,
+    compliance: 'Pending' as const,
+    status: 'active' as const,
+    icon: Clock,
+  },
+  {
+    id: 'approved',
+    label: 'Approved KYC/KYB',
+    desc: 'Cleared accounts with verified KYC/KYB records',
+    role: 'all' as const,
+    compliance: 'Approved' as const,
+    status: 'active' as const,
+    icon: CheckCircle2,
+  },
+  {
+    id: 'not_submitted',
+    label: 'KYC Not Submitted',
+    desc: 'Registered accounts pending initial document upload',
+    role: 'all' as const,
+    compliance: 'NotSubmitted' as const,
+    status: 'active' as const,
+    icon: HelpCircle,
+  },
+  {
+    id: 'rejected',
+    label: 'Rejected KYC',
+    desc: 'Accounts requiring compliance re-submission',
+    role: 'all' as const,
+    compliance: 'Rejected' as const,
+    status: 'active' as const,
+    icon: AlertCircle,
+  },
+  {
+    id: 'blocked',
+    label: 'Blocked Accounts',
+    desc: 'Suspended accounts for critical legal notices',
+    role: 'all' as const,
+    compliance: 'all' as const,
+    status: 'blocked' as const,
+    icon: ShieldAlert,
+  },
+];
+
 function EmailBroadcastPage() {
   const { user: currentAdmin, isFullAccess, canRead, canWrite } = usePermissions();
 
@@ -109,7 +180,10 @@ function EmailBroadcastPage() {
 
   // Target mode state
   const [targetType, setTargetType] = useState<'platform_users' | 'imported'>('platform_users');
-  const [platformFilter, setPlatformFilter] = useState<'all' | 'merchants' | 'individuals' | 'approved'>('all');
+  const [platformPreset, setPlatformPreset] = useState<'all' | 'merchants' | 'pending' | 'approved' | 'rejected' | 'not_submitted' | 'blocked' | 'custom'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'merchant'>('all');
+  const [complianceFilter, setComplianceFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'>('all');
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'active' | 'blocked' | 'all'>('active');
 
   // Imported recipients state
   const [rawPastedEmails, setRawPastedEmails] = useState('');
@@ -146,12 +220,29 @@ function EmailBroadcastPage() {
   const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
   const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage'>('listContent');
 
-  // Fetch platform user counts
+  // Fetch platform user counts with flexible audience filter parameters
   const { data: recipientCounts, isLoading: isLoadingCounts, refetch: refetchCounts } = useQuery({
-    queryKey: ['broadcast-recipients-summary'],
+    queryKey: ['broadcast-recipients-summary', roleFilter, complianceFilter, accountStatusFilter],
     queryFn: async () => {
-      const res = await authApi.get('/api/users/auth/broadcast/recipients-summary');
-      return res.data?.data || { total: 0, merchants: 0, individuals: 0, approved: 0 };
+      const res = await authApi.get('/api/users/auth/broadcast/recipients-summary', {
+        params: {
+          role: roleFilter,
+          complianceStatus: complianceFilter,
+          accountStatus: accountStatusFilter,
+        },
+      });
+      return (
+        res.data?.data || {
+          total: 0,
+          merchants: 0,
+          pendingCompliance: 0,
+          approvedCompliance: 0,
+          rejectedCompliance: 0,
+          notSubmittedCompliance: 0,
+          blockedAccounts: 0,
+          filteredCount: 0,
+        }
+      );
     },
     enabled: isFullAccess || canRead('emails'),
   });
@@ -191,7 +282,10 @@ function EmailBroadcastPage() {
       const activeTemplateKey = selectedTemplate === 'custom' ? customTemplateKey : selectedTemplate;
       const payload: any = {
         targetType,
-        targetFilter: targetType === 'platform_users' ? platformFilter : undefined,
+        targetFilter: targetType === 'platform_users' ? platformPreset : undefined,
+        roleFilter: targetType === 'platform_users' ? roleFilter : undefined,
+        complianceFilter: targetType === 'platform_users' ? complianceFilter : undefined,
+        statusFilter: targetType === 'platform_users' ? accountStatusFilter : undefined,
         importedRecipients: targetType === 'imported' ? importedList : undefined,
         templateKey: activeTemplateKey,
         fromEmail: activeSender,
@@ -349,11 +443,105 @@ function EmailBroadcastPage() {
       return importedList.length;
     }
     if (!recipientCounts) return 0;
-    if (platformFilter === 'merchants') return recipientCounts.merchants || 0;
-    if (platformFilter === 'individuals') return recipientCounts.individuals || 0;
-    if (platformFilter === 'approved') return recipientCounts.approved || 0;
+    if (recipientCounts.filteredCount !== undefined) {
+      return recipientCounts.filteredCount;
+    }
     return recipientCounts.total || 0;
-  }, [targetType, importedList, platformFilter, recipientCounts]);
+  }, [targetType, importedList, recipientCounts]);
+
+  // Check whether current filter parameters match any preset
+  const checkAndSyncPreset = (
+    role: 'all' | 'merchant',
+    comp: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted',
+    status: 'active' | 'blocked' | 'all'
+  ) => {
+    const matched = PLATFORM_PRESETS.find(
+      (p) => p.role === role && p.compliance === comp && p.status === status
+    );
+    if (matched) {
+      setPlatformPreset(matched.id as any);
+    } else {
+      setPlatformPreset('custom');
+    }
+  };
+
+  // Helper to apply preset
+  const applyPreset = (preset: (typeof PLATFORM_PRESETS)[number]) => {
+    setPlatformPreset(preset.id as any);
+    setRoleFilter(preset.role);
+    setComplianceFilter(preset.compliance);
+    setAccountStatusFilter(preset.status);
+  };
+
+  // Filter change handlers
+  const handleRoleChange = (newRole: 'all' | 'merchant') => {
+    setRoleFilter(newRole);
+    checkAndSyncPreset(newRole, complianceFilter, accountStatusFilter);
+  };
+
+  const handleComplianceChange = (
+    newCompliance: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'
+  ) => {
+    setComplianceFilter(newCompliance);
+    checkAndSyncPreset(roleFilter, newCompliance, accountStatusFilter);
+  };
+
+  const handleStatusChange = (newStatus: 'active' | 'blocked' | 'all') => {
+    setAccountStatusFilter(newStatus);
+    checkAndSyncPreset(roleFilter, complianceFilter, newStatus);
+  };
+
+  const resetFilters = () => {
+    setPlatformPreset('all');
+    setRoleFilter('all');
+    setComplianceFilter('all');
+    setAccountStatusFilter('active');
+  };
+
+  const getPresetCount = (id: string) => {
+    if (!recipientCounts) return 0;
+    switch (id) {
+      case 'all':
+        return recipientCounts.total || 0;
+      case 'merchants':
+        return recipientCounts.merchants || 0;
+      case 'pending':
+        return recipientCounts.pendingCompliance || 0;
+      case 'approved':
+        return recipientCounts.approvedCompliance || 0;
+      case 'not_submitted':
+        return recipientCounts.notSubmittedCompliance || 0;
+      case 'rejected':
+        return recipientCounts.rejectedCompliance || 0;
+      case 'blocked':
+        return recipientCounts.blockedAccounts || 0;
+      default:
+        return 0;
+    }
+  };
+
+  const isCustomFiltered =
+    roleFilter !== 'all' || complianceFilter !== 'all' || accountStatusFilter !== 'active';
+
+  const getFilterSummaryText = () => {
+    if (targetType === 'imported') {
+      return `Imported List (${csvFileName || `${importedList.length} recipient${importedList.length === 1 ? '' : 's'}`})`;
+    }
+    const parts: string[] = [];
+    if (roleFilter === 'merchant') parts.push('Merchants');
+    else parts.push('All Roles');
+
+    if (complianceFilter === 'Pending') parts.push('Pending KYC');
+    else if (complianceFilter === 'Approved') parts.push('Approved KYC');
+    else if (complianceFilter === 'Rejected') parts.push('Rejected KYC');
+    else if (complianceFilter === 'NotSubmitted') parts.push('KYC Not Submitted');
+
+    if (accountStatusFilter === 'active') parts.push('Active Only');
+    else if (accountStatusFilter === 'blocked') parts.push('Blocked Only');
+    else parts.push('Active & Blocked');
+
+    return parts.join(' • ');
+  };
 
   // JSON Merge Info representation (matching ZeptoMail console)
   const mergeInfoJson = useMemo(() => {
@@ -659,8 +847,16 @@ function EmailBroadcastPage() {
               disabled={estimatedCount === 0 || sendBroadcastMutation.isPending}
               className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 cursor-pointer disabled:opacity-50"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send Broadcast ({estimatedCount.toLocaleString()})</span>
+              {sendBroadcastMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {sendBroadcastMutation.isPending
+                  ? 'Dispatching...'
+                  : `Send Broadcast (${estimatedCount.toLocaleString()})`}
+              </span>
             </button>
           </div>
         </div>
@@ -676,20 +872,21 @@ function EmailBroadcastPage() {
             label="Merchants Audience"
             value={isLoadingCounts ? '...' : (recipientCounts?.merchants || 0).toLocaleString()}
             icon={ShieldCheck}
-            change="High-volume partners"
+            change="Corporate & Business"
           />
           <StatsCard
-            label="Approved Compliance"
-            value={isLoadingCounts ? '...' : (recipientCounts?.approved || 0).toLocaleString()}
-            icon={CheckCircle2}
-            change="KYC/KYB verified"
-            changeType="positive"
+            label="Pending Compliance"
+            value={isLoadingCounts ? '...' : (recipientCounts?.pendingCompliance || 0).toLocaleString()}
+            icon={Clock}
+            change="Awaiting verification"
+            changeType="neutral"
           />
           <StatsCard
             label="Active Audience Pool"
-            value={estimatedCount.toLocaleString()}
+            value={isLoadingCounts ? '...' : estimatedCount.toLocaleString()}
             icon={Mail}
-            change={targetType === 'platform_users' ? `Filter: ${platformFilter}` : 'Imported List'}
+            change={getFilterSummaryText()}
+            changeType="positive"
           />
         </div>
 
@@ -741,33 +938,192 @@ function EmailBroadcastPage() {
 
               {/* Platform Users Filtering Options */}
               {targetType === 'platform_users' && (
-                <div className="space-y-3 pt-1">
-                  <label className="block text-xs font-medium text-ink">
-                    Select Target User Segment <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {[
-                      { id: 'all', label: 'All Users', count: recipientCounts?.total || 0 },
-                      { id: 'merchants', label: 'Merchants', count: recipientCounts?.merchants || 0 },
-                      { id: 'individuals', label: 'Individuals', count: recipientCounts?.individuals || 0 },
-                      { id: 'approved', label: 'Approved KYC', count: recipientCounts?.approved || 0 },
-                    ].map((seg) => (
+                <div className="space-y-4 pt-1">
+                  {/* Presets Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-semibold text-ink">
+                        Target Audience Segments & Presets
+                      </label>
+                      <p className="text-[11px] text-slate mt-0.5">
+                        Select a pre-built user cohort or combine multi-criteria filters below
+                      </p>
+                    </div>
+                    {isCustomFiltered && (
                       <button
-                        key={seg.id}
                         type="button"
-                        onClick={() => setPlatformFilter(seg.id as any)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          platformFilter === seg.id
-                            ? 'bg-paper border-emerald-500 ring-1 ring-emerald-500 shadow-sm'
-                            : 'bg-paper/60 border-graphite-hairline hover:bg-paper'
-                        }`}
+                        onClick={resetFilters}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                       >
-                        <div className="text-xs font-semibold text-ink">{seg.label}</div>
-                        <div className="text-[11px] text-slate mt-0.5">
-                          {isLoadingCounts ? '...' : seg.count.toLocaleString()} accounts
-                        </div>
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset Filters</span>
                       </button>
-                    ))}
+                    )}
+                  </div>
+
+                  {/* Quick Preset Cards Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    {PLATFORM_PRESETS.map((preset) => {
+                      const PresetIcon = preset.icon;
+                      const isSelected = platformPreset === preset.id;
+                      const count = getPresetCount(preset.id);
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyPreset(preset)}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative group ${
+                            isSelected
+                              ? 'bg-paper border-emerald-500 ring-1 ring-emerald-500 shadow-sm'
+                              : 'bg-paper/60 border-graphite-hairline hover:bg-paper hover:border-graphite'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span
+                              className={`p-1.5 rounded-lg ${
+                                isSelected
+                                  ? 'bg-emerald-500/10 text-emerald-700'
+                                  : 'bg-vellum text-slate group-hover:text-ink'
+                              }`}
+                            >
+                              <PresetIcon className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="text-[11px] font-mono font-medium text-slate">
+                              {isLoadingCounts ? '...' : count.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="text-xs font-semibold text-ink line-clamp-1">{preset.label}</div>
+                          <div className="text-[10px] text-slate mt-0.5 line-clamp-1 leading-snug">
+                            {preset.desc}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Multi-Criteria Filter Controls Panel */}
+                  <div className="bg-paper p-4 rounded-xl border border-graphite-hairline space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-xs font-semibold text-ink">Fine-Tune Filter Criteria</span>
+                      </div>
+                      <span className="text-[11px] text-slate">
+                        Combinable role, KYC, and account status filters
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Role Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Role Type
+                        </label>
+                        <select
+                          value={roleFilter}
+                          onChange={(e) => handleRoleChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="all">All Roles (Platform-wide)</option>
+                          <option value="merchant">Merchants Only</option>
+                        </select>
+                      </div>
+
+                      {/* Compliance Status Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Compliance (KYC/KYB)
+                        </label>
+                        <select
+                          value={complianceFilter}
+                          onChange={(e) => handleComplianceChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="all">All Compliance Statuses</option>
+                          <option value="Pending">Pending Verification</option>
+                          <option value="Approved">Approved KYC/KYB</option>
+                          <option value="Rejected">Rejected KYC</option>
+                          <option value="NotSubmitted">KYC Not Submitted</option>
+                        </select>
+                      </div>
+
+                      {/* Account Status Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Account Status
+                        </label>
+                        <select
+                          value={accountStatusFilter}
+                          onChange={(e) => handleStatusChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="active">Active Accounts Only (Default)</option>
+                          <option value="blocked">Blocked Accounts Only</option>
+                          <option value="all">All Accounts (Active & Blocked)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Active Filter Pills & Real-Time Count Match */}
+                    <div className="pt-2 border-t border-graphite-hairline flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] text-slate mr-1">Active Criteria:</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-vellum border border-graphite-hairline text-ink font-medium">
+                          Role: {roleFilter === 'merchant' ? 'Merchants' : 'All Roles'}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                            complianceFilter === 'Pending'
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                              : complianceFilter === 'Approved'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700'
+                              : complianceFilter === 'Rejected'
+                              ? 'bg-rose-500/10 border-rose-500/20 text-rose-700'
+                              : complianceFilter === 'NotSubmitted'
+                              ? 'bg-gray-500/10 border-gray-500/20 text-gray-700'
+                              : 'bg-vellum border-graphite-hairline text-ink'
+                          }`}
+                        >
+                          Compliance: {complianceFilter === 'all' ? 'All' : complianceFilter}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                            accountStatusFilter === 'blocked'
+                              ? 'bg-red-500/10 border-red-500/20 text-red-700'
+                              : accountStatusFilter === 'all'
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700'
+                          }`}
+                        >
+                          Status: {accountStatusFilter === 'active' ? 'Active Only' : accountStatusFilter === 'blocked' ? 'Blocked Only' : 'Active & Blocked'}
+                        </span>
+                      </div>
+
+                      {/* Dynamic Real-time Count */}
+                      <div className="text-xs font-mono font-medium text-emerald-700 flex items-center gap-1.5">
+                        {isLoadingCounts ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
+                        <span>
+                          {isLoadingCounts
+                            ? 'Calculating recipients...'
+                            : `${estimatedCount.toLocaleString()} recipient${estimatedCount === 1 ? '' : 's'} match`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Blocked Accounts Safety Alert */}
+                    {(accountStatusFilter === 'blocked' || accountStatusFilter === 'all') && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-[11px] text-amber-800">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          <strong>Notice:</strong> Broadcast audience includes suspended/blocked accounts. Ensure messages sent to this pool adhere to regulatory and account status guidelines.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1316,12 +1672,12 @@ function EmailBroadcastPage() {
           </div>
 
           <div className="bg-vellum/30 p-4 rounded-xl border border-graphite-hairline space-y-2 text-xs">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-slate">Recipient Target:</span>
-              <span className="font-semibold text-ink">
+              <span className="font-semibold text-ink text-right">
                 {targetType === 'platform_users'
-                  ? `Platform Users (${platformFilter.toUpperCase()})`
-                  : `Imported List (${csvFileName || 'Pasted'})`}
+                  ? `Platform Users (${getFilterSummaryText()})`
+                  : `Imported List (${csvFileName || `${importedList.length} recipient${importedList.length === 1 ? '' : 's'}`})`}
               </span>
             </div>
             <div className="flex justify-between">
