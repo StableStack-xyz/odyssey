@@ -71,6 +71,10 @@ const VERIFIED_SENDERS = [
   { email: 'support@stablestack.xyz', label: 'support@stablestack.xyz (Customer Support)' },
 ];
 
+const CUSTOM_SENDERS_STORAGE_KEY = 'stablestack_custom_from_emails';
+const LAST_SENDER_STORAGE_KEY = 'stablestack_last_from_email';
+const LAST_FROM_NAME_STORAGE_KEY = 'stablestack_last_from_name';
+
 const TEMPLATE_PRESETS = [
   {
     name: 'Platform Update',
@@ -192,12 +196,93 @@ function EmailBroadcastPage() {
   const [csvFileName, setCsvFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Email sender settings
-  const [fromEmail, setFromEmail] = useState('hello@stablestack.xyz');
+  // Saved custom senders from localStorage
+  const [savedCustomSenders, setSavedCustomSenders] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem(CUSTOM_SENDERS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Email sender settings (persisted in localStorage)
+  const [fromEmail, setFromEmail] = useState(() => {
+    if (typeof window === 'undefined') return 'hello@stablestack.xyz';
+    try {
+      return localStorage.getItem(LAST_SENDER_STORAGE_KEY) || 'hello@stablestack.xyz';
+    } catch {
+      return 'hello@stablestack.xyz';
+    }
+  });
   const [customFromEmail, setCustomFromEmail] = useState('');
-  const [fromName, setFromName] = useState('StableStack');
+  const [fromName, setFromName] = useState(() => {
+    if (typeof window === 'undefined') return 'StableStack';
+    try {
+      return localStorage.getItem(LAST_FROM_NAME_STORAGE_KEY) || 'StableStack';
+    } catch {
+      return 'StableStack';
+    }
+  });
   const [replyTo, setReplyTo] = useState('');
   const [ccList, setCcList] = useState('');
+
+  // Save a custom email address to localStorage for reuse
+  const saveCustomSender = (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return false;
+    }
+    if (VERIFIED_SENDERS.some((s) => s.email.toLowerCase() === trimmed)) {
+      toast.info('This address is already a default verified sender');
+      return true;
+    }
+    const updated = savedCustomSenders.includes(trimmed)
+      ? savedCustomSenders
+      : [...savedCustomSenders, trimmed];
+    setSavedCustomSenders(updated);
+    try {
+      localStorage.setItem(CUSTOM_SENDERS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(LAST_SENDER_STORAGE_KEY, trimmed);
+    } catch {}
+    return true;
+  };
+
+  // Remove a custom email address from localStorage
+  const removeCustomSender = (emailToRemove: string) => {
+    const updated = savedCustomSenders.filter((e) => e !== emailToRemove);
+    setSavedCustomSenders(updated);
+    try {
+      localStorage.setItem(CUSTOM_SENDERS_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    if (fromEmail === emailToRemove) {
+      setFromEmail('hello@stablestack.xyz');
+      try {
+        localStorage.setItem(LAST_SENDER_STORAGE_KEY, 'hello@stablestack.xyz');
+      } catch {}
+    }
+    toast.success(`Removed ${emailToRemove} from saved senders`);
+  };
+
+  const handleFromEmailChange = (val: string) => {
+    setFromEmail(val);
+    if (val !== 'custom') {
+      try {
+        localStorage.setItem(LAST_SENDER_STORAGE_KEY, val);
+      } catch {}
+    }
+  };
+
+  const handleFromNameChange = (val: string) => {
+    setFromName(val);
+    try {
+      localStorage.setItem(LAST_FROM_NAME_STORAGE_KEY, val);
+    } catch {}
+  };
+
+  const resolvedFromEmail = fromEmail === 'custom' ? (customFromEmail.trim() || 'custom@stablestack.xyz') : fromEmail;
 
   // Template merge fields matching ZeptoMail Generic Notification Template
   const [subject, setSubject] = useState(TEMPLATE_PRESETS[0].subject);
@@ -250,7 +335,10 @@ function EmailBroadcastPage() {
   // Test Email Mutation
   const sendTestMutation = useMutation({
     mutationFn: async () => {
-      const activeSender = fromEmail === 'custom' ? customFromEmail : fromEmail;
+      const activeSender = fromEmail === 'custom' ? customFromEmail.trim().toLowerCase() : fromEmail;
+      if (fromEmail === 'custom' && customFromEmail.trim()) {
+        saveCustomSender(customFromEmail);
+      }
       const activeTemplateKey = selectedTemplate === 'custom' ? customTemplateKey : selectedTemplate;
       const res = await authApi.post('/api/users/auth/broadcast/test', {
         toEmail: testEmailAddress,
@@ -278,7 +366,10 @@ function EmailBroadcastPage() {
   // Bulk Broadcast Mutation
   const sendBroadcastMutation = useMutation({
     mutationFn: async () => {
-      const activeSender = fromEmail === 'custom' ? customFromEmail : fromEmail;
+      const activeSender = fromEmail === 'custom' ? customFromEmail.trim().toLowerCase() : fromEmail;
+      if (fromEmail === 'custom' && customFromEmail.trim()) {
+        saveCustomSender(customFromEmail);
+      }
       const activeTemplateKey = selectedTemplate === 'custom' ? customTemplateKey : selectedTemplate;
       const payload: any = {
         targetType,
@@ -1203,53 +1294,100 @@ function EmailBroadcastPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1">
-                    From Email Address <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-ink">
+                      From Email Address <span className="text-red-500">*</span>
+                    </label>
+                    {savedCustomSenders.includes(fromEmail) && (
+                      <button
+                        type="button"
+                        onClick={() => removeCustomSender(fromEmail)}
+                        className="text-[10px] text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                      >
+                        Delete saved address
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={fromEmail}
-                    onChange={(e) => setFromEmail(e.target.value)}
+                    onChange={(e) => handleFromEmailChange(e.target.value)}
                     className="input bg-paper text-xs cursor-pointer"
                   >
-                    {VERIFIED_SENDERS.map((s) => (
-                      <option key={s.email} value={s.email}>
-                        {s.label}
-                      </option>
-                    ))}
-                    <option value="custom">+ Custom Verified Address</option>
+                    <optgroup label="Default Verified Senders">
+                      {VERIFIED_SENDERS.map((s) => (
+                        <option key={s.email} value={s.email}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </optgroup>
+
+                    {savedCustomSenders.length > 0 && (
+                      <optgroup label="Saved Custom Senders (localStorage)">
+                        {savedCustomSenders.map((email) => (
+                          <option key={email} value={email}>
+                            {email} (Custom)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    <optgroup label="New Sender">
+                      <option value="custom">+ Enter New Custom Address...</option>
+                    </optgroup>
                   </select>
                 </div>
 
-                {fromEmail === 'custom' ? (
-                  <div>
-                    <label className="block text-xs font-medium text-ink mb-1">
-                      Custom From Address <span className="text-red-500">*</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-medium text-ink mb-1">
+                    From Display Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fromName}
+                    onChange={(e) => handleFromNameChange(e.target.value)}
+                    placeholder="StableStack"
+                    className="input bg-paper text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Extra input if 'custom' is selected */}
+              {fromEmail === 'custom' && (
+                <div className="p-3 bg-paper rounded-xl border border-graphite-hairline space-y-2">
+                  <label className="block text-xs font-medium text-ink">
+                    New Custom From Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="email"
                       required
                       value={customFromEmail}
                       onChange={(e) => setCustomFromEmail(e.target.value)}
                       placeholder="announcements@stablestack.xyz"
-                      className="input bg-paper text-xs"
+                      className="input bg-vellum/50 text-xs flex-1"
                     />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (saveCustomSender(customFromEmail)) {
+                          const savedEmail = customFromEmail.trim().toLowerCase();
+                          setFromEmail(savedEmail);
+                          setCustomFromEmail('');
+                          toast.success(`Saved and selected ${savedEmail}`);
+                        }
+                      }}
+                      disabled={!customFromEmail || !customFromEmail.includes('@')}
+                      className="btn-secondary text-xs py-2 px-3 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                    >
+                      Save to List
+                    </button>
                   </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-medium text-ink mb-1">
-                      From Display Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fromName}
-                      onChange={(e) => setFromName(e.target.value)}
-                      placeholder="StableStack"
-                      className="input bg-paper text-xs"
-                    />
-                  </div>
-                )}
-              </div>
+                  <p className="text-[10px] text-slate">
+                    Saved addresses are stored locally in your browser and automatically appear in the dropdown above for future campaigns. Must be verified in Zoho ZeptoMail.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1511,7 +1649,7 @@ function EmailBroadcastPage() {
               {/* Sender & Envelope details */}
               <div className="bg-paper p-3 rounded-xl border border-graphite-hairline text-xs space-y-1">
                 <div className="text-[11px] text-slate">
-                  From: <span className="font-semibold text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+                  From: <span className="font-semibold text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
                 </div>
                 <div className="text-xs font-medium text-ink truncate">
                   Subject: <span className="font-normal">{subject || '(No subject)'}</span>
@@ -1613,7 +1751,7 @@ function EmailBroadcastPage() {
 
           <div className="p-3 bg-vellum/40 border border-graphite-hairline rounded-xl text-xs space-y-1">
             <div className="text-slate">
-              Sender: <span className="font-semibold text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+              Sender: <span className="font-semibold text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
             </div>
             <div className="text-slate">
               Subject: <span className="font-semibold text-ink">[TEST] {subject}</span>
@@ -1688,7 +1826,7 @@ function EmailBroadcastPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate">From Address:</span>
-              <span className="font-mono text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+              <span className="font-mono text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
             </div>
             {ccList && (
               <div className="flex justify-between">
