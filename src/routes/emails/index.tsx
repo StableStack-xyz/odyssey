@@ -111,7 +111,7 @@ const ZEPTO_TEMPLATES = [
 ];
 
 const MERGE_TAGS = [
-  { tag: '{{greetings}}', label: 'Sign-off (Regards, The Stablestack Team)' },
+  { tag: '{{signoff}}', label: 'Closing Sign-off ({{signoff}} / {{greetings}})' },
   { tag: '{{user_name}}', label: 'Business / Recipient Name' },
   { tag: '{{first_name}}', label: 'First Name' },
   { tag: '{{company}}', label: 'Company / Business' },
@@ -866,8 +866,10 @@ function EmailBroadcastPage() {
     return JSON.stringify(
       {
         subject: subject || 'subject_value',
+        signoff: greetings || 'Regards,\nThe Stablestack Team.',
         greetings: greetings || 'Regards,\nThe Stablestack Team.',
-        user_name: 'user_name_value',
+        User_name: 'Gabriel',
+        user_name: 'Gabriel',
         list_content: listContent || 'list_content_value',
         additional_message: additionalMessage || 'additional_message_value',
       },
@@ -884,6 +886,8 @@ function EmailBroadcastPage() {
       return text
         .replace(/\{\{greetings\}\}/gi, defaultDynamicGreeting)
         .replace(/\{\{greeting\}\}/gi, defaultDynamicGreeting)
+        .replace(/\{\{signoff\}\}/gi, defaultDynamicGreeting)
+        .replace(/\{\{sign_off\}\}/gi, defaultDynamicGreeting)
         .replace(/\{\{user_name\}\}/gi, 'Gabriel')
         .replace(/\{\{User_name\}\}/gi, 'Gabriel')
         .replace(/\{\{first_name\}\}/gi, 'Gabriel')
@@ -2064,11 +2068,11 @@ function EmailBroadcastPage() {
                 </p>
               </div>
 
-              {/* Sign-off Greeting (Maps to {{greetings}}) */}
+              {/* Closing Sign-off (Maps to {{signoff}} / {{greetings}}) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-medium text-ink">
-                    Sign-off Greeting (<code>{"{{greetings}}"}</code>) <span className="text-slate font-normal">(Dynamic)</span>
+                    Closing Sign-off (<code>{"{{signoff}}"}</code> / <code>{"{{greetings}}"}</code>) <span className="text-slate font-normal">(Dynamic)</span>
                   </label>
                   <button
                     type="button"
@@ -2088,7 +2092,7 @@ function EmailBroadcastPage() {
                   className="input bg-paper font-sans text-xs w-full resize-y leading-relaxed"
                 />
                 <p className="text-[10px] text-slate mt-1">
-                  Dynamic closing sign-off injected into <code>{"{{greetings}}"}</code> at the bottom of the template.
+                  Dynamic closing sign-off injected into <code>{"{{signoff}}"}</code> (or <code>{"{{greetings}}"}</code>) at the bottom of the template.
                 </p>
               </div>
             </div>
