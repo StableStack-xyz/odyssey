@@ -27,6 +27,11 @@ import {
   Code,
   Copy,
   Check,
+  SlidersHorizontal,
+  Clock,
+  Filter,
+  ShieldAlert,
+  RotateCcw,
 } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { toast } from 'sonner';
@@ -66,6 +71,10 @@ const VERIFIED_SENDERS = [
   { email: 'support@stablestack.xyz', label: 'support@stablestack.xyz (Customer Support)' },
 ];
 
+const CUSTOM_SENDERS_STORAGE_KEY = 'stablestack_custom_from_emails';
+const LAST_SENDER_STORAGE_KEY = 'stablestack_last_from_email';
+const LAST_FROM_NAME_STORAGE_KEY = 'stablestack_last_from_name';
+
 const TEMPLATE_PRESETS = [
   {
     name: 'Platform Update',
@@ -100,6 +109,72 @@ const MERGE_TAGS = [
   { tag: '{{date}}', label: 'Current Date' },
 ];
 
+const PLATFORM_PRESETS = [
+  {
+    id: 'all',
+    label: 'All Active Users',
+    desc: 'All non-blocked registered platform accounts',
+    role: 'all' as const,
+    compliance: 'all' as const,
+    status: 'active' as const,
+    icon: Users,
+  },
+  {
+    id: 'merchants',
+    label: 'Merchants Only',
+    desc: 'Verified corporate & merchant accounts',
+    role: 'merchant' as const,
+    compliance: 'all' as const,
+    status: 'active' as const,
+    icon: ShieldCheck,
+  },
+  {
+    id: 'pending',
+    label: 'Pending Compliance',
+    desc: 'Awaiting KYC / KYB document verification',
+    role: 'all' as const,
+    compliance: 'Pending' as const,
+    status: 'active' as const,
+    icon: Clock,
+  },
+  {
+    id: 'approved',
+    label: 'Approved KYC/KYB',
+    desc: 'Cleared accounts with verified KYC/KYB records',
+    role: 'all' as const,
+    compliance: 'Approved' as const,
+    status: 'active' as const,
+    icon: CheckCircle2,
+  },
+  {
+    id: 'not_submitted',
+    label: 'KYC Not Submitted',
+    desc: 'Registered accounts pending initial document upload',
+    role: 'all' as const,
+    compliance: 'NotSubmitted' as const,
+    status: 'active' as const,
+    icon: HelpCircle,
+  },
+  {
+    id: 'rejected',
+    label: 'Rejected KYC',
+    desc: 'Accounts requiring compliance re-submission',
+    role: 'all' as const,
+    compliance: 'Rejected' as const,
+    status: 'active' as const,
+    icon: AlertCircle,
+  },
+  {
+    id: 'blocked',
+    label: 'Blocked Accounts',
+    desc: 'Suspended accounts for critical legal notices',
+    role: 'all' as const,
+    compliance: 'all' as const,
+    status: 'blocked' as const,
+    icon: ShieldAlert,
+  },
+];
+
 function EmailBroadcastPage() {
   const { user: currentAdmin, isFullAccess, canRead, canWrite } = usePermissions();
 
@@ -109,7 +184,10 @@ function EmailBroadcastPage() {
 
   // Target mode state
   const [targetType, setTargetType] = useState<'platform_users' | 'imported'>('platform_users');
-  const [platformFilter, setPlatformFilter] = useState<'all' | 'merchants' | 'individuals' | 'approved'>('all');
+  const [platformPreset, setPlatformPreset] = useState<'all' | 'merchants' | 'pending' | 'approved' | 'rejected' | 'not_submitted' | 'blocked' | 'custom'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'merchant'>('all');
+  const [complianceFilter, setComplianceFilter] = useState<'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'>('all');
+  const [accountStatusFilter, setAccountStatusFilter] = useState<'active' | 'blocked' | 'all'>('active');
 
   // Imported recipients state
   const [rawPastedEmails, setRawPastedEmails] = useState('');
@@ -118,12 +196,93 @@ function EmailBroadcastPage() {
   const [csvFileName, setCsvFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Email sender settings
-  const [fromEmail, setFromEmail] = useState('hello@stablestack.xyz');
+  // Saved custom senders from localStorage
+  const [savedCustomSenders, setSavedCustomSenders] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem(CUSTOM_SENDERS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Email sender settings (persisted in localStorage)
+  const [fromEmail, setFromEmail] = useState(() => {
+    if (typeof window === 'undefined') return 'hello@stablestack.xyz';
+    try {
+      return localStorage.getItem(LAST_SENDER_STORAGE_KEY) || 'hello@stablestack.xyz';
+    } catch {
+      return 'hello@stablestack.xyz';
+    }
+  });
   const [customFromEmail, setCustomFromEmail] = useState('');
-  const [fromName, setFromName] = useState('StableStack');
+  const [fromName, setFromName] = useState(() => {
+    if (typeof window === 'undefined') return 'StableStack';
+    try {
+      return localStorage.getItem(LAST_FROM_NAME_STORAGE_KEY) || 'StableStack';
+    } catch {
+      return 'StableStack';
+    }
+  });
   const [replyTo, setReplyTo] = useState('');
   const [ccList, setCcList] = useState('');
+
+  // Save a custom email address to localStorage for reuse
+  const saveCustomSender = (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return false;
+    }
+    if (VERIFIED_SENDERS.some((s) => s.email.toLowerCase() === trimmed)) {
+      toast.info('This address is already a default verified sender');
+      return true;
+    }
+    const updated = savedCustomSenders.includes(trimmed)
+      ? savedCustomSenders
+      : [...savedCustomSenders, trimmed];
+    setSavedCustomSenders(updated);
+    try {
+      localStorage.setItem(CUSTOM_SENDERS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(LAST_SENDER_STORAGE_KEY, trimmed);
+    } catch {}
+    return true;
+  };
+
+  // Remove a custom email address from localStorage
+  const removeCustomSender = (emailToRemove: string) => {
+    const updated = savedCustomSenders.filter((e) => e !== emailToRemove);
+    setSavedCustomSenders(updated);
+    try {
+      localStorage.setItem(CUSTOM_SENDERS_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    if (fromEmail === emailToRemove) {
+      setFromEmail('hello@stablestack.xyz');
+      try {
+        localStorage.setItem(LAST_SENDER_STORAGE_KEY, 'hello@stablestack.xyz');
+      } catch {}
+    }
+    toast.success(`Removed ${emailToRemove} from saved senders`);
+  };
+
+  const handleFromEmailChange = (val: string) => {
+    setFromEmail(val);
+    if (val !== 'custom') {
+      try {
+        localStorage.setItem(LAST_SENDER_STORAGE_KEY, val);
+      } catch {}
+    }
+  };
+
+  const handleFromNameChange = (val: string) => {
+    setFromName(val);
+    try {
+      localStorage.setItem(LAST_FROM_NAME_STORAGE_KEY, val);
+    } catch {}
+  };
+
+  const resolvedFromEmail = fromEmail === 'custom' ? (customFromEmail.trim() || 'custom@stablestack.xyz') : fromEmail;
 
   // Template merge fields matching ZeptoMail Generic Notification Template
   const [subject, setSubject] = useState(TEMPLATE_PRESETS[0].subject);
@@ -146,12 +305,29 @@ function EmailBroadcastPage() {
   const additionalMessageRef = useRef<HTMLTextAreaElement>(null);
   const [activeFocusField, setActiveFocusField] = useState<'listContent' | 'additionalMessage'>('listContent');
 
-  // Fetch platform user counts
+  // Fetch platform user counts with flexible audience filter parameters
   const { data: recipientCounts, isLoading: isLoadingCounts, refetch: refetchCounts } = useQuery({
-    queryKey: ['broadcast-recipients-summary'],
+    queryKey: ['broadcast-recipients-summary', roleFilter, complianceFilter, accountStatusFilter],
     queryFn: async () => {
-      const res = await authApi.get('/api/users/auth/broadcast/recipients-summary');
-      return res.data?.data || { total: 0, merchants: 0, individuals: 0, approved: 0 };
+      const res = await authApi.get('/api/users/auth/broadcast/recipients-summary', {
+        params: {
+          role: roleFilter,
+          complianceStatus: complianceFilter,
+          accountStatus: accountStatusFilter,
+        },
+      });
+      return (
+        res.data?.data || {
+          total: 0,
+          merchants: 0,
+          pendingCompliance: 0,
+          approvedCompliance: 0,
+          rejectedCompliance: 0,
+          notSubmittedCompliance: 0,
+          blockedAccounts: 0,
+          filteredCount: 0,
+        }
+      );
     },
     enabled: isFullAccess || canRead('emails'),
   });
@@ -159,7 +335,10 @@ function EmailBroadcastPage() {
   // Test Email Mutation
   const sendTestMutation = useMutation({
     mutationFn: async () => {
-      const activeSender = fromEmail === 'custom' ? customFromEmail : fromEmail;
+      const activeSender = fromEmail === 'custom' ? customFromEmail.trim().toLowerCase() : fromEmail;
+      if (fromEmail === 'custom' && customFromEmail.trim()) {
+        saveCustomSender(customFromEmail);
+      }
       const activeTemplateKey = selectedTemplate === 'custom' ? customTemplateKey : selectedTemplate;
       const res = await authApi.post('/api/users/auth/broadcast/test', {
         toEmail: testEmailAddress,
@@ -187,11 +366,17 @@ function EmailBroadcastPage() {
   // Bulk Broadcast Mutation
   const sendBroadcastMutation = useMutation({
     mutationFn: async () => {
-      const activeSender = fromEmail === 'custom' ? customFromEmail : fromEmail;
+      const activeSender = fromEmail === 'custom' ? customFromEmail.trim().toLowerCase() : fromEmail;
+      if (fromEmail === 'custom' && customFromEmail.trim()) {
+        saveCustomSender(customFromEmail);
+      }
       const activeTemplateKey = selectedTemplate === 'custom' ? customTemplateKey : selectedTemplate;
       const payload: any = {
         targetType,
-        targetFilter: targetType === 'platform_users' ? platformFilter : undefined,
+        targetFilter: targetType === 'platform_users' ? platformPreset : undefined,
+        roleFilter: targetType === 'platform_users' ? roleFilter : undefined,
+        complianceFilter: targetType === 'platform_users' ? complianceFilter : undefined,
+        statusFilter: targetType === 'platform_users' ? accountStatusFilter : undefined,
         importedRecipients: targetType === 'imported' ? importedList : undefined,
         templateKey: activeTemplateKey,
         fromEmail: activeSender,
@@ -349,11 +534,105 @@ function EmailBroadcastPage() {
       return importedList.length;
     }
     if (!recipientCounts) return 0;
-    if (platformFilter === 'merchants') return recipientCounts.merchants || 0;
-    if (platformFilter === 'individuals') return recipientCounts.individuals || 0;
-    if (platformFilter === 'approved') return recipientCounts.approved || 0;
+    if (recipientCounts.filteredCount !== undefined) {
+      return recipientCounts.filteredCount;
+    }
     return recipientCounts.total || 0;
-  }, [targetType, importedList, platformFilter, recipientCounts]);
+  }, [targetType, importedList, recipientCounts]);
+
+  // Check whether current filter parameters match any preset
+  const checkAndSyncPreset = (
+    role: 'all' | 'merchant',
+    comp: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted',
+    status: 'active' | 'blocked' | 'all'
+  ) => {
+    const matched = PLATFORM_PRESETS.find(
+      (p) => p.role === role && p.compliance === comp && p.status === status
+    );
+    if (matched) {
+      setPlatformPreset(matched.id as any);
+    } else {
+      setPlatformPreset('custom');
+    }
+  };
+
+  // Helper to apply preset
+  const applyPreset = (preset: (typeof PLATFORM_PRESETS)[number]) => {
+    setPlatformPreset(preset.id as any);
+    setRoleFilter(preset.role);
+    setComplianceFilter(preset.compliance);
+    setAccountStatusFilter(preset.status);
+  };
+
+  // Filter change handlers
+  const handleRoleChange = (newRole: 'all' | 'merchant') => {
+    setRoleFilter(newRole);
+    checkAndSyncPreset(newRole, complianceFilter, accountStatusFilter);
+  };
+
+  const handleComplianceChange = (
+    newCompliance: 'all' | 'Pending' | 'Approved' | 'Rejected' | 'NotSubmitted'
+  ) => {
+    setComplianceFilter(newCompliance);
+    checkAndSyncPreset(roleFilter, newCompliance, accountStatusFilter);
+  };
+
+  const handleStatusChange = (newStatus: 'active' | 'blocked' | 'all') => {
+    setAccountStatusFilter(newStatus);
+    checkAndSyncPreset(roleFilter, complianceFilter, newStatus);
+  };
+
+  const resetFilters = () => {
+    setPlatformPreset('all');
+    setRoleFilter('all');
+    setComplianceFilter('all');
+    setAccountStatusFilter('active');
+  };
+
+  const getPresetCount = (id: string) => {
+    if (!recipientCounts) return 0;
+    switch (id) {
+      case 'all':
+        return recipientCounts.total || 0;
+      case 'merchants':
+        return recipientCounts.merchants || 0;
+      case 'pending':
+        return recipientCounts.pendingCompliance || 0;
+      case 'approved':
+        return recipientCounts.approvedCompliance || 0;
+      case 'not_submitted':
+        return recipientCounts.notSubmittedCompliance || 0;
+      case 'rejected':
+        return recipientCounts.rejectedCompliance || 0;
+      case 'blocked':
+        return recipientCounts.blockedAccounts || 0;
+      default:
+        return 0;
+    }
+  };
+
+  const isCustomFiltered =
+    roleFilter !== 'all' || complianceFilter !== 'all' || accountStatusFilter !== 'active';
+
+  const getFilterSummaryText = () => {
+    if (targetType === 'imported') {
+      return `Imported List (${csvFileName || `${importedList.length} recipient${importedList.length === 1 ? '' : 's'}`})`;
+    }
+    const parts: string[] = [];
+    if (roleFilter === 'merchant') parts.push('Merchants');
+    else parts.push('All Roles');
+
+    if (complianceFilter === 'Pending') parts.push('Pending KYC');
+    else if (complianceFilter === 'Approved') parts.push('Approved KYC');
+    else if (complianceFilter === 'Rejected') parts.push('Rejected KYC');
+    else if (complianceFilter === 'NotSubmitted') parts.push('KYC Not Submitted');
+
+    if (accountStatusFilter === 'active') parts.push('Active Only');
+    else if (accountStatusFilter === 'blocked') parts.push('Blocked Only');
+    else parts.push('Active & Blocked');
+
+    return parts.join(' • ');
+  };
 
   // JSON Merge Info representation (matching ZeptoMail console)
   const mergeInfoJson = useMemo(() => {
@@ -659,8 +938,16 @@ function EmailBroadcastPage() {
               disabled={estimatedCount === 0 || sendBroadcastMutation.isPending}
               className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4 cursor-pointer disabled:opacity-50"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Send Broadcast ({estimatedCount.toLocaleString()})</span>
+              {sendBroadcastMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {sendBroadcastMutation.isPending
+                  ? 'Dispatching...'
+                  : `Send Broadcast (${estimatedCount.toLocaleString()})`}
+              </span>
             </button>
           </div>
         </div>
@@ -676,20 +963,21 @@ function EmailBroadcastPage() {
             label="Merchants Audience"
             value={isLoadingCounts ? '...' : (recipientCounts?.merchants || 0).toLocaleString()}
             icon={ShieldCheck}
-            change="High-volume partners"
+            change="Corporate & Business"
           />
           <StatsCard
-            label="Approved Compliance"
-            value={isLoadingCounts ? '...' : (recipientCounts?.approved || 0).toLocaleString()}
-            icon={CheckCircle2}
-            change="KYC/KYB verified"
-            changeType="positive"
+            label="Pending Compliance"
+            value={isLoadingCounts ? '...' : (recipientCounts?.pendingCompliance || 0).toLocaleString()}
+            icon={Clock}
+            change="Awaiting verification"
+            changeType="neutral"
           />
           <StatsCard
             label="Active Audience Pool"
-            value={estimatedCount.toLocaleString()}
+            value={isLoadingCounts ? '...' : estimatedCount.toLocaleString()}
             icon={Mail}
-            change={targetType === 'platform_users' ? `Filter: ${platformFilter}` : 'Imported List'}
+            change={getFilterSummaryText()}
+            changeType="positive"
           />
         </div>
 
@@ -741,33 +1029,192 @@ function EmailBroadcastPage() {
 
               {/* Platform Users Filtering Options */}
               {targetType === 'platform_users' && (
-                <div className="space-y-3 pt-1">
-                  <label className="block text-xs font-medium text-ink">
-                    Select Target User Segment <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {[
-                      { id: 'all', label: 'All Users', count: recipientCounts?.total || 0 },
-                      { id: 'merchants', label: 'Merchants', count: recipientCounts?.merchants || 0 },
-                      { id: 'individuals', label: 'Individuals', count: recipientCounts?.individuals || 0 },
-                      { id: 'approved', label: 'Approved KYC', count: recipientCounts?.approved || 0 },
-                    ].map((seg) => (
+                <div className="space-y-4 pt-1">
+                  {/* Presets Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-semibold text-ink">
+                        Target Audience Segments & Presets
+                      </label>
+                      <p className="text-[11px] text-slate mt-0.5">
+                        Select a pre-built user cohort or combine multi-criteria filters below
+                      </p>
+                    </div>
+                    {isCustomFiltered && (
                       <button
-                        key={seg.id}
                         type="button"
-                        onClick={() => setPlatformFilter(seg.id as any)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          platformFilter === seg.id
-                            ? 'bg-paper border-emerald-500 ring-1 ring-emerald-500 shadow-sm'
-                            : 'bg-paper/60 border-graphite-hairline hover:bg-paper'
-                        }`}
+                        onClick={resetFilters}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                       >
-                        <div className="text-xs font-semibold text-ink">{seg.label}</div>
-                        <div className="text-[11px] text-slate mt-0.5">
-                          {isLoadingCounts ? '...' : seg.count.toLocaleString()} accounts
-                        </div>
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset Filters</span>
                       </button>
-                    ))}
+                    )}
+                  </div>
+
+                  {/* Quick Preset Cards Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    {PLATFORM_PRESETS.map((preset) => {
+                      const PresetIcon = preset.icon;
+                      const isSelected = platformPreset === preset.id;
+                      const count = getPresetCount(preset.id);
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => applyPreset(preset)}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative group ${
+                            isSelected
+                              ? 'bg-paper border-emerald-500 ring-1 ring-emerald-500 shadow-sm'
+                              : 'bg-paper/60 border-graphite-hairline hover:bg-paper hover:border-graphite'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span
+                              className={`p-1.5 rounded-lg ${
+                                isSelected
+                                  ? 'bg-emerald-500/10 text-emerald-700'
+                                  : 'bg-vellum text-slate group-hover:text-ink'
+                              }`}
+                            >
+                              <PresetIcon className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="text-[11px] font-mono font-medium text-slate">
+                              {isLoadingCounts ? '...' : count.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="text-xs font-semibold text-ink line-clamp-1">{preset.label}</div>
+                          <div className="text-[10px] text-slate mt-0.5 line-clamp-1 leading-snug">
+                            {preset.desc}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Multi-Criteria Filter Controls Panel */}
+                  <div className="bg-paper p-4 rounded-xl border border-graphite-hairline space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-xs font-semibold text-ink">Fine-Tune Filter Criteria</span>
+                      </div>
+                      <span className="text-[11px] text-slate">
+                        Combinable role, KYC, and account status filters
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Role Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Role Type
+                        </label>
+                        <select
+                          value={roleFilter}
+                          onChange={(e) => handleRoleChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="all">All Roles (Platform-wide)</option>
+                          <option value="merchant">Merchants Only</option>
+                        </select>
+                      </div>
+
+                      {/* Compliance Status Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Compliance (KYC/KYB)
+                        </label>
+                        <select
+                          value={complianceFilter}
+                          onChange={(e) => handleComplianceChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="all">All Compliance Statuses</option>
+                          <option value="Pending">Pending Verification</option>
+                          <option value="Approved">Approved KYC/KYB</option>
+                          <option value="Rejected">Rejected KYC</option>
+                          <option value="NotSubmitted">KYC Not Submitted</option>
+                        </select>
+                      </div>
+
+                      {/* Account Status Filter */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate mb-1">
+                          Account Status
+                        </label>
+                        <select
+                          value={accountStatusFilter}
+                          onChange={(e) => handleStatusChange(e.target.value as any)}
+                          className="input bg-paper text-xs w-full py-1.5 cursor-pointer"
+                        >
+                          <option value="active">Active Accounts Only (Default)</option>
+                          <option value="blocked">Blocked Accounts Only</option>
+                          <option value="all">All Accounts (Active & Blocked)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Active Filter Pills & Real-Time Count Match */}
+                    <div className="pt-2 border-t border-graphite-hairline flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] text-slate mr-1">Active Criteria:</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-vellum border border-graphite-hairline text-ink font-medium">
+                          Role: {roleFilter === 'merchant' ? 'Merchants' : 'All Roles'}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                            complianceFilter === 'Pending'
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                              : complianceFilter === 'Approved'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700'
+                              : complianceFilter === 'Rejected'
+                              ? 'bg-rose-500/10 border-rose-500/20 text-rose-700'
+                              : complianceFilter === 'NotSubmitted'
+                              ? 'bg-gray-500/10 border-gray-500/20 text-gray-700'
+                              : 'bg-vellum border-graphite-hairline text-ink'
+                          }`}
+                        >
+                          Compliance: {complianceFilter === 'all' ? 'All' : complianceFilter}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                            accountStatusFilter === 'blocked'
+                              ? 'bg-red-500/10 border-red-500/20 text-red-700'
+                              : accountStatusFilter === 'all'
+                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700'
+                          }`}
+                        >
+                          Status: {accountStatusFilter === 'active' ? 'Active Only' : accountStatusFilter === 'blocked' ? 'Blocked Only' : 'Active & Blocked'}
+                        </span>
+                      </div>
+
+                      {/* Dynamic Real-time Count */}
+                      <div className="text-xs font-mono font-medium text-emerald-700 flex items-center gap-1.5">
+                        {isLoadingCounts ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
+                        <span>
+                          {isLoadingCounts
+                            ? 'Calculating recipients...'
+                            : `${estimatedCount.toLocaleString()} recipient${estimatedCount === 1 ? '' : 's'} match`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Blocked Accounts Safety Alert */}
+                    {(accountStatusFilter === 'blocked' || accountStatusFilter === 'all') && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-[11px] text-amber-800">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          <strong>Notice:</strong> Broadcast audience includes suspended/blocked accounts. Ensure messages sent to this pool adhere to regulatory and account status guidelines.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -847,53 +1294,100 @@ function EmailBroadcastPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1">
-                    From Email Address <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-ink">
+                      From Email Address <span className="text-red-500">*</span>
+                    </label>
+                    {savedCustomSenders.includes(fromEmail) && (
+                      <button
+                        type="button"
+                        onClick={() => removeCustomSender(fromEmail)}
+                        className="text-[10px] text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                      >
+                        Delete saved address
+                      </button>
+                    )}
+                  </div>
                   <select
                     value={fromEmail}
-                    onChange={(e) => setFromEmail(e.target.value)}
+                    onChange={(e) => handleFromEmailChange(e.target.value)}
                     className="input bg-paper text-xs cursor-pointer"
                   >
-                    {VERIFIED_SENDERS.map((s) => (
-                      <option key={s.email} value={s.email}>
-                        {s.label}
-                      </option>
-                    ))}
-                    <option value="custom">+ Custom Verified Address</option>
+                    <optgroup label="Default Verified Senders">
+                      {VERIFIED_SENDERS.map((s) => (
+                        <option key={s.email} value={s.email}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </optgroup>
+
+                    {savedCustomSenders.length > 0 && (
+                      <optgroup label="Saved Custom Senders (localStorage)">
+                        {savedCustomSenders.map((email) => (
+                          <option key={email} value={email}>
+                            {email} (Custom)
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    <optgroup label="New Sender">
+                      <option value="custom">+ Enter New Custom Address...</option>
+                    </optgroup>
                   </select>
                 </div>
 
-                {fromEmail === 'custom' ? (
-                  <div>
-                    <label className="block text-xs font-medium text-ink mb-1">
-                      Custom From Address <span className="text-red-500">*</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-medium text-ink mb-1">
+                    From Display Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fromName}
+                    onChange={(e) => handleFromNameChange(e.target.value)}
+                    placeholder="StableStack"
+                    className="input bg-paper text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Extra input if 'custom' is selected */}
+              {fromEmail === 'custom' && (
+                <div className="p-3 bg-paper rounded-xl border border-graphite-hairline space-y-2">
+                  <label className="block text-xs font-medium text-ink">
+                    New Custom From Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="email"
                       required
                       value={customFromEmail}
                       onChange={(e) => setCustomFromEmail(e.target.value)}
                       placeholder="announcements@stablestack.xyz"
-                      className="input bg-paper text-xs"
+                      className="input bg-vellum/50 text-xs flex-1"
                     />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (saveCustomSender(customFromEmail)) {
+                          const savedEmail = customFromEmail.trim().toLowerCase();
+                          setFromEmail(savedEmail);
+                          setCustomFromEmail('');
+                          toast.success(`Saved and selected ${savedEmail}`);
+                        }
+                      }}
+                      disabled={!customFromEmail || !customFromEmail.includes('@')}
+                      className="btn-secondary text-xs py-2 px-3 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                    >
+                      Save to List
+                    </button>
                   </div>
-                ) : (
-                  <div>
-                    <label className="block text-xs font-medium text-ink mb-1">
-                      From Display Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fromName}
-                      onChange={(e) => setFromName(e.target.value)}
-                      placeholder="StableStack"
-                      className="input bg-paper text-xs"
-                    />
-                  </div>
-                )}
-              </div>
+                  <p className="text-[10px] text-slate">
+                    Saved addresses are stored locally in your browser and automatically appear in the dropdown above for future campaigns. Must be verified in Zoho ZeptoMail.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1155,7 +1649,7 @@ function EmailBroadcastPage() {
               {/* Sender & Envelope details */}
               <div className="bg-paper p-3 rounded-xl border border-graphite-hairline text-xs space-y-1">
                 <div className="text-[11px] text-slate">
-                  From: <span className="font-semibold text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+                  From: <span className="font-semibold text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
                 </div>
                 <div className="text-xs font-medium text-ink truncate">
                   Subject: <span className="font-normal">{subject || '(No subject)'}</span>
@@ -1257,7 +1751,7 @@ function EmailBroadcastPage() {
 
           <div className="p-3 bg-vellum/40 border border-graphite-hairline rounded-xl text-xs space-y-1">
             <div className="text-slate">
-              Sender: <span className="font-semibold text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+              Sender: <span className="font-semibold text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
             </div>
             <div className="text-slate">
               Subject: <span className="font-semibold text-ink">[TEST] {subject}</span>
@@ -1316,12 +1810,12 @@ function EmailBroadcastPage() {
           </div>
 
           <div className="bg-vellum/30 p-4 rounded-xl border border-graphite-hairline space-y-2 text-xs">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-slate">Recipient Target:</span>
-              <span className="font-semibold text-ink">
+              <span className="font-semibold text-ink text-right">
                 {targetType === 'platform_users'
-                  ? `Platform Users (${platformFilter.toUpperCase()})`
-                  : `Imported List (${csvFileName || 'Pasted'})`}
+                  ? `Platform Users (${getFilterSummaryText()})`
+                  : `Imported List (${csvFileName || `${importedList.length} recipient${importedList.length === 1 ? '' : 's'}`})`}
               </span>
             </div>
             <div className="flex justify-between">
@@ -1332,7 +1826,7 @@ function EmailBroadcastPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate">From Address:</span>
-              <span className="font-mono text-ink">{fromName} &lt;{fromEmail}&gt;</span>
+              <span className="font-mono text-ink">{fromName} &lt;{resolvedFromEmail}&gt;</span>
             </div>
             {ccList && (
               <div className="flex justify-between">
