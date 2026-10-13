@@ -25,6 +25,7 @@ import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as PayoutsIndexRouteImport } from './routes/payouts/index'
 import { Route as OtcIndexRouteImport } from './routes/otc/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
+import { Route as EmailsIndexRouteImport } from './routes/emails/index'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as AdminsIndexRouteImport } from './routes/admins/index'
@@ -116,6 +117,11 @@ const FeesIndexRoute = FeesIndexRouteImport.update({
   path: '/fees/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailsIndexRoute = EmailsIndexRouteImport.update({
+  id: '/emails/',
+  path: '/emails/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CountriesIndexRoute = CountriesIndexRouteImport.update({
   id: '/countries/',
   path: '/countries/',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
+  '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/admins': typeof AdminsIndexRoute
   '/assets': typeof AssetsIndexRoute
   '/countries': typeof CountriesIndexRoute
+  '/emails': typeof EmailsIndexRoute
   '/fees': typeof FeesIndexRoute
   '/otc': typeof OtcIndexRoute
   '/payouts': typeof PayoutsIndexRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
   '/countries/': typeof CountriesIndexRoute
+  '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/admins/'
     | '/assets/'
     | '/countries/'
+    | '/emails/'
     | '/fees/'
     | '/otc/'
     | '/payouts/'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/admins'
     | '/assets'
     | '/countries'
+    | '/emails'
     | '/fees'
     | '/otc'
     | '/payouts'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/admins/'
     | '/assets/'
     | '/countries/'
+    | '/emails/'
     | '/fees/'
     | '/otc/'
     | '/payouts/'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   AdminsIndexRoute: typeof AdminsIndexRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
+  EmailsIndexRoute: typeof EmailsIndexRoute
   FeesIndexRoute: typeof FeesIndexRoute
   OtcIndexRoute: typeof OtcIndexRoute
   PayoutsIndexRoute: typeof PayoutsIndexRoute
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/emails/': {
+      id: '/emails/'
+      path: '/emails'
+      fullPath: '/emails/'
+      preLoaderRoute: typeof EmailsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/countries/': {
       id: '/countries/'
       path: '/countries'
@@ -572,6 +592,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminsIndexRoute: AdminsIndexRoute,
   AssetsIndexRoute: AssetsIndexRoute,
   CountriesIndexRoute: CountriesIndexRoute,
+  EmailsIndexRoute: EmailsIndexRoute,
   FeesIndexRoute: FeesIndexRoute,
   OtcIndexRoute: OtcIndexRoute,
   PayoutsIndexRoute: PayoutsIndexRoute,
