@@ -32,6 +32,12 @@ import {
   Filter,
   ShieldAlert,
   RotateCcw,
+  Plus,
+  UserPlus,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
 } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { toast } from 'sonner';
@@ -194,7 +200,13 @@ function EmailBroadcastPage() {
   const [rawPastedEmails, setRawPastedEmails] = useState('');
   const [importedList, setImportedList] = useState<ImportedRecipient[]>([]);
   const [importStats, setImportStats] = useState({ valid: 0, duplicates: 0, invalid: 0 });
+  const [invalidEntriesList, setInvalidEntriesList] = useState<string[]>([]);
+  const [showSkippedDetails, setShowSkippedDetails] = useState(false);
   const [csvFileName, setCsvFileName] = useState('');
+  const [importTab, setImportTab] = useState<'manual' | 'paste' | 'upload'>('manual');
+  const [manualRecipientEmail, setManualRecipientEmail] = useState('');
+  const [manualRecipientName, setManualRecipientName] = useState('');
+  const [manualInputError, setManualInputError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Saved custom senders from localStorage
@@ -416,48 +428,77 @@ function EmailBroadcastPage() {
       parseImportText(text);
     };
     reader.readAsText(file);
+  };  // Split CSV line respecting quotes
+  const splitCsvRow = (row: string, delim: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i];
+      if (char === '"' || char === "'") {
+        inQuotes = !inQuotes;
+      } else if (char === delim && !inQuotes) {
+        result.push(current.trim().replace(/^["']|["']$/g, '').trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim().replace(/^["']|["']$/g, '').trim());
+    return result;
   };
+
+  // Email validation helpers
+  const EMAIL_SEARCH_REGEX = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+/gi;
+  const STRICT_EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+  const isValidEmailAddress = (email: string) => STRICT_EMAIL_REGEX.test(email.trim());
 
   // Parse text or CSV content with intelligent multi-format detection
   const parseImportText = (text: string) => {
     if (!text || !text.trim()) {
       setImportedList([]);
       setImportStats({ valid: 0, duplicates: 0, invalid: 0 });
+      setInvalidEntriesList([]);
       return;
     }
 
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const seenEmails = new Set<string>();
     const validRecipients: ImportedRecipient[] = [];
+    const invalidLines: string[] = [];
     let duplicateCount = 0;
-    let invalidCount = 0;
-
-    const emailRegex = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
     // Detect if first line is a true CSV header row:
     // Header only if: contains delimiter AND does NOT contain '@' AND contains a keyword like 'email' or 'e-mail'
     let hasHeader = false;
     let emailIdx = -1;
     let nameIdx = -1;
+    let firstNameIdx = -1;
+    let lastNameIdx = -1;
     let companyIdx = -1;
+    let detectedDelim = ',';
 
     if (lines.length > 0) {
       const firstLine = lines[0];
-      const line0HasAt = firstLine.includes('@');
-      if (!line0HasAt && (firstLine.includes(',') || firstLine.includes('\t') || firstLine.includes(';'))) {
-        const delim = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
-        const headers = firstLine
-          .split(delim)
-          .map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+      const hasAt = firstLine.includes('@');
+      const hasDelim = firstLine.includes(',') || firstLine.includes('\t') || firstLine.includes(';');
+      if (!hasAt && hasDelim) {
+        detectedDelim = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+        const headers = splitCsvRow(firstLine, detectedDelim).map((h) => h.toLowerCase());
 
         for (let idx = 0; idx < headers.length; idx++) {
           const h = headers[idx];
-          if (['email', 'e-mail', 'mail', 'email_address', 'email address', 'recipient'].includes(h)) {
+          if (['email', 'e-mail', 'mail', 'email_address', 'email address', 'recipient', 'recipient_email'].includes(h)) {
             emailIdx = idx;
             hasHeader = true;
-          } else if (['name', 'full_name', 'fullname', 'first_name', 'firstname', 'recipient_name'].includes(h)) {
+          } else if (['name', 'full_name', 'fullname', 'recipient_name', 'customer_name', 'user_name'].includes(h)) {
             nameIdx = idx;
-          } else if (['company', 'business', 'business_name', 'org', 'organization'].includes(h)) {
+          } else if (['first_name', 'firstname', 'first'].includes(h)) {
+            firstNameIdx = idx;
+          } else if (['last_name', 'lastname', 'last'].includes(h)) {
+            lastNameIdx = idx;
+          } else if (['company', 'business', 'business_name', 'org', 'organization', 'company_name'].includes(h)) {
             companyIdx = idx;
           }
         }
@@ -469,131 +510,201 @@ function EmailBroadcastPage() {
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
 
-      // Format 1: Angle bracket format (e.g. "John Doe <john@example.com>" or "<john@example.com>")
-      const angleBracketMatch = line.match(/^(.*?)[<]([^>]+)[>](.*?)$/);
-      if (angleBracketMatch) {
-        const rawName = `${angleBracketMatch[1].trim()} ${angleBracketMatch[3].trim()}`
-          .trim()
-          .replace(/^["']|["']$/g, '');
-        const rawEmail = angleBracketMatch[2].trim().toLowerCase();
+      // If header was detected and valid email column index found, parse using CSV columns
+      if (hasHeader && emailIdx !== -1) {
+        const parts = splitCsvRow(line, detectedDelim);
+        const rawEmail = (parts[emailIdx] || '').trim().toLowerCase();
 
-        if (emailRegex.test(rawEmail)) {
+        if (isValidEmailAddress(rawEmail)) {
           if (seenEmails.has(rawEmail)) {
             duplicateCount++;
           } else {
             seenEmails.add(rawEmail);
+            let extractedName = nameIdx !== -1 && nameIdx < parts.length ? parts[nameIdx]?.trim() : '';
+            if (!extractedName && firstNameIdx !== -1 && firstNameIdx < parts.length) {
+              const fn = parts[firstNameIdx]?.trim() || '';
+              const ln = lastNameIdx !== -1 && lastNameIdx < parts.length ? parts[lastNameIdx]?.trim() || '' : '';
+              extractedName = `${fn} ${ln}`.trim();
+            }
+            const extractedCompany = companyIdx !== -1 && companyIdx < parts.length ? parts[companyIdx]?.trim() : '';
+            const resolvedName = extractedName || extractedCompany || undefined;
+            const firstName = extractedName ? extractedName.split(' ')[0] : extractedCompany || undefined;
+
             validRecipients.push({
               email: rawEmail,
-              name: rawName || undefined,
-              firstName: rawName ? rawName.split(' ')[0] : undefined,
+              name: resolvedName,
+              firstName,
+              businessName: extractedCompany || undefined,
             });
           }
         } else {
-          invalidCount++;
+          invalidLines.push(line);
         }
         continue;
       }
 
-      // Format 2: Delimited row (comma, tab, or semicolon)
-      const delim = line.includes('\t') ? '\t' : line.includes(';') ? ';' : line.includes(',') ? ',' : null;
+      // No CSV header: intelligent extraction for any freeform format
+      // 1. Find all emails in the line
+      const matchedEmails = line.match(EMAIL_SEARCH_REGEX);
 
-      if (delim) {
-        const parts = line.split(delim).map((p) => p.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      if (!matchedEmails || matchedEmails.length === 0) {
+        invalidLines.push(line);
+        continue;
+      }
 
-        // Check if multiple bare emails are pasted on a single line (e.g. "a@b.com, c@d.com, e@f.com")
-        const atParts = parts.filter((p) => emailRegex.test(p.toLowerCase()));
-        if (atParts.length > 1 && atParts.length === parts.length) {
-          for (const rawEmail of atParts) {
-            const em = rawEmail.toLowerCase();
-            if (seenEmails.has(em)) {
-              duplicateCount++;
-            } else {
-              seenEmails.add(em);
-              validRecipients.push({ email: em });
-            }
-          }
-          continue;
-        }
-
-        // Single record with multiple columns: find email, name, and optional company
-        let email = '';
-        let name = '';
-        let company = '';
-
-        if (hasHeader && emailIdx !== -1 && emailIdx < parts.length) {
-          email = parts[emailIdx] || '';
-          if (nameIdx !== -1 && nameIdx < parts.length) name = parts[nameIdx] || '';
-          if (companyIdx !== -1 && companyIdx < parts.length) company = parts[companyIdx] || '';
-        } else {
-          // Dynamic positional detection: find which column contains the '@'
-          const foundEmailIdx = parts.findIndex((p) => p.includes('@'));
-          if (foundEmailIdx !== -1) {
-            email = parts[foundEmailIdx];
-            const otherParts = parts.filter((_, idx) => idx !== foundEmailIdx);
-            if (otherParts.length >= 1) name = otherParts[0];
-            if (otherParts.length >= 2) company = otherParts[1];
-          } else {
-            email = parts[0] || '';
-          }
-        }
-
-        email = email.trim().toLowerCase();
-
-        if (emailRegex.test(email)) {
-          if (seenEmails.has(email)) {
+      // If multiple bare emails on one line (e.g. "a@b.com, c@d.com, e@f.com")
+      if (matchedEmails.length > 1) {
+        for (const em of matchedEmails) {
+          const lowerEm = em.toLowerCase();
+          if (seenEmails.has(lowerEm)) {
             duplicateCount++;
           } else {
-            seenEmails.add(email);
-            const resolvedName = company || name || undefined;
-            validRecipients.push({
-              email,
-              name: resolvedName,
-              businessName: company || undefined,
-              firstName: name ? name.split(' ')[0] : company || undefined,
-            });
+            seenEmails.add(lowerEm);
+            validRecipients.push({ email: lowerEm });
           }
-        } else {
-          invalidCount++;
         }
-      } else {
-        // Format 3: Bare single email
-        const email = line.trim().toLowerCase();
-        if (emailRegex.test(email)) {
-          if (seenEmails.has(email)) {
-            duplicateCount++;
-          } else {
-            seenEmails.add(email);
-            validRecipients.push({ email });
+        continue;
+      }
+
+      // Exactly 1 email on this line
+      const rawEmail = matchedEmails[0].toLowerCase();
+      if (!isValidEmailAddress(rawEmail)) {
+        invalidLines.push(line);
+        continue;
+      }
+
+      if (seenEmails.has(rawEmail)) {
+        duplicateCount++;
+        continue;
+      }
+
+      seenEmails.add(rawEmail);
+
+      // Extract the name by removing the email and cleaning up remaining text
+      let remainder = line.replace(matchedEmails[0], '').trim();
+
+      // Clean brackets, quotes, colons, hyphens, commas, tabs, semicolons, pipes
+      remainder = remainder
+        .replace(/^[<(\["'\s,:;|\-]+/, '')
+        .replace(/[>\])"'\s,:;|\-]+$/, '')
+        .trim();
+
+      // Strip common prefixes like "name:", "Name:", "recipient:", "email:"
+      remainder = remainder
+        .replace(/^(email|e-mail)\s*:\s*/i, '')
+        .replace(/^(name|recipient|user|contact)\s*:\s*/i, '')
+        .trim();
+
+      // Strip surrounding quotes
+      remainder = remainder.replace(/^["']|["']$/g, '').trim();
+
+      let name: string | undefined = undefined;
+      let businessName: string | undefined = undefined;
+
+      if (remainder) {
+        // If remainder contains a comma, e.g. "John Doe, Acme Corp"
+        if (remainder.includes(',')) {
+          const parts = remainder.split(',').map((p) => p.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+          if (parts.length >= 2) {
+            name = parts[0];
+            businessName = parts[1];
+          } else if (parts.length === 1) {
+            name = parts[0];
           }
         } else {
-          invalidCount++;
+          name = remainder;
         }
       }
+
+      const firstName = name ? name.split(' ')[0] : undefined;
+
+      validRecipients.push({
+        email: rawEmail,
+        name: name || undefined,
+        firstName,
+        businessName: businessName || undefined,
+      });
     }
 
     setImportedList(validRecipients);
+    setInvalidEntriesList(invalidLines);
     setImportStats({
       valid: validRecipients.length,
       duplicates: duplicateCount,
-      invalid: invalidCount,
+      invalid: invalidLines.length,
     });
   };
 
-  const removeImportedRecipient = (emailToRemove: string) => {
-    const updated = importedList.filter((r) => r.email !== emailToRemove);
+  // Add individual recipient manually
+  const handleAddManualRecipient = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setManualInputError('');
+
+    const trimmedEmail = manualRecipientEmail.trim().toLowerCase();
+    const trimmedName = manualRecipientName.trim();
+
+    if (!trimmedEmail) {
+      setManualInputError('Please enter an email address');
+      return;
+    }
+
+    if (!isValidEmailAddress(trimmedEmail)) {
+      setManualInputError('Please enter a valid email address (e.g. name@domain.com)');
+      return;
+    }
+
+    // Check for duplicates in current list
+    const alreadyExists = importedList.some((r) => r.email.toLowerCase() === trimmedEmail);
+    if (alreadyExists) {
+      setManualInputError(`Email ${trimmedEmail} is already in the recipient list`);
+      return;
+    }
+
+    const newRecipient: ImportedRecipient = {
+      email: trimmedEmail,
+      name: trimmedName || undefined,
+      firstName: trimmedName ? trimmedName.split(' ')[0] : undefined,
+    };
+
+    const updated = [newRecipient, ...importedList];
     setImportedList(updated);
     setImportStats((prev) => ({
       ...prev,
       valid: updated.length,
     }));
+
+    setManualRecipientEmail('');
+    setManualRecipientName('');
+    setManualInputError('');
+    toast.success(`Added ${trimmedEmail} to recipients`);
+  };
+
+  const removeImportedRecipient = (emailToRemove: string) => {
+    const lowerTarget = emailToRemove.toLowerCase();
+    const updated = importedList.filter((r) => r.email.toLowerCase() !== lowerTarget);
+    setImportedList(updated);
+    setImportStats((prev) => ({
+      ...prev,
+      valid: updated.length,
+    }));
+
+    // Synchronize textarea if present
+    if (rawPastedEmails) {
+      const remainingLines = rawPastedEmails
+        .split(/\r?\n/)
+        .filter((line) => !line.toLowerCase().includes(lowerTarget));
+      setRawPastedEmails(remainingLines.join('\n'));
+    }
   };
 
   const clearImportedList = () => {
     setImportedList([]);
     setRawPastedEmails('');
     setCsvFileName('');
+    setInvalidEntriesList([]);
     setImportStats({ valid: 0, duplicates: 0, invalid: 0 });
     if (fileInputRef.current) fileInputRef.current.value = '';
+    toast.success('Recipient list cleared');
   };
 
   // Insert merge tag at active field cursor
@@ -1313,46 +1424,167 @@ function EmailBroadcastPage() {
                 </div>
               )}
 
-              {/* Import List (CSV / Manual Paste) Options */}
+              {/* Import List (CSV / Manual Entry / Paste) Options */}
               {targetType === 'imported' && (
                 <div className="space-y-4 pt-1">
-                  {/* File Upload Dropzone */}
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-graphite-hairline hover:border-emerald-500 rounded-xl p-5 text-center cursor-pointer transition-colors bg-paper/50 hover:bg-paper"
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv,.txt"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <FileSpreadsheet className="w-8 h-8 text-ash mx-auto mb-2" />
-                    <p className="text-xs font-semibold text-ink">
-                      {csvFileName ? `File: ${csvFileName}` : 'Click or drop a CSV file here'}
-                    </p>
-                    <p className="text-[11px] text-slate mt-0.5">
-                      Must contain an <code>email</code> column (e.g. <code>email,name,company</code>)
-                    </p>
+                  {/* Mode Tabs: Manual Entry / Paste / Upload CSV */}
+                  <div className="flex items-center gap-1 bg-vellum/60 p-1 rounded-xl border border-graphite-hairline w-full sm:w-fit flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setImportTab('manual')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        importTab === 'manual'
+                          ? 'bg-ink text-paper shadow-sm'
+                          : 'text-slate hover:text-ink hover:bg-paper/80'
+                      }`}
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Manual Entry</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImportTab('paste')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        importTab === 'paste'
+                          ? 'bg-ink text-paper shadow-sm'
+                          : 'text-slate hover:text-ink hover:bg-paper/80'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Paste Text / CSV</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImportTab('upload')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        importTab === 'upload'
+                          ? 'bg-ink text-paper shadow-sm'
+                          : 'text-slate hover:text-ink hover:bg-paper/80'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      <span>Upload CSV File</span>
+                    </button>
                   </div>
 
-                  {/* Or Manual Paste Textarea */}
-                  <div>
-                    <label className="block text-xs font-medium text-ink mb-1">
-                      Or Paste Email Addresses (one per line, or comma-separated)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={rawPastedEmails}
-                      onChange={(e) => {
-                        setRawPastedEmails(e.target.value);
-                        parseImportText(e.target.value);
-                      }}
-                      placeholder="john@example.com, John Doe&#10;jane@acme.com, Jane Smith"
-                      className="input bg-paper font-mono text-xs w-full resize-y"
-                    />
-                  </div>
+                  {/* Tab 1: Manual Single Add */}
+                  {importTab === 'manual' && (
+                    <div className="bg-paper p-4 rounded-xl border border-graphite-hairline space-y-3">
+                      <div>
+                        <span className="text-xs font-semibold text-ink">Add Recipient Manually</span>
+                        <p className="text-[11px] text-slate mt-0.5">
+                          Enter email and optional name to add directly to your broadcast pool.
+                        </p>
+                      </div>
+
+                      <form onSubmit={handleAddManualRecipient} className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-medium text-ink mb-1">
+                              Recipient Email Address <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="email"
+                              value={manualRecipientEmail}
+                              onChange={(e) => {
+                                setManualRecipientEmail(e.target.value);
+                                if (manualInputError) setManualInputError('');
+                              }}
+                              placeholder="e.g. alex@company.com"
+                              className={`input bg-vellum/30 text-xs w-full py-2 ${
+                                manualInputError ? 'border-red-500 focus:border-red-500' : ''
+                              }`}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-medium text-ink mb-1">
+                              Recipient or Business Name <span className="text-slate font-normal">(Optional)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={manualRecipientName}
+                              onChange={(e) => setManualRecipientName(e.target.value)}
+                              placeholder="e.g. Alex Johnson or Acme Corp"
+                              className="input bg-vellum/30 text-xs w-full py-2"
+                            />
+                          </div>
+                        </div>
+
+                        {manualInputError && (
+                          <div className="text-[11px] text-red-600 flex items-center gap-1.5 font-medium">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{manualInputError}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
+                          <span className="text-[11px] text-slate">
+                            Names personalize <code>{'{{user_name}}'}</code>, <code>{'{{first_name}}'}</code>, and <code>{'{{greetings}}'}</code>
+                          </span>
+
+                          <button
+                            type="submit"
+                            disabled={!manualRecipientEmail.trim()}
+                            className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Recipient</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* Tab 2: Paste Textarea */}
+                  {importTab === 'paste' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-medium text-ink">
+                          Paste Email Addresses & Names
+                        </label>
+                        <span className="text-[11px] text-slate">
+                          Supports comma, space, tab, or angle brackets
+                        </span>
+                      </div>
+                      <textarea
+                        rows={4}
+                        value={rawPastedEmails}
+                        onChange={(e) => {
+                          setRawPastedEmails(e.target.value);
+                          parseImportText(e.target.value);
+                        }}
+                        placeholder={"john@example.com, John Doe\njane@acme.com, Jane Smith\nAlex Johnson <alex@company.com>\nbob@example.com"}
+                        className="input bg-paper font-mono text-xs w-full resize-y"
+                      />
+                      <p className="text-[11px] text-slate">
+                        Format examples: <code>email, name</code>, <code>name, email</code>, <code>email name</code>, or <code>Name &lt;email&gt;</code> (one per line).
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Tab 3: Upload Dropzone */}
+                  {importTab === 'upload' && (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-graphite-hairline hover:border-emerald-500 rounded-xl p-5 text-center cursor-pointer transition-colors bg-paper/50 hover:bg-paper"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv,.txt"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <FileSpreadsheet className="w-8 h-8 text-ash mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-ink">
+                        {csvFileName ? `File: ${csvFileName}` : 'Click or drop a CSV file here'}
+                      </p>
+                      <p className="text-[11px] text-slate mt-0.5">
+                        Must contain an <code>email</code> column (e.g. <code>email,name,company</code> or <code>Email,First Name,Last Name</code>)
+                      </p>
+                    </div>
+                  )}
 
                   {/* Import Stats Badges */}
                   <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
@@ -1368,25 +1600,56 @@ function EmailBroadcastPage() {
                         </span>
                       )}
                       {importStats.invalid > 0 && (
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-700 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => setShowSkippedDetails(!showSkippedDetails)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-700 font-medium hover:bg-red-500/20 transition-colors cursor-pointer"
+                        >
                           <X className="w-3.5 h-3.5" />
-                          {importStats.invalid} invalid format{importStats.invalid === 1 ? '' : 's'} skipped
-                        </span>
+                          <span>{importStats.invalid} skipped (invalid format)</span>
+                          {showSkippedDetails ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
                       )}
                     </div>
                     {importedList.length > 0 && (
                       <button
                         type="button"
                         onClick={clearImportedList}
-                        className="text-[11px] text-red-600 hover:text-red-800 hover:underline cursor-pointer"
+                        className="text-[11px] text-red-600 hover:text-red-800 hover:underline cursor-pointer flex items-center gap-1"
                       >
-                        Clear List
+                        <Trash2 className="w-3 h-3" />
+                        <span>Clear List</span>
                       </button>
                     )}
                   </div>
 
+                  {/* Skipped Details Drawer */}
+                  {showSkippedDetails && invalidEntriesList.length > 0 && (
+                    <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/20 space-y-1.5 text-xs">
+                      <span className="font-semibold text-red-800 block text-[11px]">
+                        Lines skipped due to invalid email format:
+                      </span>
+                      <div className="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] text-red-700">
+                        {invalidEntriesList.slice(0, 10).map((l, idx) => (
+                          <div key={idx} className="truncate">
+                            • {l}
+                          </div>
+                        ))}
+                        {invalidEntriesList.length > 10 && (
+                          <div className="text-[10px] text-slate italic">
+                            ...and {invalidEntriesList.length - 10} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Imported Recipients Live Preview */}
-                  {importedList.length > 0 && (
+                  {importedList.length > 0 ? (
                     <div className="bg-paper rounded-xl border border-graphite-hairline overflow-hidden">
                       <div className="p-2.5 bg-vellum/50 border-b border-graphite-hairline flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1396,15 +1659,15 @@ function EmailBroadcastPage() {
                           </span>
                         </div>
                         <span className="text-[10px] text-slate font-sans">
-                          Names will personalize <code>{"{{user_name}}"}</code> & <code>{"{{first_name}}"}</code>
+                          Names will personalize <code>{"{{user_name}}"}</code> & <code>{"{{greetings}}"}</code>
                         </span>
                       </div>
 
-                      <div className="max-h-48 overflow-y-auto divide-y divide-graphite-hairline text-xs font-mono">
+                      <div className="max-h-56 overflow-y-auto divide-y divide-graphite-hairline text-xs font-mono">
                         {importedList.slice(0, 50).map((r, idx) => (
                           <div
-                            key={r.email}
-                            className="px-3 py-1.5 flex items-center justify-between hover:bg-vellum/30 transition-colors"
+                            key={`${r.email}-${idx}`}
+                            className="px-3 py-2 flex items-center justify-between hover:bg-vellum/30 transition-colors"
                           >
                             <div className="flex items-center gap-2.5 truncate">
                               <span className="text-[10px] text-slate w-5 text-right font-sans">
@@ -1416,11 +1679,14 @@ function EmailBroadcastPage() {
                                   ({r.name})
                                 </span>
                               )}
+                              <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700">
+                                Hi {r.firstName || r.name || 'there'},
+                              </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => removeImportedRecipient(r.email)}
-                              className="text-slate hover:text-red-600 p-1 rounded hover:bg-vellum cursor-pointer shrink-0"
+                              className="text-slate hover:text-red-600 p-1 rounded hover:bg-vellum cursor-pointer shrink-0 transition-colors"
                               title="Remove recipient"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -1434,6 +1700,10 @@ function EmailBroadcastPage() {
                           Showing first 50 of {importedList.length} imported recipients
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="bg-paper p-4 rounded-xl border border-dashed border-graphite-hairline text-center text-xs text-slate">
+                      No custom recipients added yet. Use Manual Entry above, paste emails, or upload a CSV file.
                     </div>
                   )}
                 </div>
