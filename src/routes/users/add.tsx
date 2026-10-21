@@ -103,6 +103,18 @@ function AddUserPage() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
     }
+    if (name === 'role') {
+      setErrors((prev) => {
+        const copy = { ...prev }
+        if (value === 'merchant') {
+          delete copy.firstName
+          delete copy.lastName
+        } else {
+          delete copy.businessName
+        }
+        return copy
+      })
+    }
   }
 
   const validate = () => {
@@ -110,8 +122,14 @@ function AddUserPage() {
     if (!formData.email) newErrors.email = 'Email is required'
     if (!formData.password) newErrors.password = 'Password is required'
     if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters'
-    if (!formData.firstName) newErrors.firstName = 'First name is required'
-    if (!formData.lastName) newErrors.lastName = 'Last name is required'
+
+    if (formData.role !== 'merchant') {
+      if (!formData.firstName) newErrors.firstName = 'First name is required'
+      if (!formData.lastName) newErrors.lastName = 'Last name is required'
+    } else {
+      if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required for merchants'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -209,7 +227,7 @@ function AddUserPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="block text-xs uppercase tracking-wider text-slate">
-                First Name *
+                First Name {formData.role === 'merchant' ? '(Optional)' : '*'}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
@@ -226,7 +244,7 @@ function AddUserPage() {
             </div>
             <div className="space-y-2">
               <label className="block text-xs uppercase tracking-wider text-slate">
-                Last Name *
+                Last Name {formData.role === 'merchant' ? '(Optional)' : '*'}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
@@ -246,7 +264,7 @@ function AddUserPage() {
           {/* Business Name */}
           <div className="space-y-2">
             <label className="block text-xs uppercase tracking-wider text-slate">
-              Business Name (Required for Merchants)
+              Business Name {formData.role === 'merchant' ? '*' : '(Optional)'}
             </label>
             <div className="relative">
               <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
@@ -255,10 +273,11 @@ function AddUserPage() {
                 name="businessName"
                 value={formData.businessName}
                 onChange={handleChange}
-                className="input !pl-10"
-                placeholder="Acme Corp (optional)"
+                className={`input !pl-10 ${errors.businessName ? 'border-red-500 focus:border-red-500' : ''}`}
+                placeholder={formData.role === 'merchant' ? 'Acme Corp' : 'Acme Corp (optional)'}
               />
             </div>
+            {errors.businessName && <p className="text-sm text-red-500 mt-1">{errors.businessName}</p>}
           </div>
 
           {/* Phone & Country */}
