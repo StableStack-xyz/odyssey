@@ -4,10 +4,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { AccessDenied } from '../../components/auth/AccessDenied'
 import { usePermissions } from '../../hooks/usePermissions'
-import { ArrowLeft, Mail, Lock, User, Building, Phone, MapPin, Shield, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, User, Building, Phone, MapPin, Shield, Eye, EyeOff, Loader2, ChevronDown } from 'lucide-react'
 import { authApi } from '../../lib/api'
 import { toast } from 'sonner'
 import { APP_NAME } from '../../lib/constants'
+import { COUNTRIES } from '../../lib/countries'
 
 export const Route = createFileRoute('/users/add')({
   beforeLoad: () => {
@@ -264,10 +265,10 @@ function AddUserPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="block text-xs uppercase tracking-wider text-slate">
-                Phone
+                Phone (Optional)
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash pointer-events-none" />
                 <input
                   type="tel"
                   name="phone"
@@ -280,18 +281,24 @@ function AddUserPage() {
             </div>
             <div className="space-y-2">
               <label className="block text-xs uppercase tracking-wider text-slate">
-                Country
+                Country (Optional)
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
-                <input
-                  type="text"
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash pointer-events-none" />
+                <select
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
-                  className="input !pl-10"
-                  placeholder="Nigeria"
-                />
+                  className="input !pl-10 !pr-10 cursor-pointer appearance-none"
+                >
+                  <option value="">Select country...</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash pointer-events-none" />
               </div>
             </div>
           </div>
@@ -302,17 +309,18 @@ function AddUserPage() {
               Account Role
             </label>
             <div className="relative">
-              <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
+              <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash pointer-events-none" />
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="input !pl-10 cursor-pointer appearance-none"
+                className="input !pl-10 !pr-10 cursor-pointer appearance-none"
               >
                 <option value="individual">Individual</option>
                 <option value="merchant">Merchant</option>
                 <option value="admin">Admin</option>
               </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash pointer-events-none" />
             </div>
           </div>
 
@@ -321,8 +329,9 @@ function AddUserPage() {
             <button
               type="submit"
               disabled={addUserMutation.isPending}
-              className="btn-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              {addUserMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
               {addUserMutation.isPending ? 'Adding Account...' : 'Create Account'}
             </button>
             <button
