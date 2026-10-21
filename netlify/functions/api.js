@@ -48,6 +48,12 @@ export const handler = async (event) => {
         ...(event.headers['authorization'] && {
           'Authorization': event.headers['authorization'],
         }),
+        ...(event.headers['origin'] && {
+          'Origin': event.headers['origin'],
+        }),
+        ...(event.headers['referer'] && {
+          'Referer': event.headers['referer'],
+        }),
       },
       ...(forwardBody !== undefined ? { body: forwardBody } : {}),
     });
