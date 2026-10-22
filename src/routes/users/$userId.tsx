@@ -11,6 +11,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { APP_NAME } from '../../lib/constants'
 import { getExplorerUrl } from '../../lib/explorer'
+import { usePermissions } from '../../hooks/usePermissions'
 
 export const Route = createFileRoute('/users/$userId')({
   beforeLoad: () => {
@@ -277,6 +278,8 @@ function UserDetailPage() {
   const { userId } = useParams({ from: '/users/$userId' })
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { canWrite } = usePermissions()
+  const canManageUsers = canWrite('users')
 
   const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [showRejectConfirm, setShowApproveReject] = useState(false)
@@ -883,7 +886,8 @@ function UserDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            {canManageUsers && (
+              <div className="grid grid-cols-2 gap-2">
                 {!profile.is_account_verified && (
                   <>
                     <button
@@ -891,7 +895,11 @@ function UserDetailPage() {
                       disabled={approveAppMutation.isPending}
                       className="px-4 py-2 text-xs font-normal text-blue-700 dark:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      <Check className="w-4 h-4" />
+                      {approveAppMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
                       Approve Application
                     </button>
                     <button
@@ -899,7 +907,11 @@ function UserDetailPage() {
                       disabled={rejectAppMutation.isPending}
                       className="px-4 py-2 text-xs font-normal text-red-700 dark:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      <X className="w-4 h-4" />
+                      {rejectAppMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
                       Reject Application
                     </button>
                   </>
@@ -911,7 +923,11 @@ function UserDetailPage() {
                       disabled={approveComplianceMutation.isPending}
                       className="px-4 py-2 text-xs font-normal text-green-700 dark:text-green-300 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      <Check className="w-4 h-4" />
+                      {approveComplianceMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4" />
+                      )}
                       Approve Compliance
                     </button>
                     <button
@@ -919,12 +935,17 @@ function UserDetailPage() {
                       disabled={rejectComplianceMutation.isPending}
                       className="px-4 py-2 text-xs font-normal text-orange-700 dark:text-orange-300 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
-                      <X className="w-4 h-4" />
+                      {rejectComplianceMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
                       Reject Compliance
                     </button>
                   </>
                 )}
               </div>
+            )}
           </div>
         </div>
 
@@ -1035,14 +1056,18 @@ function UserDetailPage() {
                     )}
                   </div>
                   <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline block">View Document</a>
-                  {doc.approval_status !== 'approved' && (
+                  {canManageUsers && doc.approval_status !== 'approved' && (
                     <div className="flex items-center gap-2 pt-1 border-t border-graphite-hairline">
                       <button
                         onClick={() => approveDocMutation.mutate(doc.id)}
                         disabled={approveDocMutation.isPending}
                         className="px-3 py-1 text-[10px] font-medium text-green-700 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
-                        <Check className="w-3 h-3" />
+                        {approveDocMutation.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
                         Approve
                       </button>
                       <button
@@ -1050,7 +1075,11 @@ function UserDetailPage() {
                         disabled={rejectDocMutation.isPending}
                         className="px-3 py-1 text-[10px] font-medium text-red-700 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
-                        <X className="w-3 h-3" />
+                        {rejectDocMutation.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <X className="w-3 h-3" />
+                        )}
                         Reject
                       </button>
                     </div>
