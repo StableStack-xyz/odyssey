@@ -887,8 +887,8 @@ function UserDetailPage() {
               </div>
             </div>
             {canManageUsers && (
-              <div className="grid grid-cols-2 gap-2">
-                {!profile.is_account_verified && (
+              <div className="flex flex-wrap items-center gap-2">
+                {!profile.is_account_verified ? (
                   <>
                     <button
                       onClick={() => setShowApproveAppConfirm(true)}
@@ -915,8 +915,37 @@ function UserDetailPage() {
                       Reject Application
                     </button>
                   </>
+                ) : (
+                  <button
+                    onClick={() => setShowRejectAppConfirm(true)}
+                    disabled={rejectAppMutation.isPending}
+                    className="px-4 py-2 text-xs font-normal text-red-700 dark:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Revoke / disapprove application approval"
+                  >
+                    {rejectAppMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                    Disapprove Application
+                  </button>
                 )}
-                {(profile.compliance_status?.toLowerCase() === 'pending' || profile.compliance_status?.toLowerCase() === 'notsubmitted') && (
+
+                {profile.compliance_status?.toLowerCase() === 'approved' ? (
+                  <button
+                    onClick={() => setShowApproveReject(true)}
+                    disabled={rejectComplianceMutation.isPending}
+                    className="px-4 py-2 text-xs font-normal text-orange-700 dark:text-orange-300 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Disapprove / revoke compliance approval"
+                  >
+                    {rejectComplianceMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <X className="w-4 h-4" />
+                    )}
+                    Disapprove Compliance
+                  </button>
+                ) : (
                   <>
                     <button
                       onClick={() => setShowApproveConfirm(true)}
@@ -1056,31 +1085,34 @@ function UserDetailPage() {
                     )}
                   </div>
                   <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline block">View Document</a>
-                  {canManageUsers && doc.approval_status !== 'approved' && (
+                  {canManageUsers && (
                     <div className="flex items-center gap-2 pt-1 border-t border-graphite-hairline">
-                      <button
-                        onClick={() => approveDocMutation.mutate(doc.id)}
-                        disabled={approveDocMutation.isPending}
-                        className="px-3 py-1 text-[10px] font-medium text-green-700 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                      >
-                        {approveDocMutation.isPending ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
-                        Approve
-                      </button>
+                      {doc.approval_status !== 'approved' && (
+                        <button
+                          onClick={() => approveDocMutation.mutate(doc.id)}
+                          disabled={approveDocMutation.isPending}
+                          className="px-3 py-1 text-[10px] font-medium text-green-700 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {approveDocMutation.isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                          Approve
+                        </button>
+                      )}
                       <button
                         onClick={() => rejectDocMutation.mutate(doc.id)}
                         disabled={rejectDocMutation.isPending}
                         className="px-3 py-1 text-[10px] font-medium text-red-700 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title={doc.approval_status === 'approved' ? 'Disapprove document' : 'Reject document'}
                       >
                         {rejectDocMutation.isPending ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
                         ) : (
                           <X className="w-3 h-3" />
                         )}
-                        Reject
+                        {doc.approval_status === 'approved' ? 'Disapprove' : 'Reject'}
                       </button>
                     </div>
                   )}
@@ -1745,9 +1777,13 @@ function UserDetailPage() {
         isOpen={showRejectConfirm}
         onClose={() => setShowApproveReject(false)}
         onConfirm={() => rejectComplianceMutation.mutate(profile.id)}
-        title="Reject Compliance"
-        message={`Are you sure you want to reject the compliance for ${displayName}?`}
-        confirmLabel="Reject Compliance"
+        title={profile.compliance_status?.toLowerCase() === 'approved' ? 'Disapprove Compliance' : 'Reject Compliance'}
+        message={
+          profile.compliance_status?.toLowerCase() === 'approved'
+            ? `Are you sure you want to disapprove / revoke compliance approval for ${displayName}?`
+            : `Are you sure you want to reject the compliance for ${displayName}?`
+        }
+        confirmLabel={profile.compliance_status?.toLowerCase() === 'approved' ? 'Disapprove Compliance' : 'Reject Compliance'}
         cancelLabel="Cancel"
         variant="danger"
         isLoading={rejectComplianceMutation.isPending}
@@ -1769,9 +1805,13 @@ function UserDetailPage() {
         isOpen={showRejectAppConfirm}
         onClose={() => setShowRejectAppConfirm(false)}
         onConfirm={() => rejectAppMutation.mutate(profile.id)}
-        title="Reject Application"
-        message={`Are you sure you want to reject the application for ${displayName}?`}
-        confirmLabel="Reject Application"
+        title={profile.is_account_verified ? 'Disapprove Application' : 'Reject Application'}
+        message={
+          profile.is_account_verified
+            ? `Are you sure you want to disapprove / revoke application approval for ${displayName}?`
+            : `Are you sure you want to reject the application for ${displayName}?`
+        }
+        confirmLabel={profile.is_account_verified ? 'Disapprove Application' : 'Reject Application'}
         cancelLabel="Cancel"
         variant="danger"
         isLoading={rejectAppMutation.isPending}
