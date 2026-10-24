@@ -5,6 +5,7 @@ export type PermissionAction = 'read' | 'write';
 export type ResourceModule =
   | 'dashboard'
   | 'users'
+  | 'compliance'
   | 'wallets'
   | 'wallet_capacity'
   | 'gas_station'
@@ -45,8 +46,15 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
   },
   {
     id: 'users',
-    label: 'Users & Compliance',
-    description: 'Browse accounts, review documents, approve/reject compliance, and manage merchants',
+    label: 'Users',
+    description: 'Browse accounts, view customer profiles, and manage merchant account state',
+    routes: ['/users'],
+    actions: ['read', 'write'],
+  },
+  {
+    id: 'compliance',
+    label: 'Compliance & KYB',
+    description: 'Review compliance checklists, execute automated identity/AML verification suites, and approve/reject merchant applications',
     routes: ['/users'],
     actions: ['read', 'write'],
   },
