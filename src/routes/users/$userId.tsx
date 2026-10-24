@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AdminLayout } from '../../components/layout/AdminLayout'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
-import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, ExternalLink, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw, Download, Loader2 } from 'lucide-react'
+import { Modal } from '../../components/ui/Modal'
+import { COUNTRIES } from '../../lib/countries'
+import { ArrowLeft, Mail, Phone, MapPin, Building, Wallet, ArrowRight, Activity, Copy, ExternalLink, FileText, CheckCircle2, Key, Globe, Link2, Clock, Check, X, RefreshCw, Download, Loader2, Upload } from 'lucide-react'
 import { authApi, walletApi, baseApi } from '../../lib/api'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -12,6 +14,21 @@ import { useState } from 'react'
 import { APP_NAME } from '../../lib/constants'
 import { getExplorerUrl } from '../../lib/explorer'
 import { usePermissions } from '../../hooks/usePermissions'
+
+const DOCUMENT_TYPE_OPTIONS = [
+  { value: 'valid_ids', label: "Valid ID (Passport, Driver's License, National ID)" },
+  { value: 'utility_bill', label: 'Utility Bill / Proof of Address' },
+  { value: 'business_address', label: 'Proof of Business Address' },
+  { value: 'incorporation', label: 'Certificate of Incorporation / Registration' },
+  { value: 'memorandum', label: 'Memorandum and Articles of Association (MEMART)' },
+  { value: 'status_report', label: 'Status Report / Shareholding Chart' },
+  { value: 'operating_license', label: 'Operating License (CBN, SEC, etc.)' },
+  { value: 'company_resolution', label: 'Company Resolution' },
+  { value: 'aml_policy', label: 'AML / CFT Policy' },
+  { value: 'kyc_policy', label: 'KYC Policy' },
+  { value: 'data_protection', label: 'Data Protection Policy' },
+  { value: 'all', label: 'All Documents (Single bundle)' },
+]
 
 export const Route = createFileRoute('/users/$userId')({
   beforeLoad: () => {
@@ -287,6 +304,13 @@ function UserDetailPage() {
   const [showRejectAppConfirm, setShowRejectAppConfirm] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
+  // Document upload / update modal state
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [selectedDocForUpdate, setSelectedDocForUpdate] = useState<UserDocument | null>(null)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [docType, setDocType] = useState<string>('valid_ids')
+  const [docCountry, setDocCountry] = useState<string>('NG')
+
   // Fetch user details by ID
   const { data: userData, isLoading: loadingUser } = useQuery({
     queryKey: ['user', userId],
@@ -429,6 +453,62 @@ function UserDetailPage() {
       toast.error(err.response?.data?.message || 'Failed to reject document')
     },
   })
+
+  const uploadDocMutation = useMutation({
+    mutationFn: async ({ file, type, country }: { file: File; type: string; country: string }) => {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('docType', type)
+      form.append('docCountry', country.toUpperCase())
+
+      const response = await authApi.post(
+        `/api/users/onboard/upload-document/${userId}`,
+        form,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success(
+        selectedDocForUpdate
+          ? 'Document replaced and submitted successfully'
+          : 'Document uploaded successfully'
+      )
+      queryClient.invalidateQueries({ queryKey: ['user', userId] })
+      setIsUploadModalOpen(false)
+      setSelectedDocForUpdate(null)
+      setUploadFile(null)
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to upload document')
+    },
+  })
+
+  const handleOpenUploadNew = () => {
+    setSelectedDocForUpdate(null)
+    setUploadFile(null)
+    setDocType('valid_ids')
+    const fallbackCountry = (
+      userData?.country ||
+      userData?.profile?.country_code ||
+      userData?.merchant?.country ||
+      'NG'
+    ).toUpperCase()
+    setDocCountry(fallbackCountry)
+    setIsUploadModalOpen(true)
+  }
+
+  const handleOpenUpdateDoc = (doc: UserDocument) => {
+    setSelectedDocForUpdate(doc)
+    setUploadFile(null)
+    setDocType(doc.doc_type || 'valid_ids')
+    setDocCountry((doc.doc_country || userData?.country || 'NG').toUpperCase())
+    setIsUploadModalOpen(true)
+  }
 
   const copyAddress = (address: string) => {
     navigator.clipboard.writeText(address)
@@ -1056,12 +1136,43 @@ function UserDetailPage() {
           </div>
 
         {/* Verification Documents */}
-        {documents.length > 0 && (
-          <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline shadow-xl-3">
-            <h3 className="font-display text-lg text-ink mb-6 flex items-center gap-2">
+        <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline shadow-xl-3">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <h3 className="font-display text-lg text-ink flex items-center gap-2">
               <FileText className="w-5 h-5 text-ash" />
               Verification Documents ({documents.length})
             </h3>
+            {canManageUsers && (
+              <button
+                type="button"
+                onClick={handleOpenUploadNew}
+                className="px-3 py-1.5 text-xs font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload Document
+              </button>
+            )}
+          </div>
+
+          {documents.length === 0 ? (
+            <div className="text-center py-10 px-4 border border-dashed border-graphite-hairline rounded-xl bg-vellum/20">
+              <FileText className="w-10 h-10 text-slate/40 mx-auto mb-2.5" />
+              <p className="text-sm font-medium text-ink">No verification documents yet</p>
+              <p className="text-xs text-slate mt-1 max-w-sm mx-auto">
+                This customer has not uploaded any KYC verification documents. Admins with write permissions can upload documents on their behalf.
+              </p>
+              {canManageUsers && (
+                <button
+                  type="button"
+                  onClick={handleOpenUploadNew}
+                  className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand/90 rounded-lg transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Upload First Document
+                </button>
+              )}
+            </div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {documents.map((doc, index) => (
                 <div key={index} className="p-4 bg-vellum/30 border border-graphite-hairline rounded-xl space-y-2">
@@ -1084,9 +1195,16 @@ function UserDetailPage() {
                       </span>
                     )}
                   </div>
-                  <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline block">View Document</a>
+                  <div className="flex items-center justify-between pt-1">
+                    <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline block">View Document</a>
+                    {doc.doc_country && (
+                      <span className="text-[10px] text-slate font-mono uppercase bg-vellum px-1.5 py-0.5 rounded border border-graphite-hairline">
+                        {doc.doc_country}
+                      </span>
+                    )}
+                  </div>
                   {canManageUsers && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-graphite-hairline">
+                    <div className="flex items-center gap-2 pt-2 border-t border-graphite-hairline">
                       {doc.approval_status !== 'approved' && (
                         <button
                           onClick={() => approveDocMutation.mutate(doc.id)}
@@ -1114,13 +1232,22 @@ function UserDetailPage() {
                         )}
                         {doc.approval_status === 'approved' ? 'Disapprove' : 'Reject'}
                       </button>
+                      <button
+                        onClick={() => handleOpenUpdateDoc(doc)}
+                        disabled={uploadDocMutation.isPending}
+                        className="ml-auto px-2.5 py-1 text-[10px] font-medium text-slate hover:text-ink bg-vellum hover:bg-vellum/80 border border-graphite-hairline rounded-full transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title="Upload a new file to replace this document"
+                      >
+                        <Upload className="w-3 h-3" />
+                        Replace
+                      </button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Merchant Details */}
         {profile.role === 'merchant' && (
@@ -1816,6 +1943,170 @@ function UserDetailPage() {
         variant="danger"
         isLoading={rejectAppMutation.isPending}
       />
+
+      {/* Manual Document Upload / Update Modal */}
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          if (!uploadDocMutation.isPending) {
+            setIsUploadModalOpen(false)
+            setSelectedDocForUpdate(null)
+            setUploadFile(null)
+          }
+        }}
+        title={selectedDocForUpdate ? 'Replace / Update Document' : 'Upload Customer Document'}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate">
+            {selectedDocForUpdate ? (
+              <>
+                Uploading a replacement will overwrite the file in Cloudinary, update the customer record in <span className="font-mono text-ink">auth_services</span>, and reset approval status to <span className="font-semibold text-amber-700">Pending</span>.
+              </>
+            ) : (
+              <>
+                Upload a verification document on behalf of this customer. The file is uploaded to Cloudinary and registered directly in <span className="font-mono text-ink">auth_services</span>.
+              </>
+            )}
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              Document Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
+              disabled={uploadDocMutation.isPending}
+              className="w-full px-3 py-2 text-xs bg-vellum/50 border border-graphite-hairline rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors disabled:opacity-50"
+            >
+              {selectedDocForUpdate && !DOCUMENT_TYPE_OPTIONS.some((o) => o.value === selectedDocForUpdate.doc_type) && (
+                <option value={selectedDocForUpdate.doc_type}>
+                  {formatDocType(selectedDocForUpdate.doc_type)} (Current)
+                </option>
+              )}
+              {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              Issuing Country <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={docCountry}
+              onChange={(e) => setDocCountry(e.target.value)}
+              disabled={uploadDocMutation.isPending}
+              className="w-full px-3 py-2 text-xs bg-vellum/50 border border-graphite-hairline rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors disabled:opacity-50"
+            >
+              <option value="">Select country...</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink mb-1.5">
+              Document File <span className="text-red-500">*</span>
+            </label>
+            <div className="relative border-2 border-dashed border-graphite-hairline hover:border-brand/50 rounded-xl p-4 text-center bg-vellum/20 transition-colors">
+              <input
+                type="file"
+                id="doc-file-input"
+                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    if (file.size > 10 * 1024 * 1024) {
+                      toast.error('File size exceeds the 10MB limit')
+                      return
+                    }
+                    setUploadFile(file)
+                  }
+                }}
+                disabled={uploadDocMutation.isPending}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              />
+              {uploadFile ? (
+                <div className="flex items-center justify-between gap-3 text-left">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-brand shrink-0" />
+                    <div className="truncate">
+                      <p className="text-xs font-medium text-ink truncate">{uploadFile.name}</p>
+                      <p className="text-[10px] text-slate">{(uploadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setUploadFile(null)
+                    }}
+                    disabled={uploadDocMutation.isPending}
+                    className="p-1 rounded-md text-slate hover:text-red-600 hover:bg-vellum transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="py-2 space-y-1">
+                  <Upload className="w-6 h-6 text-slate/60 mx-auto mb-1" />
+                  <p className="text-xs font-medium text-ink">Click or drag file here to upload</p>
+                  <p className="text-[10px] text-slate">Supported: PNG, JPG, WEBP, PDF, DOCX (Max 10MB)</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-graphite-hairline">
+            <button
+              type="button"
+              onClick={() => {
+                setIsUploadModalOpen(false)
+                setSelectedDocForUpdate(null)
+                setUploadFile(null)
+              }}
+              disabled={uploadDocMutation.isPending}
+              className="px-3.5 py-2 text-xs font-medium text-slate hover:text-ink bg-vellum hover:bg-vellum/80 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (uploadFile && docType && docCountry) {
+                  uploadDocMutation.mutate({
+                    file: uploadFile,
+                    type: docType,
+                    country: docCountry,
+                  })
+                }
+              }}
+              disabled={!uploadFile || !docType || !docCountry || uploadDocMutation.isPending}
+              className="px-4 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
+            >
+              {uploadDocMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-3.5 h-3.5" />
+                  {selectedDocForUpdate ? 'Replace Document' : 'Upload Document'}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </AdminLayout>
   )
 }
