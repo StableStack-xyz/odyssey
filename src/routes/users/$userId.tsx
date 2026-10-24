@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { APP_NAME } from '../../lib/constants'
 import { getExplorerUrl } from '../../lib/explorer'
 import { usePermissions } from '../../hooks/usePermissions'
+import { ComplianceEvaluationCard } from '../../components/compliance/ComplianceEvaluationCard'
 
 const DOCUMENT_TYPE_OPTIONS = [
   { value: 'valid_ids', label: "Valid ID (Passport, Driver's License, National ID)" },
@@ -429,10 +430,15 @@ function UserDetailPage() {
     },
   })
 
+  const [compliancePayload, setCompliancePayload] = useState<{
+    tier?: string
+    report?: any
+  } | null>(null)
+
   // Compliance approve/reject
   const approveComplianceMutation = useMutation({
-    mutationFn: async (uid: string) => {
-      const response = await authApi.post(`/api/merchants/onboard/approve-compliance/${uid}`)
+    mutationFn: async ({ uid, payload }: { uid: string; payload?: any }) => {
+      const response = await authApi.post(`/api/merchants/onboard/approve-compliance/${uid}`, payload || {})
       return response.data
     },
     onSuccess: () => {
@@ -446,8 +452,8 @@ function UserDetailPage() {
   })
 
   const rejectComplianceMutation = useMutation({
-    mutationFn: async (uid: string) => {
-      const response = await authApi.post(`/api/merchants/onboard/reject-compliance/${uid}`)
+    mutationFn: async ({ uid, payload }: { uid: string; payload?: any }) => {
+      const response = await authApi.post(`/api/merchants/onboard/reject-compliance/${uid}`, payload || {})
       return response.data
     },
     onSuccess: () => {
@@ -1316,6 +1322,25 @@ function UserDetailPage() {
               </div>
             </div>
           </div>
+
+        {/* Compliance Expectation Rule Engine & Verification Checklist */}
+        {profile.role === 'merchant' && merchant && (
+          <ComplianceEvaluationCard
+            merchant={merchant}
+            userDocuments={documents}
+            userProfile={profile}
+            canManage={canManageUsers}
+            onApproveClick={(tier, reportPayload) => {
+              setCompliancePayload({ tier, report: reportPayload });
+              setShowApproveConfirm(true);
+            }}
+            onRejectClick={(tier, reportPayload) => {
+              setCompliancePayload({ tier, report: reportPayload });
+              setShowApproveReject(true);
+            }}
+            isApprovalPending={approveComplianceMutation.isPending || rejectComplianceMutation.isPending}
+          />
+        )}
 
         {/* Verification Documents */}
         <div className="bg-paper rounded-2xl p-6 border border-graphite-hairline shadow-xl-3">
@@ -2193,7 +2218,7 @@ function UserDetailPage() {
       <ConfirmDialog
         isOpen={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
-        onConfirm={() => approveComplianceMutation.mutate(profile.id)}
+        onConfirm={() => approveComplianceMutation.mutate({ uid: profile.id, payload: compliancePayload })}
         title="Approve Compliance"
         message={`Are you sure you want to approve the compliance for ${displayName}?`}
         confirmLabel="Approve Compliance"
@@ -2205,7 +2230,7 @@ function UserDetailPage() {
       <ConfirmDialog
         isOpen={showRejectConfirm}
         onClose={() => setShowApproveReject(false)}
-        onConfirm={() => rejectComplianceMutation.mutate(profile.id)}
+        onConfirm={() => rejectComplianceMutation.mutate({ uid: profile.id, payload: compliancePayload })}
         title={profile.compliance_status?.toLowerCase() === 'approved' ? 'Disapprove Compliance' : 'Reject Compliance'}
         message={
           profile.compliance_status?.toLowerCase() === 'approved'
