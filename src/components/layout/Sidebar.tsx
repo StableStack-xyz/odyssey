@@ -21,6 +21,7 @@ import {
   Landmark,
   ShieldCheck,
   Mail,
+  Fuel,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -39,6 +40,7 @@ const menuItems: MenuItem[] = [
   { icon: Users, label: 'Users', path: '/users', resource: 'users' },
   { icon: Wallet, label: 'Wallets', path: '/wallets', resource: 'wallets' },
   { icon: Gauge, label: 'Wallet Capacity', path: '/wallet-capacity', resource: 'wallet_capacity' },
+  { icon: Fuel, label: 'Gas Station', path: '/gas-station', resource: 'gas_station' },
   { icon: Landmark, label: 'Providers', path: '/providers', resource: 'providers' },
   { icon: ArrowLeftRight, label: 'Transactions', path: '/transactions', resource: 'transactions' },
   { icon: CreditCard, label: 'Beneficiaries', path: '/payouts', resource: 'payouts' },
