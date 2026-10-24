@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Mail,
   Fuel,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -38,6 +39,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/', resource: 'dashboard' },
   { icon: Users, label: 'Users', path: '/users', resource: 'users' },
+  { icon: ClipboardCheck, label: 'Compliance', path: '/compliance', resource: 'compliance' },
   { icon: Wallet, label: 'Wallets', path: '/wallets', resource: 'wallets' },
   { icon: Gauge, label: 'Wallet Capacity', path: '/wallet-capacity', resource: 'wallet_capacity' },
   { icon: Fuel, label: 'Gas Station', path: '/gas-station', resource: 'gas_station' },

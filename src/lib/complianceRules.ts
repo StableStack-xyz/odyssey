@@ -366,28 +366,85 @@ export const COMPLIANCE_RULES: ComplianceRule[] = [
 // RESOLVER & EVALUATOR FUNCTIONS
 // ==========================================
 
+const CUSTOM_RULES_STORAGE_KEY = 'stablestack_compliance_rules_v1';
+
+export function getCustomRules(): ComplianceRule[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_RULES_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function getAllComplianceRules(): ComplianceRule[] {
+  const custom = getCustomRules();
+  const merged = [...COMPLIANCE_RULES];
+  for (const cRule of custom) {
+    const idx = merged.findIndex((r) => r.country === cRule.country && r.tier === cRule.tier);
+    if (idx >= 0) {
+      merged[idx] = cRule;
+    } else {
+      merged.push(cRule);
+    }
+  }
+  return merged;
+}
+
+export function saveComplianceRule(rule: ComplianceRule): void {
+  if (typeof window === 'undefined') return;
+  const current = getCustomRules();
+  const idx = current.findIndex((r) => r.country === rule.country && r.tier === rule.tier);
+  if (idx >= 0) {
+    current[idx] = rule;
+  } else {
+    current.push(rule);
+  }
+  localStorage.setItem(CUSTOM_RULES_STORAGE_KEY, JSON.stringify(current));
+}
+
+export function resetComplianceRules(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(CUSTOM_RULES_STORAGE_KEY);
+}
+
+export function isCustomRule(country: string, tier: BusinessTier): boolean {
+  const custom = getCustomRules();
+  return custom.some((r) => r.country === country && r.tier === tier);
+}
+
+export function resetSpecificComplianceRule(country: string, tier: BusinessTier): void {
+  if (typeof window === 'undefined') return;
+  const current = getCustomRules();
+  const filtered = current.filter((r) => !(r.country === country && r.tier === tier));
+  localStorage.setItem(CUSTOM_RULES_STORAGE_KEY, JSON.stringify(filtered));
+}
+
 export function getComplianceRule(
   countryCode?: string,
   tier: BusinessTier = 'general_business'
 ): ComplianceRule {
   const normalizedCountry = (countryCode || 'NG').toUpperCase();
+  const allRules = getAllComplianceRules();
 
   // 1. Try exact country + tier
-  const exact = COMPLIANCE_RULES.find(
+  const exact = allRules.find(
     (r) => r.country === normalizedCountry && r.tier === tier
   );
   if (exact) return exact;
 
   // 2. Try exact country with fallback tier
-  const countryFallback = COMPLIANCE_RULES.find(
+  const countryFallback = allRules.find(
     (r) => r.country === normalizedCountry
   );
   if (countryFallback) return countryFallback;
 
   // 3. Fallback to GLOBAL rule
-  const globalRule = COMPLIANCE_RULES.find(
+  const globalRule = allRules.find(
     (r) => r.country === 'GLOBAL' && r.tier === tier
-  ) || COMPLIANCE_RULES.find((r) => r.country === 'GLOBAL')!;
+  ) || allRules.find((r) => r.country === 'GLOBAL')!;
 
   return globalRule;
 }

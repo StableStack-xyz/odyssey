@@ -55,7 +55,7 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     id: 'compliance',
     label: 'Compliance & KYB',
     description: 'Review compliance checklists, execute automated identity/AML verification suites, and approve/reject merchant applications',
-    routes: ['/users'],
+    routes: ['/compliance', '/users'],
     actions: ['read', 'write'],
   },
   {
