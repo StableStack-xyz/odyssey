@@ -12,30 +12,23 @@ try {
 
 const distRedirectsPath = path.resolve(process.cwd(), 'dist/client/_redirects');
 
-// Netlify environment variable
-const authBaseUrl = (process.env.VITE_REACT_APP_AUTH_BASE_URL || '').trim();
+// Read upstream gateway URL from Netlify build environment
+const gatewayUrl = (
+  process.env.INTERNAL_MIDDLEWARE_URL ||
+  process.env.VITE_REACT_APP_GATEWAY_URL ||
+  ''
+).trim();
 
-if (!authBaseUrl || authBaseUrl.startsWith('http://localhost') || authBaseUrl.startsWith('http://127.0.0.1')) {
-  console.log('[generate-redirects] No remote VITE_REACT_APP_AUTH_BASE_URL provided. Keeping default _redirects.');
+if (!gatewayUrl || gatewayUrl.startsWith('http://localhost') || gatewayUrl.startsWith('http://127.0.0.1')) {
+  console.log('[generate-redirects] No remote gateway URL provided. Using fallback function redirects.');
   process.exit(0);
 }
 
-const cleanAuthUrl = authBaseUrl.replace(/\/+$/, '');
-const authRule = `/api/auth/*  ${cleanAuthUrl}/:splat  200!`;
+const cleanGatewayUrl = gatewayUrl.replace(/\/+$/, '');
 
-let currentContent = '';
-if (fs.existsSync(distRedirectsPath)) {
-  currentContent = fs.readFileSync(distRedirectsPath, 'utf-8');
-} else {
-  // Fallback defaults if dist/client/_redirects wasn't generated yet
-  currentContent = '/api/*  /.netlify/functions/api  200\n/*      /index.html              200\n';
-}
+// 200! forces Netlify CDN edge to reverse-proxy directly to internal-middleware
+// This bypasses AWS Lambda limits (enabling large file uploads up to 50MB)
+const redirectsContent = `/api/*  ${cleanGatewayUrl}/api/:splat  200!\n/*      /index.html  200\n`;
 
-// Avoid duplicate prepend if script runs multiple times
-if (!currentContent.includes('/api/auth/*')) {
-  const updatedContent = `${authRule}\n${currentContent}`;
-  fs.writeFileSync(distRedirectsPath, updatedContent.trim() + '\n', 'utf-8');
-  console.log(`[generate-redirects] Successfully prepended proxy rule:\n  ${authRule}`);
-} else {
-  console.log('[generate-redirects] /api/auth/* rule already present in _redirects.');
-}
+fs.writeFileSync(distRedirectsPath, redirectsContent, 'utf-8');
+console.log(`[generate-redirects] Generated CDN proxy rule:\n  /api/* -> ${cleanGatewayUrl}/api/:splat`);
