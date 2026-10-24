@@ -28,6 +28,7 @@ import { Route as GasStationIndexRouteImport } from './routes/gas-station/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
 import { Route as EmailsIndexRouteImport } from './routes/emails/index'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
+import { Route as ComplianceIndexRouteImport } from './routes/compliance/index'
 import { Route as AssetsIndexRouteImport } from './routes/assets/index'
 import { Route as AdminsIndexRouteImport } from './routes/admins/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
@@ -133,6 +134,11 @@ const CountriesIndexRoute = CountriesIndexRouteImport.update({
   path: '/countries/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ComplianceIndexRoute = ComplianceIndexRouteImport.update({
+  id: '/compliance/',
+  path: '/compliance/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssetsIndexRoute = AssetsIndexRouteImport.update({
   id: '/assets/',
   path: '/assets/',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/activity/': typeof ActivityIndexRoute
   '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
+  '/compliance/': typeof ComplianceIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/activity': typeof ActivityIndexRoute
   '/admins': typeof AdminsIndexRoute
   '/assets': typeof AssetsIndexRoute
+  '/compliance': typeof ComplianceIndexRoute
   '/countries': typeof CountriesIndexRoute
   '/emails': typeof EmailsIndexRoute
   '/fees': typeof FeesIndexRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/activity/': typeof ActivityIndexRoute
   '/admins/': typeof AdminsIndexRoute
   '/assets/': typeof AssetsIndexRoute
+  '/compliance/': typeof ComplianceIndexRoute
   '/countries/': typeof CountriesIndexRoute
   '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/activity/'
     | '/admins/'
     | '/assets/'
+    | '/compliance/'
     | '/countries/'
     | '/emails/'
     | '/fees/'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/activity'
     | '/admins'
     | '/assets'
+    | '/compliance'
     | '/countries'
     | '/emails'
     | '/fees'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/activity/'
     | '/admins/'
     | '/assets/'
+    | '/compliance/'
     | '/countries/'
     | '/emails/'
     | '/fees/'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   ActivityIndexRoute: typeof ActivityIndexRoute
   AdminsIndexRoute: typeof AdminsIndexRoute
   AssetsIndexRoute: typeof AssetsIndexRoute
+  ComplianceIndexRoute: typeof ComplianceIndexRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
   EmailsIndexRoute: typeof EmailsIndexRoute
   FeesIndexRoute: typeof FeesIndexRoute
@@ -530,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CountriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compliance/': {
+      id: '/compliance/'
+      path: '/compliance'
+      fullPath: '/compliance/'
+      preLoaderRoute: typeof ComplianceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assets/': {
       id: '/assets/'
       path: '/assets'
@@ -611,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityIndexRoute: ActivityIndexRoute,
   AdminsIndexRoute: AdminsIndexRoute,
   AssetsIndexRoute: AssetsIndexRoute,
+  ComplianceIndexRoute: ComplianceIndexRoute,
   CountriesIndexRoute: CountriesIndexRoute,
   EmailsIndexRoute: EmailsIndexRoute,
   FeesIndexRoute: FeesIndexRoute,
