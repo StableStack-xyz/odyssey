@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { authRequest, walletRequest, request } from './baseUrl';
+import { authRequest, walletRequest, request, identityRequest } from './baseUrl';
 
 // Create axios instances for each service
 export const authApi = axios.create({
@@ -19,6 +19,13 @@ export const walletApi = axios.create({
 
 export const baseApi = axios.create({
   baseURL: request,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const identityApi = axios.create({
+  baseURL: identityRequest,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -68,6 +75,9 @@ walletApi.interceptors.response.use((res) => res, handleAuthError);
 
 baseApi.interceptors.request.use(addAuthToken);
 baseApi.interceptors.response.use((res) => res, handleAuthError);
+
+identityApi.interceptors.request.use(addAuthToken);
+identityApi.interceptors.response.use((res) => res, handleAuthError);
 
 // Helper to get error message
 export const getErrorMessage = (error: unknown): string => {
