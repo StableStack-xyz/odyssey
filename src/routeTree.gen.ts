@@ -24,6 +24,7 @@ import { Route as ReportsIndexRouteImport } from './routes/reports/index'
 import { Route as ProvidersIndexRouteImport } from './routes/providers/index'
 import { Route as PayoutsIndexRouteImport } from './routes/payouts/index'
 import { Route as OtcIndexRouteImport } from './routes/otc/index'
+import { Route as GasStationIndexRouteImport } from './routes/gas-station/index'
 import { Route as FeesIndexRouteImport } from './routes/fees/index'
 import { Route as EmailsIndexRouteImport } from './routes/emails/index'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
@@ -112,6 +113,11 @@ const OtcIndexRoute = OtcIndexRouteImport.update({
   path: '/otc/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GasStationIndexRoute = GasStationIndexRouteImport.update({
+  id: '/gas-station/',
+  path: '/gas-station/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeesIndexRoute = FeesIndexRouteImport.update({
   id: '/fees/',
   path: '/fees/',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/countries/': typeof CountriesIndexRoute
   '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
+  '/gas-station/': typeof GasStationIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
   '/providers/': typeof ProvidersIndexRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/countries': typeof CountriesIndexRoute
   '/emails': typeof EmailsIndexRoute
   '/fees': typeof FeesIndexRoute
+  '/gas-station': typeof GasStationIndexRoute
   '/otc': typeof OtcIndexRoute
   '/payouts': typeof PayoutsIndexRoute
   '/providers': typeof ProvidersIndexRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/countries/': typeof CountriesIndexRoute
   '/emails/': typeof EmailsIndexRoute
   '/fees/': typeof FeesIndexRoute
+  '/gas-station/': typeof GasStationIndexRoute
   '/otc/': typeof OtcIndexRoute
   '/payouts/': typeof PayoutsIndexRoute
   '/providers/': typeof ProvidersIndexRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/countries/'
     | '/emails/'
     | '/fees/'
+    | '/gas-station/'
     | '/otc/'
     | '/payouts/'
     | '/providers/'
@@ -311,6 +321,7 @@ export interface FileRouteTypes {
     | '/countries'
     | '/emails'
     | '/fees'
+    | '/gas-station'
     | '/otc'
     | '/payouts'
     | '/providers'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/countries/'
     | '/emails/'
     | '/fees/'
+    | '/gas-station/'
     | '/otc/'
     | '/payouts/'
     | '/providers/'
@@ -370,6 +382,7 @@ export interface RootRouteChildren {
   CountriesIndexRoute: typeof CountriesIndexRoute
   EmailsIndexRoute: typeof EmailsIndexRoute
   FeesIndexRoute: typeof FeesIndexRoute
+  GasStationIndexRoute: typeof GasStationIndexRoute
   OtcIndexRoute: typeof OtcIndexRoute
   PayoutsIndexRoute: typeof PayoutsIndexRoute
   ProvidersIndexRoute: typeof ProvidersIndexRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OtcIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gas-station/': {
+      id: '/gas-station/'
+      path: '/gas-station'
+      fullPath: '/gas-station/'
+      preLoaderRoute: typeof GasStationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fees/': {
       id: '/fees/'
       path: '/fees'
@@ -594,6 +614,7 @@ const rootRouteChildren: RootRouteChildren = {
   CountriesIndexRoute: CountriesIndexRoute,
   EmailsIndexRoute: EmailsIndexRoute,
   FeesIndexRoute: FeesIndexRoute,
+  GasStationIndexRoute: GasStationIndexRoute,
   OtcIndexRoute: OtcIndexRoute,
   PayoutsIndexRoute: PayoutsIndexRoute,
   ProvidersIndexRoute: ProvidersIndexRoute,

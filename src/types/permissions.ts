@@ -7,6 +7,7 @@ export type ResourceModule =
   | 'users'
   | 'wallets'
   | 'wallet_capacity'
+  | 'gas_station'
   | 'providers'
   | 'transactions'
   | 'payouts'
@@ -61,6 +62,13 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     label: 'Wallet Capacity',
     description: 'Monitor real-time capacity and tier thresholds',
     routes: ['/wallet-capacity'],
+    actions: ['read', 'write'],
+  },
+  {
+    id: 'gas_station',
+    label: 'Gas Station',
+    description: 'Monitor native gas tank balances, automated funding history, health telemetry, and manual gas top-ups',
+    routes: ['/gas-station'],
     actions: ['read', 'write'],
   },
   {
