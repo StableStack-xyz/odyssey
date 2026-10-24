@@ -6,6 +6,7 @@
   
   /* Light Mode Palette */
   --color-ink: #2c1047;                  /* Deep plum-indigo wordmark color */
+  --color-brand: #2c1047;                /* StableStack signature brand plum */
   --color-paper: #fefcf9;                /* Warm ivory paper canvas */
   --color-vellum: #e6e2df;               /* Sandstone cream from logo-dark */
   --color-graphite-hairline: #e3deda;    /* Warm stone borders */
@@ -71,6 +72,7 @@
 /* Dark Mode Palette (Inverted Plum & Sandstone) */
 .dark {
   --color-ink: #f7f5f2;                  /* Warm ivory sandstone text */
+  --color-brand: #d65a84;                /* Accent rose / plum for dark mode */
   --color-paper: #1c0a2e;                /* Deeper brand plum canvas */
   --color-vellum: #2c1047;               /* Deep plum container backgrounds */
   --color-graphite-hairline: #3b1d5c;    /* Deep violet-plum borders */

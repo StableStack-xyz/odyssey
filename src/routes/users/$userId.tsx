@@ -30,6 +30,33 @@ const DOCUMENT_TYPE_OPTIONS = [
   { value: 'all', label: 'All Documents (Single bundle)' },
 ]
 
+const UBO_DOC_TYPE_OPTIONS = [
+  'Proof of Address',
+  'Passport',
+  'National ID',
+  "Driver's License",
+  'Bank Statement',
+  'Utility Bill',
+  'Board Resolution',
+  'Share Certificate',
+  'Power of Attorney',
+  'Source of Wealth',
+  'Other',
+]
+
+interface MerchantUploadTarget {
+  kind: 'policy' | 'ubo_id' | 'ubo_supporting_doc'
+  title: string
+  description?: string
+  policyKey?: 'amlPolicy' | 'kycPolicy' | 'dataProtectionPolicy'
+  ownerIndex?: number
+  ownerName?: string
+  side?: 'front_image' | 'back_image'
+  docIndex?: number
+  existingDocType?: string
+  existingSubType?: string
+}
+
 export const Route = createFileRoute('/users/$userId')({
   beforeLoad: () => {
     if (typeof window !== 'undefined') {
@@ -311,6 +338,13 @@ function UserDetailPage() {
   const [docType, setDocType] = useState<string>('valid_ids')
   const [docCountry, setDocCountry] = useState<string>('NG')
 
+  // Merchant / Policy / UBO upload modal state
+  const [merchantUploadTarget, setMerchantUploadTarget] = useState<MerchantUploadTarget | null>(null)
+  const [merchantUploadFile, setMerchantUploadFile] = useState<File | null>(null)
+  const [uboDocType, setUboDocType] = useState<string>('Proof of Address')
+  const [uboCustomDocType, setUboCustomDocType] = useState<string>('')
+  const [uboSubType, setUboSubType] = useState<string>('')
+
   // Fetch user details by ID
   const { data: userData, isLoading: loadingUser } = useQuery({
     queryKey: ['user', userId],
@@ -508,6 +542,154 @@ function UserDetailPage() {
     setDocType(doc.doc_type || 'valid_ids')
     setDocCountry((doc.doc_country || userData?.country || 'NG').toUpperCase())
     setIsUploadModalOpen(true)
+  }
+
+  // Merchant & UBO upload mutation
+  const uploadMerchantAssetMutation = useMutation({
+    mutationFn: async ({
+      file,
+      target,
+    }: {
+      file: File
+      target: MerchantUploadTarget
+    }) => {
+      // 1. Upload file to Cloudinary via auth_services upload-file
+      const form = new FormData()
+      form.append('file', file)
+
+      const uploadRes = await authApi.post('/api/users/onboard/upload-file', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      const fileUrl = uploadRes.data?.data?.fileUrl
+      if (!fileUrl) throw new Error('File URL not returned from upload')
+
+      // 2. Prepare merchant data update (ensuring json arrays are preserved)
+      const currentMerchant = userData?.merchant
+      const owners = Array.isArray(currentMerchant?.business_owners)
+        ? JSON.parse(JSON.stringify(currentMerchant.business_owners))
+        : []
+
+      const merchantUpdate: any = {
+        business_owners: owners,
+        operating_countries: currentMerchant?.operating_countries || [],
+        transaction_countries: currentMerchant?.transaction_countries || [],
+      }
+
+      if (target.kind === 'policy' && target.policyKey) {
+        merchantUpdate[target.policyKey] = fileUrl
+      } else if (target.kind === 'ubo_id' && target.ownerIndex !== undefined && target.side) {
+        if (!owners[target.ownerIndex]) {
+          throw new Error('Business owner not found at specified index')
+        }
+        owners[target.ownerIndex][target.side] = fileUrl
+        merchantUpdate.business_owners = owners
+      } else if (target.kind === 'ubo_supporting_doc' && target.ownerIndex !== undefined) {
+        if (!owners[target.ownerIndex]) {
+          throw new Error('Business owner not found at specified index')
+        }
+        const existingDocs = Array.isArray(owners[target.ownerIndex].supporting_document)
+          ? [...owners[target.ownerIndex].supporting_document]
+          : []
+
+        const effectiveDocType =
+          uboDocType === 'Other' && uboCustomDocType.trim()
+            ? uboCustomDocType.trim()
+            : uboDocType
+
+        const newDoc: SupportingDocument = {
+          doc_type: effectiveDocType || 'Supporting Document',
+          sub_type: uboSubType.trim() || null,
+          doc_image: fileUrl,
+        }
+
+        if (target.docIndex !== undefined && target.docIndex >= 0) {
+          existingDocs[target.docIndex] = newDoc
+        } else {
+          existingDocs.push(newDoc)
+        }
+        owners[target.ownerIndex].supporting_document = existingDocs
+        merchantUpdate.business_owners = owners
+      }
+
+      // 3. Update merchant in auth_services
+      const response = await authApi.put(
+        `/api/merchants/onboard/admin/${userId}`,
+        merchantUpdate
+      )
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success('Document uploaded and saved successfully')
+      queryClient.invalidateQueries({ queryKey: ['user', userId] })
+      setMerchantUploadTarget(null)
+      setMerchantUploadFile(null)
+      setUboCustomDocType('')
+      setUboSubType('')
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to update document')
+    },
+  })
+
+  const handleOpenPolicyUpload = (
+    policyKey: 'amlPolicy' | 'kycPolicy' | 'dataProtectionPolicy',
+    title: string,
+    existingUrl?: string | null
+  ) => {
+    setMerchantUploadFile(null)
+    setMerchantUploadTarget({
+      kind: 'policy',
+      policyKey,
+      title: `${existingUrl ? 'Replace' : 'Upload'} ${title}`,
+      description: `Upload the ${title} document for ${businessName || displayName}. The file will be stored in Cloudinary and saved to the merchant profile in auth_services.`,
+    })
+  }
+
+  const handleOpenUboIdUpload = (
+    ownerIndex: number,
+    ownerName: string,
+    side: 'front_image' | 'back_image',
+    hasExisting: boolean
+  ) => {
+    setMerchantUploadFile(null)
+    const sideLabel = side === 'front_image' ? 'Front' : 'Back'
+    setMerchantUploadTarget({
+      kind: 'ubo_id',
+      ownerIndex,
+      ownerName,
+      side,
+      title: `${hasExisting ? 'Replace' : 'Upload'} ${sideLabel} ID Image`,
+      description: `Upload the ${sideLabel.toLowerCase()} government-issued ID image for ${ownerName}. The file will be stored in Cloudinary and saved to the owner's profile.`,
+    })
+  }
+
+  const handleOpenUboSupportingDocUpload = (
+    ownerIndex: number,
+    ownerName: string,
+    docIndex?: number,
+    existingDoc?: SupportingDocument
+  ) => {
+    setMerchantUploadFile(null)
+    const initialType = existingDoc?.doc_type || 'Proof of Address'
+    if (UBO_DOC_TYPE_OPTIONS.includes(initialType)) {
+      setUboDocType(initialType)
+      setUboCustomDocType('')
+    } else {
+      setUboDocType('Other')
+      setUboCustomDocType(initialType)
+    }
+    setUboSubType(existingDoc?.sub_type || '')
+    setMerchantUploadTarget({
+      kind: 'ubo_supporting_doc',
+      ownerIndex,
+      ownerName,
+      docIndex,
+      existingDocType: existingDoc?.doc_type,
+      existingSubType: existingDoc?.sub_type || undefined,
+      title: docIndex !== undefined ? `Replace Supporting Document` : `Add Supporting Document`,
+      description: `Upload a supporting document (such as Proof of Address, Bank Statement, or Passport) for ${ownerName}.`,
+    })
   }
 
   const copyAddress = (address: string) => {
@@ -1342,37 +1524,91 @@ function UserDetailPage() {
             </div>
 
             {/* Policies */}
-            {merchant.policies && (
-              <div className="mt-6 pt-6 border-t border-graphite-hairline">
-                <p className="text-xs font-semibold text-ink mb-3">Policies</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
-                    <p className="text-[10px] text-slate uppercase">AML Policy</p>
-                    {merchant.policies.aml_policy ? (
-                      <a href={merchant.policies.aml_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+            <div className="mt-6 pt-6 border-t border-graphite-hairline">
+              <p className="text-xs font-semibold text-ink mb-3">Policies</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* AML Policy */}
+                <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex flex-col justify-between space-y-3">
+                  <div>
+                    <p className="text-[10px] text-slate uppercase tracking-wider font-semibold">AML / CFT Policy</p>
+                    {merchant.policies?.aml_policy ? (
+                      <a href={merchant.policies.aml_policy} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline block mt-1.5 break-all">
+                        View AML Policy
+                      </a>
                     ) : (
-                      <p className="text-sm text-ink">—</p>
+                      <p className="text-xs text-slate mt-1.5 italic">Not uploaded</p>
                     )}
                   </div>
-                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
-                    <p className="text-[10px] text-slate uppercase">KYC Policy</p>
-                    {merchant.policies.kyc_policy ? (
-                      <a href={merchant.policies.kyc_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+                  {canManageUsers && (
+                    <div className="pt-2 border-t border-graphite-hairline flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPolicyUpload('amlPolicy', 'AML / CFT Policy', merchant.policies?.aml_policy)}
+                        disabled={uploadMerchantAssetMutation.isPending}
+                        className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3 h-3" />
+                        {merchant.policies?.aml_policy ? 'Replace' : 'Upload'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* KYC Policy */}
+                <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex flex-col justify-between space-y-3">
+                  <div>
+                    <p className="text-[10px] text-slate uppercase tracking-wider font-semibold">KYC Policy</p>
+                    {merchant.policies?.kyc_policy ? (
+                      <a href={merchant.policies.kyc_policy} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline block mt-1.5 break-all">
+                        View KYC Policy
+                      </a>
                     ) : (
-                      <p className="text-sm text-ink">—</p>
+                      <p className="text-xs text-slate mt-1.5 italic">Not uploaded</p>
                     )}
                   </div>
-                  <div className="p-3 bg-paper border border-graphite-hairline rounded-lg">
-                    <p className="text-[10px] text-slate uppercase">Data Protection Policy</p>
-                    {merchant.policies.data_protection_policy ? (
-                      <a href={merchant.policies.data_protection_policy} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline">View</a>
+                  {canManageUsers && (
+                    <div className="pt-2 border-t border-graphite-hairline flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPolicyUpload('kycPolicy', 'KYC Policy', merchant.policies?.kyc_policy)}
+                        disabled={uploadMerchantAssetMutation.isPending}
+                        className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3 h-3" />
+                        {merchant.policies?.kyc_policy ? 'Replace' : 'Upload'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Data Protection Policy */}
+                <div className="p-3.5 bg-paper border border-graphite-hairline rounded-xl flex flex-col justify-between space-y-3">
+                  <div>
+                    <p className="text-[10px] text-slate uppercase tracking-wider font-semibold">Data Protection Policy</p>
+                    {merchant.policies?.data_protection_policy ? (
+                      <a href={merchant.policies.data_protection_policy} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline block mt-1.5 break-all">
+                        View Data Protection Policy
+                      </a>
                     ) : (
-                      <p className="text-sm text-ink">—</p>
+                      <p className="text-xs text-slate mt-1.5 italic">Not uploaded</p>
                     )}
                   </div>
+                  {canManageUsers && (
+                    <div className="pt-2 border-t border-graphite-hairline flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPolicyUpload('dataProtectionPolicy', 'Data Protection Policy', merchant.policies?.data_protection_policy)}
+                        disabled={uploadMerchantAssetMutation.isPending}
+                        className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3 h-3" />
+                        {merchant.policies?.data_protection_policy ? 'Replace' : 'Upload'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Financial Profile */}
             <div className="mt-6 pt-6 border-t border-graphite-hairline">
@@ -1547,37 +1783,103 @@ function UserDetailPage() {
                     )}
 
                     {/* ID Images */}
-                    {(owner.front_image || owner.back_image) && (
-                      <div className="mt-4 pt-4 border-t border-graphite-hairline">
-                        <p className="text-[10px] text-slate uppercase mb-2">ID Document Images</p>
-                        <div className="flex flex-wrap gap-4">
-                          {owner.front_image && (
-                            <a href={owner.front_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">Front Image</a>
+                    <div className="mt-4 pt-4 border-t border-graphite-hairline">
+                      <p className="text-[10px] text-slate uppercase mb-2 font-semibold">ID Document Images</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-2.5 bg-vellum/30 border border-graphite-hairline rounded-lg flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Front ID</p>
+                            {owner.front_image ? (
+                              <a href={owner.front_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline block mt-0.5">View Front Image</a>
+                            ) : (
+                              <span className="text-xs text-slate italic">Not uploaded</span>
+                            )}
+                          </div>
+                          {canManageUsers && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenUboIdUpload(i, [owner.firstName, owner.lastName].filter(Boolean).join(' ') || `Owner ${i + 1}`, 'front_image', Boolean(owner.front_image))}
+                              disabled={uploadMerchantAssetMutation.isPending}
+                              className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <Upload className="w-3 h-3" />
+                              {owner.front_image ? 'Replace' : 'Upload'}
+                            </button>
                           )}
-                          {owner.back_image && (
-                            <a href={owner.back_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">Back Image</a>
+                        </div>
+
+                        <div className="p-2.5 bg-vellum/30 border border-graphite-hairline rounded-lg flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-slate uppercase">Back ID</p>
+                            {owner.back_image ? (
+                              <a href={owner.back_image} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline block mt-0.5">View Back Image</a>
+                            ) : (
+                              <span className="text-xs text-slate italic">Not uploaded</span>
+                            )}
+                          </div>
+                          {canManageUsers && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenUboIdUpload(i, [owner.firstName, owner.lastName].filter(Boolean).join(' ') || `Owner ${i + 1}`, 'back_image', Boolean(owner.back_image))}
+                              disabled={uploadMerchantAssetMutation.isPending}
+                              className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <Upload className="w-3 h-3" />
+                              {owner.back_image ? 'Replace' : 'Upload'}
+                            </button>
                           )}
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Supporting Documents */}
-                    {owner.supporting_document && owner.supporting_document.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-graphite-hairline">
-                        <p className="text-[10px] text-slate uppercase mb-2">Supporting Documents ({owner.supporting_document.length})</p>
+                    <div className="mt-4 pt-4 border-t border-graphite-hairline">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] text-slate uppercase font-semibold">
+                          Supporting Documents ({owner.supporting_document?.length || 0})
+                        </p>
+                        {canManageUsers && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenUboSupportingDocUpload(i, [owner.firstName, owner.lastName].filter(Boolean).join(' ') || `Owner ${i + 1}`)}
+                            disabled={uploadMerchantAssetMutation.isPending}
+                            className="px-2.5 py-1 text-[10px] font-medium text-brand bg-brand/10 hover:bg-brand/20 border border-brand/20 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <Upload className="w-3 h-3" />
+                            Add Supporting Doc
+                          </button>
+                        )}
+                      </div>
+
+                      {owner.supporting_document && owner.supporting_document.length > 0 ? (
                         <div className="space-y-2">
                           {owner.supporting_document.map((doc: any, di: number) => (
-                            <div key={di} className="flex items-center justify-between p-2 bg-vellum/30 border border-graphite-hairline rounded-lg">
+                            <div key={di} className="flex items-center justify-between p-2.5 bg-vellum/30 border border-graphite-hairline rounded-lg">
                               <div>
                                 <span className="text-xs text-ink font-medium">{doc.doc_type}</span>
                                 {doc.sub_type && <span className="text-[10px] text-slate ml-2">({doc.sub_type})</span>}
                               </div>
-                              <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline shrink-0">View</a>
+                              <div className="flex items-center gap-2">
+                                <a href={doc.doc_image} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline">View</a>
+                                {canManageUsers && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenUboSupportingDocUpload(i, [owner.firstName, owner.lastName].filter(Boolean).join(' ') || `Owner ${i + 1}`, di, doc)}
+                                    disabled={uploadMerchantAssetMutation.isPending}
+                                    className="px-2 py-0.5 text-[10px] font-medium text-slate hover:text-ink bg-vellum hover:bg-vellum/80 border border-graphite-hairline rounded transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                  >
+                                    <Upload className="w-2.5 h-2.5" />
+                                    Replace
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-xs text-slate italic py-1">No supporting documents uploaded for this owner.</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2074,7 +2376,7 @@ function UserDetailPage() {
                 setUploadFile(null)
               }}
               disabled={uploadDocMutation.isPending}
-              className="px-3.5 py-2 text-xs font-medium text-slate hover:text-ink bg-vellum hover:bg-vellum/80 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-xs font-medium text-ink bg-transparent border border-graphite-hairline hover:bg-vellum/60 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
@@ -2090,7 +2392,7 @@ function UserDetailPage() {
                 }
               }}
               disabled={!uploadFile || !docType || !docCountry || uploadDocMutation.isPending}
-              className="px-4 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
+              className="px-5 py-2 text-xs font-semibold text-paper bg-ink hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
             >
               {uploadDocMutation.isPending ? (
                 <>
@@ -2106,6 +2408,173 @@ function UserDetailPage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Merchant Policies & UBO Upload Modal */}
+      <Modal
+        isOpen={Boolean(merchantUploadTarget)}
+        onClose={() => {
+          if (!uploadMerchantAssetMutation.isPending) {
+            setMerchantUploadTarget(null)
+            setMerchantUploadFile(null)
+            setUboCustomDocType('')
+            setUboSubType('')
+          }
+        }}
+        title={merchantUploadTarget?.title || 'Upload Document'}
+        size="md"
+      >
+        {merchantUploadTarget && (
+          <div className="space-y-4">
+            {merchantUploadTarget.description && (
+              <p className="text-xs text-slate">
+                {merchantUploadTarget.description}
+              </p>
+            )}
+
+            {merchantUploadTarget.kind === 'ubo_supporting_doc' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1.5">
+                    Document Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    <select
+                      value={uboDocType}
+                      onChange={(e) => setUboDocType(e.target.value)}
+                      disabled={uploadMerchantAssetMutation.isPending}
+                      className="w-full px-3 py-2 text-xs bg-vellum/50 border border-graphite-hairline rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors disabled:opacity-50"
+                    >
+                      {UBO_DOC_TYPE_OPTIONS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    {uboDocType === 'Other' && (
+                      <input
+                        type="text"
+                        placeholder="Specify document type..."
+                        value={uboCustomDocType}
+                        onChange={(e) => setUboCustomDocType(e.target.value)}
+                        disabled={uploadMerchantAssetMutation.isPending}
+                        className="w-full px-3 py-2 text-xs bg-vellum/50 border border-graphite-hairline rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1.5">
+                    Sub-Type / Note <span className="text-slate font-normal text-[11px]">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Utility bill, Electricity, Page 1"
+                    value={uboSubType}
+                    onChange={(e) => setUboSubType(e.target.value)}
+                    disabled={uploadMerchantAssetMutation.isPending}
+                    className="w-full px-3 py-2 text-xs bg-vellum/50 border border-graphite-hairline rounded-lg text-ink focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors disabled:opacity-50"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-ink mb-1.5">
+                File <span className="text-red-500">*</span>
+              </label>
+              <div className="relative border-2 border-dashed border-graphite-hairline hover:border-brand/50 rounded-xl p-4 text-center bg-vellum/20 transition-colors">
+                <input
+                  type="file"
+                  id="merchant-file-input"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.error('File size exceeds the 10MB limit')
+                        return
+                      }
+                      setMerchantUploadFile(file)
+                    }
+                  }}
+                  disabled={uploadMerchantAssetMutation.isPending}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                />
+                {merchantUploadFile ? (
+                  <div className="flex items-center justify-between gap-3 text-left">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-brand shrink-0" />
+                      <div className="truncate">
+                        <p className="text-xs font-medium text-ink truncate">{merchantUploadFile.name}</p>
+                        <p className="text-[10px] text-slate">{(merchantUploadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setMerchantUploadFile(null)
+                      }}
+                      disabled={uploadMerchantAssetMutation.isPending}
+                      className="p-1 rounded-md text-slate hover:text-red-600 hover:bg-vellum transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="py-2 space-y-1">
+                    <Upload className="w-6 h-6 text-slate/60 mx-auto mb-1" />
+                    <p className="text-xs font-medium text-ink">Click or drag file here to upload</p>
+                    <p className="text-[10px] text-slate">Supported: PNG, JPG, WEBP, PDF, DOCX (Max 10MB)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-graphite-hairline">
+              <button
+                type="button"
+                onClick={() => {
+                  setMerchantUploadTarget(null)
+                  setMerchantUploadFile(null)
+                  setUboCustomDocType('')
+                  setUboSubType('')
+                }}
+                disabled={uploadMerchantAssetMutation.isPending}
+                className="px-4 py-2 text-xs font-medium text-ink bg-transparent border border-graphite-hairline hover:bg-vellum/60 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (merchantUploadFile && merchantUploadTarget) {
+                    uploadMerchantAssetMutation.mutate({
+                      file: merchantUploadFile,
+                      target: merchantUploadTarget,
+                    })
+                  }
+                }}
+                disabled={!merchantUploadFile || uploadMerchantAssetMutation.isPending}
+                className="px-5 py-2 text-xs font-semibold text-paper bg-ink hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95"
+              >
+                {uploadMerchantAssetMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload & Save
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </AdminLayout>
   )
