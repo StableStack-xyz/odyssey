@@ -34,6 +34,9 @@ export const handler = async (event) => {
     } else if (path.startsWith('/base')) {
       baseUrl = process.env.VITE_REACT_APP_BASE_URL;
       apiPath = path.replace('/base', '');
+    } else if (path.startsWith('/identity')) {
+      baseUrl = process.env.VITE_REACT_APP_IDENTITY_BASE_URL || 'http://localhost:4040';
+      apiPath = path.replace('/identity', '');
     } else {
       return {
         statusCode: 400,
