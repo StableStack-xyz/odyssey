@@ -323,8 +323,10 @@ function UserDetailPage() {
   const { userId } = useParams({ from: '/users/$userId' })
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { canWrite } = usePermissions()
+  const { canRead, canWrite } = usePermissions()
   const canManageUsers = canWrite('users')
+  const canReadCompliance = canRead('compliance') || canRead('users')
+  const canWriteCompliance = canWrite('compliance') || canWrite('users')
 
   const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [showRejectConfirm, setShowApproveReject] = useState(false)
@@ -1324,12 +1326,13 @@ function UserDetailPage() {
           </div>
 
         {/* Compliance Expectation Rule Engine & Verification Checklist */}
-        {profile.role === 'merchant' && merchant && (
+        {profile.role === 'merchant' && merchant && canReadCompliance && (
           <ComplianceEvaluationCard
             merchant={merchant}
             userDocuments={documents}
             userProfile={profile}
-            canManage={canManageUsers}
+            canRead={canReadCompliance}
+            canWrite={canWriteCompliance}
             onApproveClick={(tier, reportPayload) => {
               setCompliancePayload({ tier, report: reportPayload });
               setShowApproveConfirm(true);
